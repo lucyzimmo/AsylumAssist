@@ -1,0 +1,25 @@
+{
+  "expo": {
+    "name": "Zowy for Asylum",
+    "slug": "zowy-asylum-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#7CB342"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#7CB342"
+      }
+    },
+    "web": {}
+  }
+}
