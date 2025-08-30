@@ -86,10 +86,10 @@ export const AuthNavigator: React.FC = () => {
           headerShown: true,
           header: (props) => (
             <AuthHeader
-              {...props}
               title="Sign up"
-              showBack={true}
-              showHelp={true}
+              onBackPress={() => props.navigation.goBack()}
+              showBackButton={true}
+              showLanguageSelector={true}
             />
           ),
         }}
@@ -103,10 +103,10 @@ export const AuthNavigator: React.FC = () => {
           headerShown: true,
           header: (props) => (
             <AuthHeader
-              {...props}
               title="Log in"
-              showBack={true}
-              showHelp={true}
+              onBackPress={() => props.navigation.goBack()}
+              showBackButton={true}
+              showLanguageSelector={true}
             />
           ),
         }}
@@ -119,10 +119,10 @@ export const AuthNavigator: React.FC = () => {
           headerShown: true,
           header: (props) => (
             <AuthHeader
-              {...props}
               title="Reset Password"
-              showBack={true}
-              showHelp={false}
+              onBackPress={() => props.navigation.goBack()}
+              showBackButton={true}
+              showLanguageSelector={false}
             />
           ),
         }}
@@ -135,10 +135,10 @@ export const AuthNavigator: React.FC = () => {
           headerShown: true,
           header: (props) => (
             <AuthHeader
-              {...props}
               title="New Password"
-              showBack={true}
-              showHelp={false}
+              onBackPress={() => props.navigation.goBack()}
+              showBackButton={true}
+              showLanguageSelector={false}
             />
           ),
         }}
@@ -152,10 +152,10 @@ export const AuthNavigator: React.FC = () => {
           gestureEnabled: false,
           header: (props) => (
             <AuthHeader
-              {...props}
               title="Verify Email"
-              showBack={true}
-              showHelp={true}
+              onBackPress={() => props.navigation.goBack()}
+              showBackButton={true}
+              showLanguageSelector={false}
             />
           ),
         }}

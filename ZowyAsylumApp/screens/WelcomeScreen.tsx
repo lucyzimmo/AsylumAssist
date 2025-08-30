@@ -33,7 +33,11 @@ export const WelcomeScreen: React.FC = () => {
   };
 
   const handleViewResources = () => {
-    navigation.getParent()?.navigate('MainStack');
+    // Navigate to MainStack, which will show the Resources screen as a guest
+    const rootNavigation = navigation.getParent();
+    if (rootNavigation) {
+      rootNavigation.navigate('MainStack', { screen: 'Resources' });
+    }
   };
 
   return (
@@ -77,7 +81,7 @@ export const WelcomeScreen: React.FC = () => {
               title="View resources"
               onPress={handleViewResources}
               variant="outline"
-              size="large"
+              fullWidth
               style={styles.viewResourcesButton}
             />
             
@@ -85,7 +89,7 @@ export const WelcomeScreen: React.FC = () => {
               title="Sign up"
               onPress={handleSignUp}
               variant="primary"
-              size="large"
+              fullWidth
               style={styles.signUpButton}
             />
           </View>
@@ -98,7 +102,7 @@ export const WelcomeScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F5', // Light gray background
+    backgroundColor: '#F8F9FA', // Light gray background to match other screens
   },
 
   // Clover Background matching Start.png exactly
@@ -111,36 +115,37 @@ const styles = StyleSheet.create({
   },
   mainClover: {
     position: 'absolute',
-    top: -100,
-    left: -50,
-    width: 350,
-    height: 450,
+    top: -80,
+    left: -40,
+    width: 300,
+    height: 400,
     backgroundColor: Colors.primary,
-    borderRadius: 175,
+    borderRadius: 150,
     transform: [
-      { scaleX: 1.2 },
-      { scaleY: 1.1 },
-      { rotate: '-15deg' }
+      { scaleX: 1.3 },
+      { scaleY: 1.2 },
+      { rotate: '-12deg' }
     ],
   },
   cloverCenter: {
     position: 'absolute',
-    top: 110,
-    left: 30,
-    width: 120,
-    height: 120,
+    top: 120,
+    left: 40,
+    width: 100,
+    height: 100,
     backgroundColor: Colors.primaryLight,
-    borderRadius: 60,
-    opacity: 0.8,
+    borderRadius: 50,
+    opacity: 0.9,
   },
   bottomCircle: {
     position: 'absolute',
-    bottom: 150,
-    right: 50,
-    width: 140,
-    height: 140,
+    bottom: 100,
+    right: 30,
+    width: 120,
+    height: 120,
     backgroundColor: Colors.primary,
-    borderRadius: 70,
+    borderRadius: 60,
+    opacity: 0.8,
   },
 
   // Content Layout
@@ -191,13 +196,13 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   viewResourcesButton: {
-    backgroundColor: 'transparent',
-    borderColor: '#333333',
-    borderWidth: 1,
+    backgroundColor: Colors.white,
+    borderColor: Colors.textPrimary,
+    borderWidth: 2,
     borderRadius: 25,
   },
   signUpButton: {
-    backgroundColor: '#2E6B47', // Dark green from design
+    backgroundColor: Colors.primaryDark, // Dark green from design
     borderRadius: 25,
   },
 });

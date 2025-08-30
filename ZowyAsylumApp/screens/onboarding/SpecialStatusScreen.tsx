@@ -20,19 +20,20 @@ import { ProgressIndicator } from '../../components/ui/ProgressIndicator';
 import { Alert } from '../../components/ui/Alert';
 import { Modal } from '../../components/ui/Modal';
 import { DateDropdown } from '../../components/forms/DateDropdown';
+import { Dropdown } from '../../components/ui/Dropdown';
 import { AuthStackParamList } from '../../types/navigation';
 
 interface SpecialStatusFormData {
-  hasTPS: 'Yes' | 'No' | 'Not sure' | '';
+  hasTPS: 'yes' | 'no' | '';
   tpsCountry?: string;
   tpsExpirationDate?: Date | null;
-  hasParole: 'Yes' | 'No' | 'Not sure' | '';
+  hasParole: 'yes' | 'no' | '';
   paroleType?: string;
   paroleExpirationDate?: Date | null;
-  hasWorkPermit: 'Yes' | 'No' | 'Applied' | '';
+  hasWorkPermit: 'yes' | 'no' | 'applied' | '';
   workPermitNumber?: string;
   workPermitExpirationDate?: Date | null;
-  hasOtherStatus: 'Yes' | 'No' | '';
+  hasOtherStatus: 'yes' | 'no' | '';
   otherStatusDescription?: string;
 }
 
@@ -77,19 +78,16 @@ export const SpecialStatusScreen: React.FC<SpecialStatusScreenProps> = ({
     // Combine all onboarding data
     const completeOnboardingData = {
       ...route?.params?.onboardingData,
-      hasTPS: data.hasTPS === 'Yes' ? 'yes' as const : 
-              data.hasTPS === 'No' ? 'no' as const : 'not-sure' as const,
+      hasTPS: data.hasTPS as 'yes' | 'no',
       tpsCountry: data.tpsCountry,
       tpsExpirationDate: data.tpsExpirationDate?.toISOString(),
-      hasParole: data.hasParole === 'Yes' ? 'yes' as const : 
-                 data.hasParole === 'No' ? 'no' as const : 'not-sure' as const,
+      hasParole: data.hasParole as 'yes' | 'no',
       paroleType: data.paroleType,
       paroleExpirationDate: data.paroleExpirationDate?.toISOString(),
-      hasWorkPermit: data.hasWorkPermit === 'Yes' ? 'yes' as const :
-                     data.hasWorkPermit === 'No' ? 'no' as const : 'applied' as const,
+      hasWorkPermit: data.hasWorkPermit as 'yes' | 'no' | 'applied',
       workPermitNumber: data.workPermitNumber,
       workPermitExpirationDate: data.workPermitExpirationDate?.toISOString(),
-      hasOtherStatus: data.hasOtherStatus === 'Yes' ? 'yes' as const : 'no' as const,
+      hasOtherStatus: data.hasOtherStatus as 'yes' | 'no',
       otherStatusDescription: data.otherStatusDescription,
     };
 
@@ -129,12 +127,7 @@ export const SpecialStatusScreen: React.FC<SpecialStatusScreenProps> = ({
 
       {/* Progress */}
       <View style={styles.progressContainer}>
-        <ProgressIndicator
-          currentStep={3}
-          totalSteps={3}
-          stepLabels={['Asylum Status', 'Immigration Status', 'Special Status']}
-          showLabels={false}
-        />
+        <Text style={styles.progressText}>Step 3 of 3</Text>
       </View>
 
       <KeyboardAvoidingView
@@ -177,36 +170,22 @@ export const SpecialStatusScreen: React.FC<SpecialStatusScreenProps> = ({
                 name="hasTPS"
                 rules={{ required: 'Please select an option' }}
                 render={({ field: { onChange, value } }) => (
-                  <View style={styles.radioContainer}>
-                    {['Yes', 'No', 'Not sure'].map((option) => (
-                      <TouchableOpacity
-                        key={option}
-                        style={styles.radioOption}
-                        onPress={() => onChange(option)}
-                        accessibilityRole="radio"
-                        accessibilityState={{ checked: value === option }}
-                      >
-                        <View style={[
-                          styles.radioCircle,
-                          value === option && styles.radioCircleSelected
-                        ]}>
-                          {value === option && (
-                            <View style={styles.radioInner} />
-                          )}
-                        </View>
-                        <Text style={styles.radioText}>{option}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
+                  <Dropdown
+                    placeholder="Select option"
+                    options={[
+                      { label: 'Yes', value: 'yes' },
+                      { label: 'No', value: 'no' },
+                    ]}
+                    value={value}
+                    onSelect={onChange}
+                    error={errors.hasTPS?.message}
+                    containerStyle={styles.inputContainer}
+                  />
                 )}
               />
-              
-              {errors.hasTPS && (
-                <Text style={styles.errorText}>{errors.hasTPS.message}</Text>
-              )}
 
               {/* TPS Information Alert */}
-              {hasTPS === 'Yes' && (
+              {hasTPS === 'yes' && (
                 <View style={styles.alertContainer}>
                   <Alert
                     variant="info"
@@ -218,7 +197,7 @@ export const SpecialStatusScreen: React.FC<SpecialStatusScreenProps> = ({
             </View>
 
             {/* TPS Details */}
-            {hasTPS === 'Yes' && (
+            {hasTPS === 'yes' && (
               <>
                 <View style={styles.questionContainer}>
                   <Text style={styles.questionTitle}>
@@ -229,7 +208,7 @@ export const SpecialStatusScreen: React.FC<SpecialStatusScreenProps> = ({
                     control={control}
                     name="tpsCountry"
                     rules={{
-                      required: hasTPS === 'Yes' ? 'Country is required' : false,
+                      required: hasTPS === 'yes' ? 'Country is required' : false,
                     }}
                     render={({ field: { onChange, onBlur, value } }) => (
                       <Input
@@ -253,7 +232,7 @@ export const SpecialStatusScreen: React.FC<SpecialStatusScreenProps> = ({
                     control={control}
                     name="tpsExpirationDate"
                     rules={{
-                      required: hasTPS === 'Yes' ? 'Expiration date is required' : false,
+                      required: hasTPS === 'yes' ? 'Expiration date is required' : false,
                     }}
                     render={({ field: { onChange, value } }) => (
                       <DateDropdown
@@ -296,37 +275,23 @@ export const SpecialStatusScreen: React.FC<SpecialStatusScreenProps> = ({
                 name="hasParole"
                 rules={{ required: 'Please select an option' }}
                 render={({ field: { onChange, value } }) => (
-                  <View style={styles.radioContainer}>
-                    {['Yes', 'No', 'Not sure'].map((option) => (
-                      <TouchableOpacity
-                        key={option}
-                        style={styles.radioOption}
-                        onPress={() => onChange(option)}
-                        accessibilityRole="radio"
-                        accessibilityState={{ checked: value === option }}
-                      >
-                        <View style={[
-                          styles.radioCircle,
-                          value === option && styles.radioCircleSelected
-                        ]}>
-                          {value === option && (
-                            <View style={styles.radioInner} />
-                          )}
-                        </View>
-                        <Text style={styles.radioText}>{option}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
+                  <Dropdown
+                    placeholder="Select option"
+                    options={[
+                      { label: 'Yes', value: 'yes' },
+                      { label: 'No', value: 'no' },
+                    ]}
+                    value={value}
+                    onSelect={onChange}
+                    error={errors.hasParole?.message}
+                    containerStyle={styles.inputContainer}
+                  />
                 )}
               />
-              
-              {errors.hasParole && (
-                <Text style={styles.errorText}>{errors.hasParole.message}</Text>
-              )}
             </View>
 
             {/* Parole Details */}
-            {hasParole === 'Yes' && (
+            {hasParole === 'yes' && (
               <>
                 <View style={styles.questionContainer}>
                   <Text style={styles.questionTitle}>
@@ -398,38 +363,23 @@ export const SpecialStatusScreen: React.FC<SpecialStatusScreenProps> = ({
                 name="hasWorkPermit"
                 rules={{ required: 'Please select an option' }}
                 render={({ field: { onChange, value } }) => (
-                  <View style={styles.radioContainer}>
-                    {['Yes', 'No', 'Applied'].map((option) => (
-                      <TouchableOpacity
-                        key={option}
-                        style={styles.radioOption}
-                        onPress={() => onChange(option)}
-                        accessibilityRole="radio"
-                        accessibilityState={{ checked: value === option }}
-                      >
-                        <View style={[
-                          styles.radioCircle,
-                          value === option && styles.radioCircleSelected
-                        ]}>
-                          {value === option && (
-                            <View style={styles.radioInner} />
-                          )}
-                        </View>
-                        <Text style={styles.radioText}>
-                          {option === 'Applied' ? 'I have applied but haven\'t received it yet' : option}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
+                  <Dropdown
+                    placeholder="Select option"
+                    options={[
+                      { label: 'Yes', value: 'yes' },
+                      { label: 'No', value: 'no' },
+                      { label: 'I have applied but haven\'t received it yet', value: 'applied' },
+                    ]}
+                    value={value}
+                    onSelect={onChange}
+                    error={errors.hasWorkPermit?.message}
+                    containerStyle={styles.inputContainer}
+                  />
                 )}
               />
-              
-              {errors.hasWorkPermit && (
-                <Text style={styles.errorText}>{errors.hasWorkPermit.message}</Text>
-              )}
 
               {/* Work Authorization Timeline Alert */}
-              {hasWorkPermit === 'No' && (
+              {hasWorkPermit === 'no' && (
                 <View style={styles.alertContainer}>
                   <Alert
                     variant="info"
@@ -441,11 +391,11 @@ export const SpecialStatusScreen: React.FC<SpecialStatusScreenProps> = ({
             </View>
 
             {/* Work Permit Details */}
-            {(hasWorkPermit === 'Yes' || hasWorkPermit === 'Applied') && (
+            {(hasWorkPermit === 'yes' || hasWorkPermit === 'applied') && (
               <>
                 <View style={styles.questionContainer}>
                   <Text style={styles.questionTitle}>
-                    {hasWorkPermit === 'Yes' ? 'Work permit number' : 'Receipt number for work permit application'}
+                    {hasWorkPermit === 'yes' ? 'Work permit number' : 'Receipt number for work permit application'}
                   </Text>
                   
                   <Controller
@@ -456,7 +406,7 @@ export const SpecialStatusScreen: React.FC<SpecialStatusScreenProps> = ({
                         value={value || ''}
                         onChangeText={onChange}
                         onBlur={onBlur}
-                        placeholder={hasWorkPermit === 'Yes' ? 'EAD card number' : 'Receipt number'}
+                        placeholder={hasWorkPermit === 'yes' ? 'EAD card number' : 'Receipt number'}
                         errorText={errors.workPermitNumber?.message}
                         containerStyle={styles.inputContainer}
                       />
@@ -464,7 +414,7 @@ export const SpecialStatusScreen: React.FC<SpecialStatusScreenProps> = ({
                   />
                 </View>
 
-                {hasWorkPermit === 'Yes' && (
+                {hasWorkPermit === 'yes' && (
                   <View style={styles.questionContainer}>
                     <Text style={styles.questionTitle}>
                       When does your work permit expire?
@@ -505,37 +455,23 @@ export const SpecialStatusScreen: React.FC<SpecialStatusScreenProps> = ({
                 name="hasOtherStatus"
                 rules={{ required: 'Please select an option' }}
                 render={({ field: { onChange, value } }) => (
-                  <View style={styles.radioContainer}>
-                    {['Yes', 'No'].map((option) => (
-                      <TouchableOpacity
-                        key={option}
-                        style={styles.radioOption}
-                        onPress={() => onChange(option)}
-                        accessibilityRole="radio"
-                        accessibilityState={{ checked: value === option }}
-                      >
-                        <View style={[
-                          styles.radioCircle,
-                          value === option && styles.radioCircleSelected
-                        ]}>
-                          {value === option && (
-                            <View style={styles.radioInner} />
-                          )}
-                        </View>
-                        <Text style={styles.radioText}>{option}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
+                  <Dropdown
+                    placeholder="Select option"
+                    options={[
+                      { label: 'Yes', value: 'yes' },
+                      { label: 'No', value: 'no' },
+                    ]}
+                    value={value}
+                    onSelect={onChange}
+                    error={errors.hasOtherStatus?.message}
+                    containerStyle={styles.inputContainer}
+                  />
                 )}
               />
-              
-              {errors.hasOtherStatus && (
-                <Text style={styles.errorText}>{errors.hasOtherStatus.message}</Text>
-              )}
             </View>
 
             {/* Other Status Details */}
-            {hasOtherStatus === 'Yes' && (
+            {hasOtherStatus === 'yes' && (
               <View style={styles.questionContainer}>
                 <Text style={styles.questionTitle}>
                   Please describe your other status or pending applications
@@ -565,18 +501,10 @@ export const SpecialStatusScreen: React.FC<SpecialStatusScreenProps> = ({
         {/* Navigation Buttons */}
         <View style={styles.buttonContainer}>
           <Button
-            title="Go back"
-            onPress={handleGoBack}
-            variant="outline"
-            size="large"
-            style={styles.backButtonStyle}
-          />
-          
-          <Button
             title="Complete setup"
             onPress={handleSubmit(handleComplete)}
             variant="primary"
-            size="large"
+            fullWidth
             style={styles.completeButton}
           />
         </View>
@@ -655,42 +583,50 @@ export const SpecialStatusScreen: React.FC<SpecialStatusScreenProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.surface,
+    backgroundColor: '#F8F9FA',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
     paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
   },
   backButton: {
+    backgroundColor: '#E8F5E8',
+    paddingHorizontal: 16,
     paddingVertical: 8,
+    borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   backButtonText: {
     ...Typography.button,
-    color: Colors.primary,
+    color: Colors.textPrimary,
+    marginLeft: 4,
   },
   helpIcon: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: Colors.primary,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: Colors.primaryDark,
     justifyContent: 'center',
     alignItems: 'center',
   },
   helpText: {
     color: Colors.white,
-    fontSize: 12,
+    fontSize: 16,
     fontWeight: 'bold',
   },
   progressContainer: {
     paddingHorizontal: 24,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    paddingTop: 16,
+  },
+  progressText: {
+    ...Typography.caption,
+    color: Colors.textSecondary,
+    fontSize: 14,
+    marginBottom: 8,
   },
   content: {
     flex: 1,
@@ -789,10 +725,6 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderTopWidth: 1,
     borderTopColor: Colors.border,
-    gap: 12,
-  },
-  backButtonStyle: {
-    borderColor: Colors.border,
   },
   completeButton: {
     backgroundColor: Colors.primaryDark,

@@ -73,13 +73,6 @@ export const LoginScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={handleExit} style={styles.exitButton}>
-          <Ionicons name="chevron-back" size={18} color={Colors.textPrimary} />
-          <Text style={styles.exitText}>Exit</Text>
-        </TouchableOpacity>
-      </View>
-
       <View style={styles.content}>
         <Text style={styles.title}>Log in</Text>
 
@@ -165,22 +158,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-  },
-  exitButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  exitText: {
-    ...Typography.body,
-    color: Colors.textPrimary,
-    marginLeft: 6,
   },
   content: {
     flex: 1,

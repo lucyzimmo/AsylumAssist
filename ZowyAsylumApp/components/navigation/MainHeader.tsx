@@ -14,6 +14,8 @@ interface MainHeaderProps {
   title: string;
   onBackPress?: () => void;
   showBackButton?: boolean;
+  showBack?: boolean; // Legacy prop for compatibility
+  showHelp?: boolean; // Legacy prop for help button
   rightComponent?: React.ReactNode;
 }
 
@@ -21,13 +23,21 @@ export const MainHeader: React.FC<MainHeaderProps> = ({
   title,
   onBackPress,
   showBackButton = false,
+  showBack = false,
+  showHelp = false,
   rightComponent,
 }) => {
+  const shouldShowBackButton = showBackButton || showBack;
+  
+  const handleHelpPress = () => {
+    // TODO: Implement help functionality
+    console.log('Help pressed for:', title);
+  };
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
         <View style={styles.leftSection}>
-          {showBackButton && (
+          {shouldShowBackButton && (
             <TouchableOpacity
               onPress={onBackPress}
               style={styles.backButton}
@@ -43,6 +53,17 @@ export const MainHeader: React.FC<MainHeaderProps> = ({
         </View>
         
         <View style={styles.rightSection}>
+          {showHelp && (
+            <TouchableOpacity
+              onPress={handleHelpPress}
+              style={styles.helpButton}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <View style={styles.helpIcon}>
+                <Text style={styles.questionMark}>?</Text>
+              </View>
+            </TouchableOpacity>
+          )}
           {rightComponent}
         </View>
       </View>
@@ -76,6 +97,22 @@ const styles = StyleSheet.create({
   },
   backButton: {
     padding: 4,
+  },
+  helpButton: {
+    padding: 4,
+  },
+  helpIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: Colors.primaryDark,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  questionMark: {
+    color: Colors.white,
+    fontSize: 18,
+    fontWeight: 'bold',
   },
   title: {
     ...Typography.h4,

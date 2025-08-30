@@ -59,6 +59,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(true); // For demo, set to false to show empty state
   const [completedSteps, setCompletedSteps] = useState<string[]>([]);
+  const [showCompletedSteps, setShowCompletedSteps] = useState(false);
   
   const currentStep = timelineSteps[currentStepIndex];
 
@@ -112,13 +113,63 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
     );
   };
 
+  const handleEditTimeline = () => {
+    Alert.alert(
+      'Edit Timeline',
+      'Do you want to update your asylum journey information?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Update Information', 
+          onPress: () => {
+            // Navigate back to onboarding to update information
+            navigation.getParent()?.navigate('AuthStack', { 
+              screen: 'OnboardingStart'
+            });
+          }
+        }
+      ]
+    );
+  };
+
+  const handleShowCompletedSteps = () => {
+    setShowCompletedSteps(!showCompletedSteps);
+  };
+
+  const handleHelpPress = () => {
+    Alert.alert(
+      'Help & Support',
+      'Need assistance with your asylum journey?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Contact Support', 
+          onPress: () => {
+            // TODO: Navigate to support/help screen when created
+            Alert.alert('Support', 'Support contact information will be available soon.');
+          }
+        },
+        { 
+          text: 'View FAQ', 
+          onPress: () => {
+            // TODO: Navigate to FAQ screen when created
+            Alert.alert('FAQ', 'Frequently asked questions will be available soon.');
+          }
+        }
+      ]
+    );
+  };
+
   // Empty state when user hasn't completed onboarding
   if (!hasCompletedOnboarding) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Your Asylum Journey</Text>
-          <TouchableOpacity style={styles.helpButton}>
+          <TouchableOpacity 
+            style={styles.helpButton}
+            onPress={handleHelpPress}
+          >
             <View style={styles.helpIcon}>
               <Text style={styles.questionMark}>?</Text>
             </View>
@@ -142,7 +193,9 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
             </Text>
             <TouchableOpacity 
               style={styles.startQuestionnaireButton}
-              onPress={() => navigation.navigate('OnboardingStart')}
+              onPress={() => navigation.getParent()?.navigate('AuthStack', { 
+                screen: 'OnboardingStart'
+              })}
             >
               <Text style={styles.startQuestionnaireText}>Start questionnaire</Text>
             </TouchableOpacity>
@@ -157,7 +210,10 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
       {/* Header matching Home.png */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Your Asylum Journey</Text>
-        <TouchableOpacity style={styles.helpButton}>
+        <TouchableOpacity 
+          style={styles.helpButton}
+          onPress={handleHelpPress}
+        >
           <View style={styles.helpIcon}>
             <Text style={styles.questionMark}>?</Text>
           </View>
@@ -197,9 +253,37 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
 
           {/* Card Content */}
           <View style={styles.cardContent}>
-            <TouchableOpacity style={styles.showCompletedButton}>
-              <Text style={styles.showCompletedText}>Show completed steps</Text>
+            <TouchableOpacity 
+              style={styles.showCompletedButton}
+              onPress={handleShowCompletedSteps}
+            >
+              <Text style={styles.showCompletedText}>
+                {showCompletedSteps ? 'Hide completed steps' : 'Show completed steps'}
+              </Text>
             </TouchableOpacity>
+
+            {/* Show completed steps if toggled */}
+            {showCompletedSteps && completedSteps.length > 0 && (
+              <View style={styles.completedStepsSection}>
+                <Text style={styles.completedStepsTitle}>Completed Steps:</Text>
+                {completedSteps.map((stepId) => {
+                  const step = timelineSteps.find(s => s.id === stepId);
+                  return step ? (
+                    <View key={stepId} style={styles.completedStepItem}>
+                      <View style={styles.completedStepDot} />
+                      <Text style={styles.completedStepText}>{step.title}</Text>
+                      <Text style={styles.completedStepCheck}>✓</Text>
+                    </View>
+                  ) : null;
+                })}
+              </View>
+            )}
+
+            {showCompletedSteps && completedSteps.length === 0 && (
+              <View style={styles.noCompletedSteps}>
+                <Text style={styles.noCompletedStepsText}>No completed steps yet.</Text>
+              </View>
+            )}
 
             <View style={styles.nextStepSection}>
               <View style={styles.nextStepDot} />
@@ -224,14 +308,20 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
             </TouchableOpacity>
 
             {currentStep.hasMarkAsDone && (
-              <TouchableOpacity style={styles.markAsDoneButton}>
+              <TouchableOpacity 
+                style={styles.markAsDoneButton}
+                onPress={handleMarkAsDone}
+              >
                 <Text style={styles.markAsDoneText}>Mark as done</Text>
               </TouchableOpacity>
             )}
           </View>
 
           {/* Edit Timeline Link */}
-          <TouchableOpacity style={styles.editTimelineLink}>
+          <TouchableOpacity 
+            style={styles.editTimelineLink}
+            onPress={handleEditTimeline}
+          >
             <Text style={styles.editTimelineText}>Edit timeline</Text>
           </TouchableOpacity>
         </View>
@@ -251,7 +341,10 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
         </View>
 
         {/* Download Timeline Button */}
-        <TouchableOpacity style={styles.downloadTimelineButton}>
+        <TouchableOpacity 
+          style={styles.downloadTimelineButton}
+          onPress={handleDownloadTimeline}
+        >
           <Text style={styles.downloadTimelineText}>Download full timeline</Text>
         </TouchableOpacity>
       </ScrollView>
@@ -463,6 +556,54 @@ const styles = StyleSheet.create({
   showCompletedText: {
     fontSize: 16,
     color: '#666666',
+  },
+  completedStepsSection: {
+    marginTop: 16,
+    marginBottom: 16,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#E0E0E0',
+  },
+  completedStepsTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#000000',
+    marginBottom: 12,
+  },
+  completedStepItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  completedStepDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: Colors.primary,
+    marginRight: 12,
+  },
+  completedStepText: {
+    fontSize: 16,
+    color: '#333333',
+    flex: 1,
+  },
+  completedStepCheck: {
+    fontSize: 18,
+    color: Colors.primary,
+    fontWeight: 'bold',
+  },
+  noCompletedSteps: {
+    marginTop: 16,
+    marginBottom: 16,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#E0E0E0',
+  },
+  noCompletedStepsText: {
+    fontSize: 16,
+    color: '#999999',
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
   nextStepSection: {
     flexDirection: 'row',

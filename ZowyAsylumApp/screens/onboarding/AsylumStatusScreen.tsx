@@ -21,11 +21,12 @@ import { ProgressIndicator } from '../../components/ui/ProgressIndicator';
 import { Alert } from '../../components/ui/Alert';
 import { Modal } from '../../components/ui/Modal';
 import { DateDropdown } from '../../components/forms/DateDropdown';
+import { Dropdown } from '../../components/ui/Dropdown';
 import { AuthStackParamList } from '../../types/navigation';
 
 interface AsylumStatusFormData {
   entryDate: Date | null;
-  hasFiledI589: 'Yes' | 'No' | 'Not sure' | '';
+  hasFiledI589: 'yes' | 'no' | '';
   i589SubmissionDate?: Date | null;
   filingLocation?: string;
 }
@@ -35,6 +36,8 @@ type AsylumStatusScreenProps = StackScreenProps<AuthStackParamList, 'AsylumStatu
 export const AsylumStatusScreen: React.FC<AsylumStatusScreenProps> = ({ navigation }) => {
   const [showEntryDateInfo, setShowEntryDateInfo] = useState(false);
   const [showI589Info, setShowI589Info] = useState(false);
+  const [showSubmissionDateInfo, setShowSubmissionDateInfo] = useState(false);
+  const [showFilingLocationInfo, setShowFilingLocationInfo] = useState(false);
 
   const {
     control,
@@ -83,12 +86,9 @@ export const AsylumStatusScreen: React.FC<AsylumStatusScreenProps> = ({ navigati
     // Convert form data to navigation param format
     const asylumStatusData = {
       entryDate: data.entryDate?.toISOString(),
-      hasFiledI589: data.hasFiledI589 === 'Yes' ? 'yes' as const : 
-                   data.hasFiledI589 === 'No' ? 'no' as const : 'not-sure' as const,
+      hasFiledI589: data.hasFiledI589 as 'yes' | 'no',
       i589SubmissionDate: data.i589SubmissionDate?.toISOString(),
-      filingLocation: data.filingLocation === 'USCIS (Affirmative Process)' ? 'uscis' as const :
-                     data.filingLocation === 'Immigration Court (Defensive Process)' ? 'immigration-court' as const :
-                     data.filingLocation === 'Not sure' ? 'not-sure' as const : undefined,
+      filingLocation: data.filingLocation as 'uscis' | 'immigration-court' | 'not-sure' | undefined,
     };
     
     navigation.navigate('ImmigrationStatus', {
@@ -229,27 +229,17 @@ export const AsylumStatusScreen: React.FC<AsylumStatusScreenProps> = ({ navigati
                 name="hasFiledI589"
                 rules={{ required: 'Please select an option' }}
                 render={({ field: { onChange, value } }) => (
-                  <View style={styles.radioContainer}>
-                    {['Yes', 'No', 'Not sure'].map((option) => (
-                      <TouchableOpacity
-                        key={option}
-                        style={styles.radioOption}
-                        onPress={() => onChange(option)}
-                        accessibilityRole="radio"
-                        accessibilityState={{ checked: value === option }}
-                      >
-                        <View style={[
-                          styles.radioCircle,
-                          value === option && styles.radioCircleSelected
-                        ]}>
-                          {value === option && (
-                            <View style={styles.radioInner} />
-                          )}
-                        </View>
-                        <Text style={styles.radioText}>{option}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
+                  <Dropdown
+                    placeholder="Select option"
+                    options={[
+                      { label: 'Yes', value: 'yes' },
+                      { label: 'No', value: 'no' },
+                    ]}
+                    value={value}
+                    onSelect={onChange}
+                    error={errors.hasFiledI589?.message}
+                    containerStyle={styles.inputContainer}
+                  />
                 )}
               />
               
@@ -259,7 +249,7 @@ export const AsylumStatusScreen: React.FC<AsylumStatusScreenProps> = ({ navigati
             </View>
 
             {/* Conditional Fields for I-589 Filers */}
-            {hasFiledI589 === 'Yes' && (
+            {hasFiledI589 === 'yes' && (
               <>
                 <View style={styles.questionContainer}>
                   <Text style={styles.questionTitle}>
@@ -301,31 +291,18 @@ export const AsylumStatusScreen: React.FC<AsylumStatusScreenProps> = ({ navigati
                       required: 'Filing location is required',
                     }}
                     render={({ field: { onChange, value } }) => (
-                      <View style={styles.radioContainer}>
-                        {[
-                          'USCIS (Affirmative Process)',
-                          'Immigration Court (Defensive Process)',
-                          'Not sure'
-                        ].map((option) => (
-                          <TouchableOpacity
-                            key={option}
-                            style={styles.radioOption}
-                            onPress={() => onChange(option)}
-                            accessibilityRole="radio"
-                            accessibilityState={{ checked: value === option }}
-                          >
-                            <View style={[
-                              styles.radioCircle,
-                              value === option && styles.radioCircleSelected
-                            ]}>
-                              {value === option && (
-                                <View style={styles.radioInner} />
-                              )}
-                            </View>
-                            <Text style={styles.radioText}>{option}</Text>
-                          </TouchableOpacity>
-                        ))}
-                      </View>
+                      <Dropdown
+                        placeholder="Select option"
+                        options={[
+                          { label: 'USCIS (Affirmative Process)', value: 'uscis' },
+                          { label: 'Immigration Court (Defensive Process)', value: 'immigration-court' },
+                          { label: 'Not sure', value: 'not-sure' }
+                        ]}
+                        value={value}
+                        onSelect={onChange}
+                        error={errors.filingLocation?.message}
+                        containerStyle={styles.inputContainer}
+                      />
                     )}
                   />
                   {errors.filingLocation && (

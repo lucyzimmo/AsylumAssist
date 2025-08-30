@@ -18,6 +18,7 @@ interface AuthHeaderProps {
   currentStep?: number;
   totalSteps?: number;
   showProgress?: boolean;
+  showLanguageSelector?: boolean;
 }
 
 export const AuthHeader: React.FC<AuthHeaderProps> = ({
@@ -27,82 +28,116 @@ export const AuthHeader: React.FC<AuthHeaderProps> = ({
   currentStep,
   totalSteps,
   showProgress = false,
+  showLanguageSelector = true,
 }) => {
+  const handleLanguagePress = () => {
+    // TODO: Implement language selection
+    console.log('Language selection pressed');
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
-        <View style={styles.topSection}>
-          <View style={styles.leftSection}>
-            {showBackButton && (
-              <TouchableOpacity
-                onPress={onBackPress}
-                style={styles.backButton}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
-                <Ionicons name="arrow-back" size={24} color={Colors.white} />
-              </TouchableOpacity>
-            )}
-          </View>
-          
-          <View style={styles.centerSection}>
-            <Text style={styles.title}>{title}</Text>
-          </View>
-          
-          <View style={styles.rightSection} />
+        <View style={styles.leftSection}>
+          {showBackButton && (
+            <TouchableOpacity
+              onPress={onBackPress}
+              style={styles.exitButton}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="chevron-back" size={20} color={Colors.textPrimary} />
+              <Text style={styles.exitText}>Exit</Text>
+            </TouchableOpacity>
+          )}
         </View>
         
-        {showProgress && currentStep && totalSteps && (
-          <View style={styles.progressSection}>
-            <ProgressIndicator
-              currentStep={currentStep}
-              totalSteps={totalSteps}
-              showStepText={true}
-            />
+        {showLanguageSelector && (
+          <View style={styles.rightSection}>
+            <View style={styles.languageSelector}>
+              <Text style={styles.languageLabel}>Language:</Text>
+              <TouchableOpacity 
+                style={styles.languageButton}
+                onPress={handleLanguagePress}
+              >
+                <Text style={styles.languageText}>English</Text>
+                <Ionicons name="chevron-down" size={16} color={Colors.white} />
+              </TouchableOpacity>
+            </View>
           </View>
         )}
       </View>
+        
+      {showProgress && currentStep && totalSteps && (
+        <View style={styles.progressSection}>
+          <ProgressIndicator
+            currentStep={currentStep}
+            totalSteps={totalSteps}
+            showStepText={true}
+          />
+        </View>
+      )}
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   safeArea: {
-    backgroundColor: Colors.primary,
+    backgroundColor: '#F8F9FA', // Light gray background from design
   },
   header: {
-    backgroundColor: Colors.primary,
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-  },
-  topSection: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    minHeight: 56,
-    paddingTop: 12,
+    backgroundColor: '#F8F9FA', // Light gray background from design
+    paddingHorizontal: 20,
+    paddingVertical: 16,
   },
   leftSection: {
-    flex: 1,
     alignItems: 'flex-start',
   },
-  centerSection: {
-    flex: 2,
-    alignItems: 'center',
-  },
   rightSection: {
-    flex: 1,
     alignItems: 'flex-end',
   },
-  backButton: {
-    padding: 4,
+  exitButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E8F5E8', // Light green background for exit button
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
   },
-  title: {
-    ...Typography.h4,
+  exitText: {
+    ...Typography.body,
+    color: Colors.textPrimary,
+    marginLeft: 4,
+    fontSize: 16,
+  },
+  languageSelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  languageLabel: {
+    ...Typography.body,
+    color: Colors.textPrimary,
+    marginRight: 8,
+    fontSize: 16,
+  },
+  languageButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.primaryDark, // Dark green button for language
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  languageText: {
+    ...Typography.body,
     color: Colors.white,
-    fontWeight: '600',
-    textAlign: 'center',
+    marginRight: 8,
+    fontSize: 16,
   },
   progressSection: {
     marginTop: 16,
-    paddingHorizontal: 8,
+    paddingHorizontal: 20,
   },
 });

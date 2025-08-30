@@ -89,22 +89,6 @@ export const SignUpScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header with exit and language selector */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={handleExit} style={styles.exitButton}>
-          <Ionicons name="chevron-back" size={20} color={Colors.textPrimary} />
-          <Text style={styles.exitText}>Exit</Text>
-        </TouchableOpacity>
-        
-        <View style={styles.languageSelector}>
-          <Text style={styles.languageLabel}>Language:</Text>
-          <TouchableOpacity style={styles.languageButton}>
-            <Text style={styles.languageText}>English</Text>
-            <Ionicons name="chevron-down" size={16} color={Colors.white} />
-          </TouchableOpacity>
-        </View>
-      </View>
-
       {/* Content */}
       <View style={styles.content}>
         <Text style={styles.title}>Sign up</Text>
@@ -221,51 +205,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F8F9FA', // Light gray background from design
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-  },
-  exitButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#E8F5E8', // Light green background for exit button
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  exitText: {
-    ...Typography.body,
-    color: Colors.textPrimary,
-    marginLeft: 4,
-    fontSize: 16,
-  },
-  languageSelector: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  languageLabel: {
-    ...Typography.body,
-    color: Colors.textPrimary,
-    marginRight: 8,
-    fontSize: 16,
-  },
-  languageButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.primaryDark, // Dark green button for language
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  languageText: {
-    ...Typography.body,
-    color: Colors.white,
-    marginRight: 8,
-    fontSize: 16,
   },
   content: {
     flex: 1,

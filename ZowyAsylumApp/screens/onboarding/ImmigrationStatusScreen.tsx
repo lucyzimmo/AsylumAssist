@@ -10,6 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useForm, Controller } from 'react-hook-form';
 import { StackScreenProps } from '@react-navigation/stack';
 import { Colors } from '../../constants/Colors';
@@ -20,12 +21,11 @@ import { ProgressIndicator } from '../../components/ui/ProgressIndicator';
 import { Alert } from '../../components/ui/Alert';
 import { Modal } from '../../components/ui/Modal';
 import { DateDropdown } from '../../components/forms/DateDropdown';
+import { Dropdown } from '../../components/ui/Dropdown';
 import { AuthStackParamList } from '../../types/navigation';
 
 interface ImmigrationStatusFormData {
-  visitedEOIR: string;
-  hasCase: string;
-  aNumber?: string;
+  hasCase: 'yes' | 'no' | '';
   nextHearingDate?: Date | null;
   assignedCourt?: string;
 }
@@ -37,7 +37,6 @@ export const ImmigrationStatusScreen: React.FC<ImmigrationStatusScreenProps> = (
   route 
 }) => {
   const [showEOIRInfo, setShowEOIRInfo] = useState(false);
-  const [showANumberInfo, setShowANumberInfo] = useState(false);
   const [showCourtHearingInfo, setShowCourtHearingInfo] = useState(false);
 
   const {
@@ -47,29 +46,20 @@ export const ImmigrationStatusScreen: React.FC<ImmigrationStatusScreenProps> = (
     formState: { errors, isValid },
   } = useForm<ImmigrationStatusFormData>({
     defaultValues: {
-      visitedEOIR: '',
       hasCase: '',
-      aNumber: '',
       nextHearingDate: null,
       assignedCourt: '',
     },
     mode: 'onChange',
   });
 
-  const visitedEOIR = watch('visitedEOIR');
   const hasCase = watch('hasCase');
 
   const handleContinue = (data: ImmigrationStatusFormData) => {
     // Save form data to context/storage
     const combinedData = {
-      entryDate: route?.params?.asylumStatusData?.entryDate || '',
-      hasFiledI589: route?.params?.asylumStatusData?.hasFiledI589 || 'not-sure' as const,
-      i589SubmissionDate: route?.params?.asylumStatusData?.i589SubmissionDate,
-      filingLocation: route?.params?.asylumStatusData?.filingLocation,
-      visitedEOIR: data.visitedEOIR === 'Yes' ? 'yes' as const : 'no' as const,
-      hasCase: data.hasCase === 'Yes' ? 'yes' as const : 
-               data.hasCase === 'No' ? 'no' as const : 'not-sure' as const,
-      aNumber: data.aNumber,
+      ...route?.params?.asylumStatusData,
+      hasCase: data.hasCase as 'yes' | 'no',
       nextHearingDate: data.nextHearingDate?.toISOString(),
       assignedCourt: data.assignedCourt,
     };
@@ -110,12 +100,7 @@ export const ImmigrationStatusScreen: React.FC<ImmigrationStatusScreenProps> = (
 
       {/* Progress */}
       <View style={styles.progressContainer}>
-        <ProgressIndicator
-          currentStep={2}
-          totalSteps={3}
-          stepLabels={['Asylum Status', 'Immigration Status', 'Special Status']}
-          showLabels={false}
-        />
+        <Text style={styles.progressText}>Step 2 of 3</Text>
       </View>
 
       <KeyboardAvoidingView
@@ -135,13 +120,62 @@ export const ImmigrationStatusScreen: React.FC<ImmigrationStatusScreenProps> = (
             </Text>
           </View>
 
+          {/* EOIR Link */}
+          <View style={styles.linkSection}>
+            <Text style={styles.linkLabel}>Visit the EOIR website to check your case status using your A-number</Text>
+            <TouchableOpacity style={styles.linkButton}>
+              <Ionicons name="link-outline" size={16} color={Colors.primary} />
+              <Text style={styles.linkText}>EOIR Automated Case Information System</Text>
+            </TouchableOpacity>
+          </View>
+
           {/* Form */}
           <View style={styles.form}>
-            {/* EOIR Website Visit */}
+            {/* EOIR Case Question */}
             <View style={styles.questionContainer}>
               <View style={styles.questionHeader}>
                 <Text style={styles.questionTitle}>
-                  Visit the EOIR website to check your case status using your A-number.
+                  Does the EOIR website show that you have a case?
+                </Text>
+                <TouchableOpacity
+                  onPress={() => setShowCaseInfo(true)}
+                  style={styles.infoButton}
+                  accessibilityRole="button"
+                  accessibilityLabel="More information about EOIR cases"
+                >
+                  <Text style={styles.infoButtonText}>?</Text>
+                </TouchableOpacity>
+              </View>
+
+              <Controller
+                control={control}
+                name="hasCase"
+                rules={{ required: 'Please select an option' }}
+                render={({ field: { onChange, value } }) => (
+                  <Dropdown
+                    placeholder="Select option"
+                    options={[
+                      { label: 'Yes', value: 'yes' },
+                      { label: 'No', value: 'no' },
+                    ]}
+                    value={value}
+                    onSelect={onChange}
+                    error={errors.hasCase?.message}
+                    containerStyle={styles.inputContainer}
+                  />
+                )}
+              />
+              
+              {errors.visitedEOIR && (
+                <Text style={styles.errorText}>{errors.visitedEOIR.message}</Text>
+              )}
+            </View>
+
+            {/* EOIR Case Question */}
+            <View style={styles.questionContainer}>
+              <View style={styles.questionHeader}>
+                <Text style={styles.questionTitle}>
+                  Does the EOIR website show that you have a case?
                 </Text>
                 <TouchableOpacity
                   onPress={() => setShowEOIRInfo(true)}
@@ -152,90 +186,28 @@ export const ImmigrationStatusScreen: React.FC<ImmigrationStatusScreenProps> = (
                   <Text style={styles.infoButtonText}>ℹ️</Text>
                 </TouchableOpacity>
               </View>
-
-              <View style={styles.linkContainer}>
-                <TouchableOpacity style={styles.linkButton}>
-                  <Text style={styles.linkButtonText}>🌐 EOIR Automated Case Information System</Text>
-                </TouchableOpacity>
-              </View>
-
-              <Controller
-                control={control}
-                name="visitedEOIR"
-                rules={{ required: 'Please select an option' }}
-                render={({ field: { onChange, value } }) => (
-                  <View style={styles.radioContainer}>
-                    {['Yes', 'No'].map((option) => (
-                      <TouchableOpacity
-                        key={option}
-                        style={styles.radioOption}
-                        onPress={() => onChange(option)}
-                        accessibilityRole="radio"
-                        accessibilityState={{ checked: value === option }}
-                      >
-                        <View style={[
-                          styles.radioCircle,
-                          value === option && styles.radioCircleSelected
-                        ]}>
-                          {value === option && (
-                            <View style={styles.radioInner} />
-                          )}
-                        </View>
-                        <Text style={styles.radioText}>
-                          {option === 'Yes' ? 'I visited the EOIR website' : 'I haven\'t visited yet'}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                )}
-              />
-              
-              {errors.visitedEOIR && (
-                <Text style={styles.errorText}>{errors.visitedEOIR.message}</Text>
-              )}
-            </View>
-
-            {/* Case Status */}
-            <View style={styles.questionContainer}>
-              <Text style={styles.questionTitle}>
-                Does the EOIR website show that you have a case?
-              </Text>
               
               <Controller
                 control={control}
                 name="hasCase"
                 rules={{ required: 'Please select an option' }}
                 render={({ field: { onChange, value } }) => (
-                  <View style={styles.radioContainer}>
-                    {['Yes', 'No', 'Not sure'].map((option) => (
-                      <TouchableOpacity
-                        key={option}
-                        style={styles.radioOption}
-                        onPress={() => onChange(option)}
-                        accessibilityRole="radio"
-                        accessibilityState={{ checked: value === option }}
-                      >
-                        <View style={[
-                          styles.radioCircle,
-                          value === option && styles.radioCircleSelected
-                        ]}>
-                          {value === option && (
-                            <View style={styles.radioInner} />
-                          )}
-                        </View>
-                        <Text style={styles.radioText}>{option}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
+                  <Dropdown
+                    placeholder="Select option"
+                    options={[
+                      { label: 'Yes', value: 'yes' },
+                      { label: 'No', value: 'no' },
+                    ]}
+                    value={value}
+                    onSelect={onChange}
+                    error={errors.hasCase?.message}
+                    containerStyle={styles.inputContainer}
+                  />
                 )}
               />
-              
-              {errors.hasCase && (
-                <Text style={styles.errorText}>{errors.hasCase.message}</Text>
-              )}
 
               {/* Informational Alerts */}
-              {hasCase === 'Yes' && (
+              {hasCase === 'yes' && (
                 <View style={styles.alertContainer}>
                   <Alert
                     variant="warning"
@@ -245,7 +217,7 @@ export const ImmigrationStatusScreen: React.FC<ImmigrationStatusScreenProps> = (
                 </View>
               )}
 
-              {hasCase === 'No' && (
+              {hasCase === 'no' && (
                 <View style={styles.alertContainer}>
                   <Alert
                     variant="info"
@@ -257,58 +229,8 @@ export const ImmigrationStatusScreen: React.FC<ImmigrationStatusScreenProps> = (
             </View>
 
             {/* Conditional Fields for Court Cases */}
-            {hasCase === 'Yes' && (
+            {hasCase === 'yes' && (
               <>
-                {/* A-Number */}
-                <View style={styles.questionContainer}>
-                  <View style={styles.questionHeader}>
-                    <Text style={styles.questionTitle}>A-number</Text>
-                    <TouchableOpacity
-                      onPress={() => setShowANumberInfo(true)}
-                      style={styles.infoButton}
-                      accessibilityRole="button"
-                      accessibilityLabel="More information about A-number"
-                    >
-                      <Text style={styles.infoButtonText}>ℹ️</Text>
-                    </TouchableOpacity>
-                  </View>
-                  
-                  <Text style={styles.questionSubtitle}>
-                    Your A-number (Alien Registration Number) is assigned to you by 
-                    immigration authorities. It should appear on immigration documents.
-                  </Text>
-
-                  <View style={styles.linkContainer}>
-                    <TouchableOpacity style={styles.linkButton}>
-                      <Text style={styles.linkButtonText}>📋 How to find your A-number</Text>
-                    </TouchableOpacity>
-                  </View>
-
-                  <Controller
-                    control={control}
-                    name="aNumber"
-                    rules={{
-                      validate: (value) => {
-                        if (hasCase === 'Yes' && !value) {
-                          return 'A-number is required for court cases';
-                        }
-                        return true;
-                      },
-                    }}
-                    render={({ field: { onChange, onBlur, value } }) => (
-                      <Input
-                        value={value || ''}
-                        onChangeText={onChange}
-                        onBlur={onBlur}
-                        placeholder="Enter A-number"
-                        keyboardType="numeric"
-                        errorText={errors.aNumber?.message}
-                        state={errors.aNumber ? 'error' : 'default'}
-                        containerStyle={styles.inputContainer}
-                      />
-                    )}
-                  />
-                </View>
 
                 {/* Next Hearing Date */}
                 <View style={styles.questionContainer}>
@@ -329,6 +251,14 @@ export const ImmigrationStatusScreen: React.FC<ImmigrationStatusScreenProps> = (
                   <Controller
                     control={control}
                     name="nextHearingDate"
+                    rules={{
+                      validate: (value) => {
+                        if (hasCase === 'yes' && !value) {
+                          return 'Next hearing date is required';
+                        }
+                        return true;
+                      },
+                    }}
                     render={({ field: { onChange, value } }) => (
                       <DateDropdown
                         label="Next Hearing Date"
@@ -365,14 +295,31 @@ export const ImmigrationStatusScreen: React.FC<ImmigrationStatusScreenProps> = (
                   <Controller
                     control={control}
                     name="assignedCourt"
-                    render={({ field: { onChange, onBlur, value } }) => (
-                      <Input
-                        value={value || ''}
-                        onChangeText={onChange}
-                        onBlur={onBlur}
-                        placeholder="Select option"
-                        errorText={errors.assignedCourt?.message}
-                        state={errors.assignedCourt ? 'error' : 'default'}
+                    rules={{
+                      validate: (value) => {
+                        if (hasCase === 'yes' && !value) {
+                          return 'Court assignment is required';
+                        }
+                        return true;
+                      },
+                    }}
+                    render={({ field: { onChange, value } }) => (
+                      <Dropdown
+                        placeholder="Select immigration court"
+                        options={[
+                          { label: 'New York Immigration Court', value: 'new-york' },
+                          { label: 'Los Angeles Immigration Court', value: 'los-angeles' },
+                          { label: 'Miami Immigration Court', value: 'miami' },
+                          { label: 'San Francisco Immigration Court', value: 'san-francisco' },
+                          { label: 'Chicago Immigration Court', value: 'chicago' },
+                          { label: 'Houston Immigration Court', value: 'houston' },
+                          { label: 'Boston Immigration Court', value: 'boston' },
+                          { label: 'Arlington Immigration Court', value: 'arlington' },
+                          { label: 'Not sure', value: 'not-sure' },
+                        ]}
+                        value={value}
+                        onSelect={onChange}
+                        error={errors.assignedCourt?.message}
                         containerStyle={styles.inputContainer}
                       />
                     )}
@@ -422,25 +369,6 @@ export const ImmigrationStatusScreen: React.FC<ImmigrationStatusScreenProps> = (
         </Text>
       </Modal>
 
-      <Modal
-        visible={showANumberInfo}
-        onClose={() => setShowANumberInfo(false)}
-        title="A-number"
-        size="medium"
-      >
-        <Text style={styles.modalText}>
-          Your A-number (Alien Registration Number) is a unique identifier 
-          assigned by immigration authorities.
-          {'\n\n'}
-          <Text style={styles.bold}>Where to find it:</Text>
-          {'\n'}• Immigration documents
-          {'\n'}• Court notices
-          {'\n'}• Work permits (EAD cards)
-          {'\n'}• Green cards
-          {'\n\n'}
-          It usually appears as "A" followed by 8-9 digits.
-        </Text>
-      </Modal>
 
       <Modal
         visible={showCourtHearingInfo}
@@ -465,42 +393,50 @@ export const ImmigrationStatusScreen: React.FC<ImmigrationStatusScreenProps> = (
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.surface,
+    backgroundColor: '#F8F9FA',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
     paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
   },
   backButton: {
+    backgroundColor: '#E8F5E8',
+    paddingHorizontal: 16,
     paddingVertical: 8,
+    borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   backButtonText: {
     ...Typography.button,
-    color: Colors.primary,
+    color: Colors.textPrimary,
+    marginLeft: 4,
   },
   helpIcon: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: Colors.primary,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: Colors.primaryDark,
     justifyContent: 'center',
     alignItems: 'center',
   },
   helpText: {
     color: Colors.white,
-    fontSize: 12,
+    fontSize: 16,
     fontWeight: 'bold',
   },
   progressContainer: {
     paddingHorizontal: 24,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    paddingTop: 16,
+  },
+  progressText: {
+    ...Typography.caption,
+    color: Colors.textSecondary,
+    fontSize: 14,
+    marginBottom: 8,
   },
   content: {
     flex: 1,
@@ -619,10 +555,6 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderTopWidth: 1,
     borderTopColor: Colors.border,
-    gap: 12,
-  },
-  backButtonStyle: {
-    borderColor: Colors.border,
   },
   continueButton: {
     backgroundColor: Colors.primaryDark,
