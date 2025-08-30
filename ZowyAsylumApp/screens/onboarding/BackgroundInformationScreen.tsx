@@ -172,7 +172,7 @@ const BackgroundInformationScreen: React.FC = () => {
                     label="Date of Arrival in US"
                     value={value}
                     onDateChange={(date) => setValue('arrivalDate', date)}
-                    errorText={errors.arrivalDate?.message}
+                    error={errors.arrivalDate?.message}
                     required
                   />
                 )}

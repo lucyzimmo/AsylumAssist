@@ -447,7 +447,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 16,
-    backgroundColor: Colors.gray100,
+    backgroundColor: Colors.background,
   },
 
   optionsList: {

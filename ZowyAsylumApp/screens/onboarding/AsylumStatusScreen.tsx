@@ -168,32 +168,29 @@ export const AsylumStatusScreen: React.FC<AsylumStatusScreenProps> = ({ navigati
                 </TouchableOpacity>
               </View>
               
-              <View style={styles.dateInputRow}>
-                <View style={styles.dateInput}>
-                  <TextInput
-                    style={styles.dateInputField}
-                    placeholder="DD"
-                    keyboardType="numeric"
-                    maxLength={2}
+              <Controller
+                control={control}
+                name="entryDate"
+                rules={{
+                  required: 'Entry date is required',
+                }}
+                render={({ field: { onChange, value } }) => (
+                  <DateDropdown
+                    label="Entry Date"
+                    value={value}
+                    onDateChange={onChange}
+                    placeholder={{
+                      month: 'Month',
+                      day: 'Day', 
+                      year: 'Year'
+                    }}
+                    maximumDate={new Date()}
+                    error={errors.entryDate?.message}
+                    containerStyle={styles.inputContainer}
+                    required
                   />
-                </View>
-                <View style={styles.dateInput}>
-                  <TextInput
-                    style={styles.dateInputField}
-                    placeholder="MM"
-                    keyboardType="numeric"
-                    maxLength={2}
-                  />
-                </View>
-                <View style={styles.dateInput}>
-                  <TextInput
-                    style={styles.dateInputField}
-                    placeholder="YYYY"
-                    keyboardType="numeric"
-                    maxLength={4}
-                  />
-                </View>
-              </View>
+                )}
+              />
               
               {/* Filing Deadline Warning/Info */}
               {filingDeadline && (
@@ -483,25 +480,6 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     marginBottom: 16,
-  },
-  dateInputRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 16,
-  },
-  dateInput: {
-    flex: 1,
-  },
-  dateInputField: {
-    borderWidth: 2,
-    borderColor: Colors.textPrimary,
-    borderRadius: 25,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: Colors.white,
-    textAlign: 'center',
-    fontSize: 16,
-    fontWeight: '500',
   },
   alertContainer: {
     marginTop: 8,

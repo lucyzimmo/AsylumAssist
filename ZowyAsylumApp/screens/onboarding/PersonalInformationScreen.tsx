@@ -194,7 +194,7 @@ const PersonalInformationScreen: React.FC = () => {
                   label="Date of Birth"
                   value={value}
                   onDateChange={(date) => setValue('dateOfBirth', date)}
-                  errorText={errors.dateOfBirth?.message}
+                  error={errors.dateOfBirth?.message}
                   required
                 />
               )}

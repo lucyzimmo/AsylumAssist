@@ -5,9 +5,10 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Alert,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../constants/Colors';
 
 interface DashboardScreenProps {
@@ -57,8 +58,59 @@ const timelineSteps = [
 const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(true); // For demo, set to false to show empty state
+  const [completedSteps, setCompletedSteps] = useState<string[]>([]);
   
   const currentStep = timelineSteps[currentStepIndex];
+
+  const handleAddToCalendar = () => {
+    // Extract date from the current step's alert message
+    let eventTitle = 'Asylum Process Step';
+    let eventDate = new Date();
+    
+    if (currentStep.alert.title.includes('Deadline')) {
+      eventTitle = currentStep.alert.title;
+      // Parse date from message if available
+      const dateMatch = currentStep.alert.message.match(/(\d{2}\/\d{2}\/\d{4})/);
+      if (dateMatch) {
+        eventDate = new Date(dateMatch[1]);
+      }
+    }
+
+    // Create calendar URL for iOS/Android
+    const startDate = eventDate.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+    const endDate = new Date(eventDate.getTime() + 60 * 60 * 1000).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+    
+    const calendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(eventTitle)}&dates=${startDate}/${endDate}&details=${encodeURIComponent(currentStep.nextStep)}`;
+    
+    Linking.openURL(calendarUrl).catch(() => {
+      Alert.alert('Calendar Error', 'Unable to open calendar. Please add this event manually.');
+    });
+  };
+
+  const handleMarkAsDone = () => {
+    Alert.alert(
+      'Mark as Done',
+      'Are you sure you want to mark this step as completed?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Mark Done', 
+          onPress: () => {
+            setCompletedSteps(prev => [...prev, currentStep.id]);
+            Alert.alert('Success', 'Step marked as completed!');
+          }
+        }
+      ]
+    );
+  };
+
+  const handleDownloadTimeline = () => {
+    Alert.alert(
+      'Download Timeline',
+      'Timeline download feature coming soon! This will generate a PDF of your complete asylum journey timeline.',
+      [{ text: 'OK' }]
+    );
+  };
 
   // Empty state when user hasn't completed onboarding
   if (!hasCompletedOnboarding) {
@@ -88,7 +140,10 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
             <Text style={styles.ctaSubtitle}>
               We need you to answer some questions about your asylum status so we can generate your timeline and determine your next steps.
             </Text>
-            <TouchableOpacity style={styles.startQuestionnaireButton}>
+            <TouchableOpacity 
+              style={styles.startQuestionnaireButton}
+              onPress={() => navigation.navigate('OnboardingStart')}
+            >
               <Text style={styles.startQuestionnaireText}>Start questionnaire</Text>
             </TouchableOpacity>
           </View>
@@ -154,11 +209,17 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
               </View>
             </View>
 
-            <TouchableOpacity style={styles.addToCalendarButton}>
+            <TouchableOpacity 
+              style={styles.addToCalendarButton}
+              onPress={handleAddToCalendar}
+            >
               <Text style={styles.addToCalendarText}>Add to calendar</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.viewResourcesButton}>
+            <TouchableOpacity 
+              style={styles.viewResourcesButton}
+              onPress={() => navigation.navigate('Resources')}
+            >
               <Text style={styles.viewResourcesText}>View resources</Text>
             </TouchableOpacity>
 

@@ -19,7 +19,7 @@ import { Input } from '../../components/ui/Input';
 import { ProgressIndicator } from '../../components/ui/ProgressIndicator';
 import { Alert } from '../../components/ui/Alert';
 import { Modal } from '../../components/ui/Modal';
-import { DatePicker } from '../../components/forms/DatePicker';
+import { DateDropdown } from '../../components/forms/DateDropdown';
 import { AuthStackParamList } from '../../types/navigation';
 
 interface ImmigrationStatusFormData {
@@ -330,14 +330,19 @@ export const ImmigrationStatusScreen: React.FC<ImmigrationStatusScreenProps> = (
                     control={control}
                     name="nextHearingDate"
                     render={({ field: { onChange, value } }) => (
-                      <DatePicker
+                      <DateDropdown
+                        label="Next Hearing Date"
                         value={value}
                         onDateChange={onChange}
-                        placeholder="Select hearing date"
-                        format="DD/MM/YYYY"
+                        placeholder={{
+                          month: 'Month',
+                          day: 'Day', 
+                          year: 'Year'
+                        }}
                         minimumDate={new Date()}
                         error={errors.nextHearingDate?.message}
                         containerStyle={styles.inputContainer}
+                        required
                       />
                     )}
                   />
