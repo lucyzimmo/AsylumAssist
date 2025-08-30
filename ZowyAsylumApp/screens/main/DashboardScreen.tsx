@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -14,7 +14,88 @@ interface DashboardScreenProps {
   navigation: any;
 }
 
+// Timeline data based on the mockups
+const timelineSteps = [
+  {
+    id: 'arrival',
+    title: 'Arrival',
+    progress: '30% complete',
+    nextStep: 'Consult an attorney to determine if you should apply for asylum.',
+    alert: {
+      type: 'warning',
+      title: 'Next Deadline: 340 days left',
+      message: 'You must file form I-589 before 05/05/2026. Click here to learn more.',
+    },
+    hasMarkAsDone: true,
+  },
+  {
+    id: 'interview',
+    title: 'Interview',
+    progress: '30% complete',
+    nextStep: 'Your affirmative asylum interview is on 08/09/2025. Make sure you prepare your supporting documents, along with English translations.',
+    alert: {
+      type: 'warning',
+      title: 'Next Deadline: 41 days left',
+      message: 'Your affirmative asylum interview is on 08/09/2025. Click here to learn more.',
+    },
+    hasMarkAsDone: true,
+  },
+  {
+    id: 'work-permit',
+    title: 'Arrival',
+    progress: '30% complete',
+    nextStep: 'Apply for a work permit after 02/09/2025.',
+    alert: {
+      type: 'info',
+      title: '83 days before you can file form I-765',
+      message: 'You can apply for a work permit on 02/09/2025. Click here to learn more.',
+    },
+    hasMarkAsDone: false,
+  },
+];
+
 const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
+  const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(true); // For demo, set to false to show empty state
+  
+  const currentStep = timelineSteps[currentStepIndex];
+
+  // Empty state when user hasn't completed onboarding
+  if (!hasCompletedOnboarding) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Your Asylum Journey</Text>
+          <TouchableOpacity style={styles.helpButton}>
+            <View style={styles.helpIcon}>
+              <Text style={styles.questionMark}>?</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          {/* Empty Timeline Container */}
+          <View style={styles.emptyTimelineCard}>
+            <View style={styles.emptyTimelineContent}>
+              <View style={styles.emptyTimelineDot} />
+              <View style={styles.emptyTimelineLine} />
+            </View>
+          </View>
+
+          {/* Call to Action */}
+          <View style={styles.ctaSection}>
+            <Text style={styles.ctaTitle}>Tell us about your journey</Text>
+            <Text style={styles.ctaSubtitle}>
+              We need you to answer some questions about your asylum status so we can generate your timeline and determine your next steps.
+            </Text>
+            <TouchableOpacity style={styles.startQuestionnaireButton}>
+              <Text style={styles.startQuestionnaireText}>Start questionnaire</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -29,18 +110,24 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Info Banner */}
-        <View style={styles.infoBanner}>
-          <View style={styles.infoIcon}>
-            <Text style={styles.infoIconText}>i</Text>
-          </View>
-          <View style={styles.infoContent}>
-            <Text style={styles.infoBannerTitle}>83 days before you can file form I-765</Text>
-            <Text style={styles.infoBannerText}>
-              You can apply for a work permit on 02/09/2025. Click here to learn more.
+        {/* Alert Banner */}
+        <TouchableOpacity style={[
+          styles.alertBanner,
+          currentStep.alert.type === 'warning' ? styles.warningBanner : styles.infoBanner
+        ]}>
+          <View style={[
+            styles.alertIcon,
+            currentStep.alert.type === 'warning' ? styles.warningIcon : styles.infoIconStyle
+          ]}>
+            <Text style={styles.alertIconText}>
+              {currentStep.alert.type === 'warning' ? '!' : 'i'}
             </Text>
           </View>
-        </View>
+          <View style={styles.alertContent}>
+            <Text style={styles.alertTitle}>{currentStep.alert.title}</Text>
+            <Text style={styles.alertText}>{currentStep.alert.message}</Text>
+          </View>
+        </TouchableOpacity>
 
         {/* Timeline Card */}
         <View style={styles.timelineCard}>
@@ -48,8 +135,8 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
           <View style={styles.progressHeader}>
             <View style={styles.progressDot} />
             <View style={styles.progressInfo}>
-              <Text style={styles.timelineTitle}>Arrival</Text>
-              <Text style={styles.progressPercent}>30% complete</Text>
+              <Text style={styles.timelineTitle}>{currentStep.title}</Text>
+              <Text style={styles.progressPercent}>{currentStep.progress}</Text>
             </View>
           </View>
 
@@ -63,7 +150,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
               <View style={styles.nextStepDot} />
               <View style={styles.nextStepContent}>
                 <Text style={styles.nextStepLabel}>Next step:</Text>
-                <Text style={styles.nextStepText}>Apply for a work permit after 02/09/2025.</Text>
+                <Text style={styles.nextStepText}>{currentStep.nextStep}</Text>
               </View>
             </View>
 
@@ -74,7 +161,32 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
             <TouchableOpacity style={styles.viewResourcesButton}>
               <Text style={styles.viewResourcesText}>View resources</Text>
             </TouchableOpacity>
+
+            {currentStep.hasMarkAsDone && (
+              <TouchableOpacity style={styles.markAsDoneButton}>
+                <Text style={styles.markAsDoneText}>Mark as done</Text>
+              </TouchableOpacity>
+            )}
           </View>
+
+          {/* Edit Timeline Link */}
+          <TouchableOpacity style={styles.editTimelineLink}>
+            <Text style={styles.editTimelineText}>Edit timeline</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Navigation Dots */}
+        <View style={styles.navigationDots}>
+          {timelineSteps.map((_, index) => (
+            <TouchableOpacity
+              key={index}
+              style={[
+                styles.navigationDot,
+                index === currentStepIndex && styles.navigationDotActive
+              ]}
+              onPress={() => setCurrentStepIndex(index)}
+            />
+          ))}
         </View>
 
         {/* Download Timeline Button */}
@@ -130,40 +242,110 @@ const styles = StyleSheet.create({
     paddingTop: 16,
   },
 
-  // Info Banner
-  infoBanner: {
+  // Empty state styles
+  emptyTimelineCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: '#E8F5E8',
+    padding: 40,
+    marginBottom: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 200,
+  },
+  emptyTimelineContent: {
+    alignItems: 'center',
+  },
+  emptyTimelineDot: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: Colors.primary,
+    marginBottom: 8,
+  },
+  emptyTimelineLine: {
+    width: 2,
+    height: 60,
+    backgroundColor: Colors.primary,
+  },
+  ctaSection: {
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    marginBottom: 32,
+  },
+  ctaTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#000000',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  ctaSubtitle: {
+    fontSize: 16,
+    color: '#333333',
+    lineHeight: 24,
+    textAlign: 'center',
+    marginBottom: 32,
+  },
+  startQuestionnaireButton: {
+    backgroundColor: Colors.primaryDark,
+    borderRadius: 25,
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    alignItems: 'center',
+    minWidth: 250,
+  },
+  startQuestionnaireText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+
+  // Alert Banner styles
+  alertBanner: {
     flexDirection: 'row',
-    backgroundColor: '#E6E6FA', // Light purple
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
     alignItems: 'flex-start',
   },
-  infoIcon: {
+  infoBanner: {
+    backgroundColor: '#E3F2FD', // Light blue
+  },
+  warningBanner: {
+    backgroundColor: '#FFF3E0', // Light orange
+  },
+  alertIcon: {
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#4169E1', // Blue
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
     marginTop: 2,
   },
-  infoIconText: {
+  infoIconStyle: {
+    backgroundColor: '#2196F3', // Blue
+  },
+  warningIcon: {
+    backgroundColor: '#FF9800', // Orange
+  },
+  alertIconText: {
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: 'bold',
   },
-  infoContent: {
+  alertContent: {
     flex: 1,
   },
-  infoBannerTitle: {
+  alertTitle: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#000000',
     marginBottom: 4,
   },
-  infoBannerText: {
+  alertText: {
     fontSize: 14,
     color: '#333333',
     lineHeight: 20,
@@ -270,6 +452,47 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#333333',
     fontWeight: '500',
+  },
+  markAsDoneButton: {
+    backgroundColor: Colors.primaryDark,
+    borderRadius: 25,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  markAsDoneText: {
+    fontSize: 16,
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  editTimelineLink: {
+    position: 'absolute',
+    bottom: 16,
+    right: 16,
+  },
+  editTimelineText: {
+    fontSize: 14,
+    color: '#666666',
+    textDecorationLine: 'underline',
+  },
+
+  // Navigation Dots
+  navigationDots: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginVertical: 16,
+    gap: 8,
+  },
+  navigationDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#CCCCCC',
+  },
+  navigationDotActive: {
+    backgroundColor: '#333333',
   },
 
   // Download Timeline Button
