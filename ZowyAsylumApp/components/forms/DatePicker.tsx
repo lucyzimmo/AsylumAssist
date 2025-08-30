@@ -8,6 +8,7 @@ import {
   Platform,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../constants/Colors';
 import { Typography } from '../../constants/Typography';
 import { Modal } from '../ui/Modal';
@@ -185,7 +186,11 @@ export const DatePicker: React.FC<DatePickerProps> = ({
           <Text style={textStyle}>
             {displayValue || placeholder}
           </Text>
-          <Text style={[styles.icon, disabled && styles.disabledText]}>📅</Text>
+          <Ionicons 
+            name="calendar-outline" 
+            size={20} 
+            color={disabled ? Colors.textDisabled : Colors.textSecondary} 
+          />
         </View>
       </TouchableOpacity>
 

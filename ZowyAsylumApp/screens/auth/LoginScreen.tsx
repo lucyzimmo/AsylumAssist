@@ -15,6 +15,8 @@ import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import type { AuthStackParamList } from '../../types/navigation';
+import { AuthService, TEST_USER_EMAIL, TEST_USER_PASSWORD } from '../../services/authService';
+import { Ionicons } from '@expo/vector-icons';
 
 type LoginScreenNavigationProp = StackNavigationProp<
   AuthStackParamList,
@@ -29,6 +31,7 @@ interface LoginForm {
 export const LoginScreen: React.FC = () => {
   const navigation = useNavigation<LoginScreenNavigationProp>();
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const {
     control,
@@ -37,8 +40,8 @@ export const LoginScreen: React.FC = () => {
   } = useForm<LoginForm>({
     mode: 'onChange',
     defaultValues: {
-      email: '',
-      password: '',
+      email: TEST_USER_EMAIL,
+      password: TEST_USER_PASSWORD,
     },
   });
 
@@ -50,13 +53,15 @@ export const LoginScreen: React.FC = () => {
   const handleLogin = async (data: LoginForm) => {
     setIsLoading(true);
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      
-      // Navigate to main app after successful login
+      const result = await AuthService.signIn(data.email, data.password);
+      if (!result.success) {
+        Alert.alert('Login failed', result.error || 'Invalid email or password');
+        return;
+      }
+      // Navigate to main app on success
       navigation.getParent()?.navigate('MainStack');
     } catch (error) {
-      Alert.alert('Login Failed', 'Invalid email or password. Please try again.');
+      Alert.alert('Login failed', 'Something went wrong. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -66,25 +71,13 @@ export const LoginScreen: React.FC = () => {
     navigation.goBack();
   };
 
-  const handleForgotPassword = () => {
-    navigation.navigate('ForgotPassword');
-  };
-
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={handleExit} style={styles.exitButton}>
-          <Text style={styles.exitIcon}>←</Text>
+          <Ionicons name="chevron-back" size={18} color={Colors.textPrimary} />
           <Text style={styles.exitText}>Exit</Text>
         </TouchableOpacity>
-        
-        <View style={styles.languageSelector}>
-          <Text style={styles.languageLabel}>Language:</Text>
-          <TouchableOpacity style={styles.languageButton}>
-            <Text style={styles.languageText}>English</Text>
-            <Text style={styles.dropdownIcon}>▼</Text>
-          </TouchableOpacity>
-        </View>
       </View>
 
       <View style={styles.content}>
@@ -101,7 +94,7 @@ export const LoginScreen: React.FC = () => {
             render={({ field: { onChange, onBlur, value } }) => (
               <Input
                 label="Email"
-                placeholder="Email"
+                placeholder="Enter your email"
                 value={value}
                 onChangeText={onChange}
                 onBlur={onBlur}
@@ -119,29 +112,38 @@ export const LoginScreen: React.FC = () => {
             name="password"
             rules={{
               required: 'Password is required',
+              minLength: { value: 8, message: 'Password must be at least 8 characters' },
             }}
             render={({ field: { onChange, onBlur, value } }) => (
-              <Input
-                label="Password"
-                placeholder="Password"
-                value={value}
-                onChangeText={onChange}
-                onBlur={onBlur}
-                errorText={errors.password?.message}
-                secureTextEntry
-                autoCapitalize="none"
-                autoCorrect={false}
-                containerStyle={styles.inputContainer}
-              />
+              <View>
+                <Input
+                  label="Password"
+                  placeholder="Enter your password"
+                  value={value}
+                  onChangeText={onChange}
+                  onBlur={onBlur}
+                  errorText={errors.password?.message}
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  containerStyle={styles.inputContainer}
+                />
+                <TouchableOpacity
+                  onPress={() => setShowPassword(!showPassword)}
+                  style={styles.showPassword}
+                >
+                  <Ionicons
+                    name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                    size={18}
+                    color={Colors.textSecondary}
+                  />
+                  <Text style={styles.showPasswordText}>
+                    {showPassword ? 'Hide password' : 'Show password'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
             )}
           />
-
-          <TouchableOpacity
-            style={styles.forgotPasswordLink}
-            onPress={handleForgotPassword}
-          >
-            <Text style={styles.forgotPasswordText}>I've forgotten my password</Text>
-          </TouchableOpacity>
         </View>
 
         <View style={styles.actions}>
@@ -152,7 +154,6 @@ export const LoginScreen: React.FC = () => {
             loading={isLoading}
             variant="primary"
             size="large"
-            style={styles.loginButton}
           />
         </View>
       </View>
@@ -175,47 +176,11 @@ const styles = StyleSheet.create({
   exitButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: Colors.primaryLight,
-    borderRadius: 20,
-  },
-  exitIcon: {
-    fontSize: 16,
-    color: Colors.textPrimary,
-    marginRight: 4,
   },
   exitText: {
     ...Typography.body,
     color: Colors.textPrimary,
-    fontWeight: '500',
-  },
-  languageSelector: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  languageLabel: {
-    ...Typography.body,
-    color: Colors.textPrimary,
-    marginRight: 8,
-  },
-  languageButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: Colors.primaryDark,
-    borderRadius: 20,
-  },
-  languageText: {
-    ...Typography.body,
-    color: Colors.white,
-    fontWeight: '500',
-    marginRight: 8,
-  },
-  dropdownIcon: {
-    fontSize: 12,
-    color: Colors.white,
+    marginLeft: 6,
   },
   content: {
     flex: 1,
@@ -225,8 +190,6 @@ const styles = StyleSheet.create({
   title: {
     ...Typography.h1,
     color: Colors.textPrimary,
-    fontSize: 32,
-    fontWeight: '700',
     marginBottom: 40,
   },
   form: {
@@ -235,24 +198,21 @@ const styles = StyleSheet.create({
   inputContainer: {
     marginBottom: 24,
   },
-  forgotPasswordLink: {
-    alignSelf: 'center',
-    paddingVertical: 12,
+  showPassword: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginTop: 8,
   },
-  forgotPasswordText: {
-    ...Typography.body,
-    color: Colors.textPrimary,
-    fontWeight: '500',
-    textDecorationLine: 'underline',
+  showPasswordText: {
+    ...Typography.caption,
+    color: Colors.textSecondary,
+    marginLeft: 6,
   },
   actions: {
-    paddingBottom: 32,
-    paddingTop: 40,
-  },
-  loginButton: {
-    backgroundColor: Colors.primaryDark,
+    paddingTop: 32,
   },
 });
 
 export default LoginScreen;
+
+ 

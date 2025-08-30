@@ -5,11 +5,11 @@ import {
   Text,
   TouchableOpacity,
   Dimensions,
+  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Colors } from '../constants/Colors';
-import { Typography } from '../constants/Typography';
 import { Button } from '../components/ui/Button';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import type { AuthStackParamList } from '../types/navigation';
@@ -19,7 +19,7 @@ type WelcomeScreenNavigationProp = StackNavigationProp<
   'Welcome'
 >;
 
-const { width, height } = Dimensions.get('window');
+// Dimensions available if needed for responsive design
 
 export const WelcomeScreen: React.FC = () => {
   const navigation = useNavigation<WelcomeScreenNavigationProp>();
@@ -38,34 +38,41 @@ export const WelcomeScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* Large decorative clover/flower shape */}
-      <View style={styles.decorativeShape}>
-        <View style={[styles.petal, styles.petalTop]} />
-        <View style={[styles.petal, styles.petalRight]} />
-        <View style={[styles.petal, styles.petalBottom]} />
-        <View style={[styles.petal, styles.petalLeft]} />
-        <View style={styles.center} />
+      {/* Large Green Clover from Start.png */}
+      <View style={styles.cloverBackground}>
+        {/* Main clover shape */}
+        <View style={styles.mainClover} />
+        {/* Center circle */}
+        <View style={styles.cloverCenter} />
+        {/* Bottom decorative circle */}
+        <View style={styles.bottomCircle} />
       </View>
 
-      {/* Content */}
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView style={styles.safeArea} edges={['bottom']}>
         <View style={styles.content}>
-          <View style={styles.textContent}>
+          {/* Title Section */}
+          <View style={styles.titleSection}>
             <Text style={styles.title}>Zowy for Asylum</Text>
             <Text style={styles.description}>
               Track your progress, manage documents and find resources to help with your asylum application
             </Text>
           </View>
 
-          <View style={styles.loginSection}>
-            <TouchableOpacity onPress={handleLogin} style={styles.loginLink}>
-              <Text style={styles.loginText}>
-                Already have an account? <Text style={styles.loginLinkText}>Log in</Text>
-              </Text>
-            </TouchableOpacity>
-          </View>
+          {/* Login Link */}
+          <TouchableOpacity 
+            onPress={handleLogin} 
+            style={styles.loginSection}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel="Log in to existing account"
+          >
+            <Text style={styles.loginText}>
+              Already have an account? <Text style={styles.loginLinkText}>Log in</Text>
+            </Text>
+          </TouchableOpacity>
 
-          <View style={styles.actions}>
+          {/* Action Buttons */}
+          <View style={styles.buttonSection}>
             <Button
               title="View resources"
               onPress={handleViewResources}
@@ -91,115 +98,107 @@ export const WelcomeScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
-    position: 'relative',
+    backgroundColor: '#F5F5F5', // Light gray background
   },
-  decorativeShape: {
+
+  // Clover Background matching Start.png exactly
+  cloverBackground: {
     position: 'absolute',
     top: 0,
+    left: 0,
     right: 0,
-    width: width * 0.8,
-    height: height * 0.6,
-    zIndex: 0,
+    bottom: 0,
   },
-  petal: {
+  mainClover: {
     position: 'absolute',
+    top: -100,
+    left: -50,
+    width: 350,
+    height: 450,
     backgroundColor: Colors.primary,
-    borderRadius: 100,
+    borderRadius: 175,
+    transform: [
+      { scaleX: 1.2 },
+      { scaleY: 1.1 },
+      { rotate: '-15deg' }
+    ],
   },
-  petalTop: {
-    width: 120,
-    height: 160,
-    top: -20,
-    left: 80,
-    transform: [{ rotate: '0deg' }],
-  },
-  petalRight: {
-    width: 160,
-    height: 120,
-    top: 80,
-    right: -20,
-    transform: [{ rotate: '90deg' }],
-  },
-  petalBottom: {
-    width: 120,
-    height: 160,
-    bottom: -20,
-    left: 80,
-    transform: [{ rotate: '180deg' }],
-  },
-  petalLeft: {
-    width: 160,
-    height: 120,
-    top: 80,
-    left: -20,
-    transform: [{ rotate: '270deg' }],
-  },
-  center: {
+  cloverCenter: {
     position: 'absolute',
-    width: 80,
-    height: 80,
+    top: 110,
+    left: 30,
+    width: 120,
+    height: 120,
     backgroundColor: Colors.primaryLight,
-    borderRadius: 40,
-    top: 120,
-    left: 120,
+    borderRadius: 60,
+    opacity: 0.8,
   },
+  bottomCircle: {
+    position: 'absolute',
+    bottom: 150,
+    right: 50,
+    width: 140,
+    height: 140,
+    backgroundColor: Colors.primary,
+    borderRadius: 70,
+  },
+
+  // Content Layout
   safeArea: {
     flex: 1,
-    zIndex: 1,
   },
   content: {
     flex: 1,
     paddingHorizontal: 24,
-    justifyContent: 'space-between',
-    paddingTop: 40,
-    paddingBottom: 32,
+    justifyContent: 'flex-end',
+    paddingBottom: 50,
   },
-  textContent: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'flex-start',
-    maxWidth: width * 0.9,
+
+  // Title Section
+  titleSection: {
+    marginBottom: 32,
   },
   title: {
-    ...Typography.h1,
-    color: Colors.textPrimary,
     fontSize: 32,
-    fontWeight: '700',
+    fontWeight: 'bold',
+    color: '#000000',
     marginBottom: 16,
-    lineHeight: 40,
+    textAlign: 'left',
   },
   description: {
-    ...Typography.bodyLarge,
-    color: Colors.textPrimary,
+    fontSize: 16,
+    color: '#333333',
     lineHeight: 24,
-    marginBottom: 40,
+    textAlign: 'left',
   },
+
+  // Login Section
   loginSection: {
-    alignItems: 'flex-start',
-    marginBottom: 40,
-  },
-  loginLink: {
-    paddingVertical: 8,
+    marginBottom: 24,
   },
   loginText: {
-    ...Typography.body,
-    color: Colors.textPrimary,
+    fontSize: 16,
+    color: '#333333',
+    textAlign: 'left',
   },
   loginLinkText: {
     color: Colors.primary,
     fontWeight: '600',
   },
-  actions: {
+
+  // Button Section
+  buttonSection: {
     gap: 16,
   },
   viewResourcesButton: {
-    backgroundColor: Colors.white,
-    borderColor: Colors.textPrimary,
+    backgroundColor: 'transparent',
+    borderColor: '#333333',
     borderWidth: 1,
+    borderRadius: 25,
   },
   signUpButton: {
-    backgroundColor: Colors.primaryDark,
+    backgroundColor: '#2E6B47', // Dark green from design
+    borderRadius: 25,
   },
 });
 

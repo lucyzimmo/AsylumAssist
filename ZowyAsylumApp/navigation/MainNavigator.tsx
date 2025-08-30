@@ -2,6 +2,7 @@ import React from 'react';
 import { createStackNavigator, StackNavigationOptions } from '@react-navigation/stack';
 import { createBottomTabNavigator, BottomTabNavigationOptions } from '@react-navigation/bottom-tabs';
 import { Platform, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../constants/Colors';
 import { Typography } from '../constants/Typography';
 import { 
@@ -15,7 +16,10 @@ import {
 import { MainHeader } from '../components/navigation/MainHeader';
 import { TabHeader } from '../components/navigation/TabHeader';
 import { PlaceholderScreen } from '../components/common/PlaceholderScreen';
-import { DashboardScreen } from '../screens/dashboard/DashboardScreen';
+import DashboardScreen from '../screens/main/DashboardScreen';
+import DocumentsScreen from '../screens/main/DocumentsScreen';
+import ResourcesScreen from '../screens/main/ResourcesScreen';
+import ProfileScreen from '../screens/main/ProfileScreen';
 
 // Stack Navigators
 const MainStack = createStackNavigator<MainStackParamList>();
@@ -31,25 +35,30 @@ const TabIcon: React.FC<{
   focused: boolean;
   color: string;
   size: number;
-}> = ({ name, focused, color }) => {
-  const getIcon = () => {
+}> = ({ name, focused, color, size }) => {
+  const getIconName = () => {
     switch (name) {
       case 'home':
-        return '🏠';
+        return focused ? 'time' : 'time-outline';
       case 'documents':
-        return '📁';
+        return focused ? 'folder' : 'folder-outline';
       case 'resources':
-        return '📚';
+        return focused ? 'library' : 'library-outline';
       case 'profile':
-        return '👤';
+        return focused ? 'person' : 'person-outline';
       default:
-        return '📱';
+        return 'phone-portrait-outline';
     }
   };
 
   return (
     <View style={{ alignItems: 'center', justifyContent: 'center' }}>
-      <Text style={{ fontSize: 20, marginBottom: 2 }}>{getIcon()}</Text>
+      <Ionicons 
+        name={getIconName() as any}
+        size={size} 
+        color={color} 
+        style={{ marginBottom: 2 }}
+      />
       <View
         style={{
           width: 4,
@@ -96,11 +105,7 @@ const HomeStackNavigator: React.FC = () => {
         name="Timeline"
         component={DashboardScreen}
         options={{
-          header: (props) => (
-            <TabHeader
-              title="Your Asylum Journey"
-            />
-          ),
+          headerShown: false, // DashboardScreen has its own header
         }}
       />
       
@@ -224,16 +229,9 @@ const DocumentsStackNavigator: React.FC = () => {
     >
       <DocumentsStack.Screen
         name="DocumentsList"
-        component={PlaceholderScreen}
+        component={DocumentsScreen}
         options={{
-          header: (props) => (
-            <TabHeader
-              {...props}
-              title="Documents"
-              showHelp={true}
-              showSettings={true}
-            />
-          ),
+          headerShown: false, // DocumentsScreen has its own header
         }}
       />
       
@@ -387,16 +385,9 @@ const ResourcesStackNavigator: React.FC = () => {
     >
       <ResourcesStack.Screen
         name="ResourcesHome"
-        component={PlaceholderScreen}
+        component={ResourcesScreen}
         options={{
-          header: (props) => (
-            <TabHeader
-              {...props}
-              title="Resources"
-              showHelp={true}
-              showSettings={true}
-            />
-          ),
+          headerShown: false, // ResourcesScreen has its own header
         }}
       />
       
@@ -580,16 +571,9 @@ const ProfileStackNavigator: React.FC = () => {
     >
       <ProfileStack.Screen
         name="ProfileHome"
-        component={PlaceholderScreen}
+        component={ProfileScreen}
         options={{
-          header: (props) => (
-            <TabHeader
-              {...props}
-              title="Profile"
-              showHelp={true}
-              showSettings={true}
-            />
-          ),
+          headerShown: false, // ProfileScreen has its own header
         }}
       />
       
@@ -853,8 +837,8 @@ const TabNavigator: React.FC = () => {
       backgroundColor: Colors.surface,
       borderTopWidth: 1,
       borderTopColor: Colors.border,
-      paddingTop: 8,
-      height: Platform.OS === 'ios' ? 84 : 64,
+      paddingTop: 12,
+      height: Platform.OS === 'ios' ? 100 : 80,
       elevation: 8,
       shadowColor: Colors.black,
       shadowOffset: { width: 0, height: -2 },
@@ -862,7 +846,8 @@ const TabNavigator: React.FC = () => {
       shadowRadius: 4,
     },
     tabBarItemStyle: {
-      paddingBottom: Platform.OS === 'ios' ? 20 : 8,
+      paddingBottom: Platform.OS === 'ios' ? 24 : 12,
+      paddingTop: 8,
     },
   };
 

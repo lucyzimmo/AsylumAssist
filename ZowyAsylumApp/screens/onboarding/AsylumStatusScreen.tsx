@@ -19,7 +19,7 @@ import { Input } from '../../components/ui/Input';
 import { ProgressIndicator } from '../../components/ui/ProgressIndicator';
 import { Alert } from '../../components/ui/Alert';
 import { Modal } from '../../components/ui/Modal';
-import { DatePicker } from '../../components/forms/DatePicker';
+import { DateDropdown } from '../../components/forms/DateDropdown';
 import { AuthStackParamList } from '../../types/navigation';
 
 interface AsylumStatusFormData {
@@ -184,14 +184,19 @@ export const AsylumStatusScreen: React.FC<AsylumStatusScreenProps> = ({ navigati
                   },
                 }}
                 render={({ field: { onChange, value } }) => (
-                  <DatePicker
+                  <DateDropdown
+                    label="Entry Date"
                     value={value}
                     onDateChange={onChange}
-                    placeholder="Select entry date"
-                    format="DD/MM/YYYY"
+                    placeholder={{
+                      month: 'Month',
+                      day: 'Day', 
+                      year: 'Year'
+                    }}
                     maximumDate={new Date()}
                     error={errors.entryDate?.message}
                     containerStyle={styles.inputContainer}
+                    required
                   />
                 )}
               />
@@ -276,14 +281,19 @@ export const AsylumStatusScreen: React.FC<AsylumStatusScreenProps> = ({ navigati
                       required: 'Submission date is required',
                     }}
                     render={({ field: { onChange, value } }) => (
-                      <DatePicker
+                      <DateDropdown
+                        label="Submission Date"
                         value={value}
                         onDateChange={onChange}
-                        placeholder="Select submission date"
-                        format="DD/MM/YYYY"
+                        placeholder={{
+                          month: 'Month',
+                          day: 'Day', 
+                          year: 'Year'
+                        }}
                         maximumDate={new Date()}
                         error={errors.i589SubmissionDate?.message}
                         containerStyle={styles.inputContainer}
+                        required
                       />
                     )}
                   />

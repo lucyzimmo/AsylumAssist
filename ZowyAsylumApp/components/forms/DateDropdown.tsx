@@ -9,6 +9,7 @@ import {
   Modal as RNModal,
   Dimensions,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../constants/Colors';
 import { Typography } from '../../constants/Typography';
 
@@ -85,9 +86,11 @@ const Dropdown: React.FC<DropdownProps> = ({
         ]}>
           {displayValue}
         </Text>
-        <Text style={[styles.dropdownArrow, disabled && styles.disabledText]}>
-          ▼
-        </Text>
+        <Ionicons 
+          name="chevron-down" 
+          size={16} 
+          color={disabled ? Colors.textDisabled : Colors.textSecondary} 
+        />
       </TouchableOpacity>
 
       <RNModal
@@ -108,7 +111,7 @@ const Dropdown: React.FC<DropdownProps> = ({
                 onPress={() => setIsOpen(false)}
                 style={styles.closeButton}
               >
-                <Text style={styles.closeButtonText}>×</Text>
+                <Ionicons name="close" size={20} color={Colors.textSecondary} />
               </TouchableOpacity>
             </View>
             
@@ -130,7 +133,7 @@ const Dropdown: React.FC<DropdownProps> = ({
                     {option.label}
                   </Text>
                   {option.value === value && (
-                    <Text style={styles.checkMark}>✓</Text>
+                    <Ionicons name="checkmark" size={18} color={Colors.primary} />
                   )}
                 </TouchableOpacity>
               ))}
@@ -346,7 +349,7 @@ const styles = StyleSheet.create({
   },
   dateRow: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 12,
   },
   monthContainer: {
     flex: 2,
@@ -378,12 +381,12 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
     borderRadius: 8,
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 12,
     backgroundColor: Colors.white,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    minHeight: 44,
+    minHeight: 48,
   },
   dropdownError: {
     borderColor: Colors.error,
@@ -396,7 +399,7 @@ const styles = StyleSheet.create({
   dropdownText: {
     ...Typography.body,
     color: Colors.textPrimary,
-    fontSize: 14,
+    fontSize: 16,
     flex: 1,
   },
   placeholderText: {
@@ -405,11 +408,7 @@ const styles = StyleSheet.create({
   disabledText: {
     color: Colors.textDisabled,
   },
-  dropdownArrow: {
-    fontSize: 10,
-    color: Colors.textSecondary,
-    marginLeft: 4,
-  },
+
 
   // Modal styles
   modalOverlay: {
@@ -420,10 +419,15 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: Colors.surface,
-    borderRadius: 12,
-    width: Math.min(300, screenWidth * 0.8),
-    maxHeight: 400,
+    borderRadius: 16,
+    width: Math.min(320, screenWidth * 0.9),
+    maxHeight: 420,
     overflow: 'hidden',
+    shadowColor: Colors.black,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 8,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -438,15 +442,14 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
   },
   closeButton: {
-    width: 24,
-    height: 24,
+    width: 32,
+    height: 32,
     justifyContent: 'center',
     alignItems: 'center',
+    borderRadius: 16,
+    backgroundColor: Colors.gray100,
   },
-  closeButtonText: {
-    fontSize: 18,
-    color: Colors.textSecondary,
-  },
+
   optionsList: {
     maxHeight: 300,
   },
@@ -455,7 +458,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 14,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
   },
@@ -474,11 +477,7 @@ const styles = StyleSheet.create({
     color: Colors.primaryDark,
     fontWeight: '600',
   },
-  checkMark: {
-    color: Colors.primary,
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
+
 });
 
 export default DateDropdown;

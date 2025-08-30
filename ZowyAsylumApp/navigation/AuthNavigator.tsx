@@ -9,13 +9,9 @@ import { WelcomeScreen } from '../screens/WelcomeScreen';
 import { SignUpScreen } from '../screens/auth/SignUpScreen';
 import { LoginScreen } from '../screens/auth/LoginScreen';
 import { EmailVerificationScreen } from '../screens/auth/EmailVerificationScreen';
-import { OnboardingStartScreen } from '../screens/onboarding/OnboardingStartScreen';
+import OnboardingStartScreen from '../screens/onboarding/OnboardingStartScreen';
 import { AsylumStatusScreen } from '../screens/onboarding/AsylumStatusScreen';
 import { ImmigrationStatusScreen } from '../screens/onboarding/ImmigrationStatusScreen';
-import PersonalInformationScreen from '../screens/onboarding/PersonalInformationScreen';
-import ContactInformationScreen from '../screens/onboarding/ContactInformationScreen';
-import BackgroundInformationScreen from '../screens/onboarding/BackgroundInformationScreen';
-import ReviewScreen from '../screens/onboarding/ReviewScreen';
 
 // Placeholder screens for now
 import { PlaceholderScreen } from '../components/common/PlaceholderScreen';
@@ -186,23 +182,13 @@ export const AuthNavigator: React.FC = () => {
         />
         
         <Stack.Screen 
-          name="PersonalInformation" 
-          component={PersonalInformationScreen}
+          name="SpecialStatus" 
+          component={PlaceholderScreen}
         />
         
         <Stack.Screen 
-          name="ContactInformation" 
-          component={ContactInformationScreen}
-        />
-        
-        <Stack.Screen 
-          name="BackgroundInformation" 
-          component={BackgroundInformationScreen}
-        />
-        
-        <Stack.Screen 
-          name="ReviewInformation" 
-          component={ReviewScreen}
+          name="OnboardingComplete" 
+          component={PlaceholderScreen}
         />
       </Stack.Group>
     </Stack.Navigator>
