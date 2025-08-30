@@ -89,9 +89,10 @@ export const SignUpScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Header with exit and language selector */}
       <View style={styles.header}>
         <TouchableOpacity onPress={handleExit} style={styles.exitButton}>
-          <Ionicons name="chevron-back" size={18} color={Colors.textPrimary} />
+          <Ionicons name="chevron-back" size={20} color={Colors.textPrimary} />
           <Text style={styles.exitText}>Exit</Text>
         </TouchableOpacity>
         
@@ -99,103 +100,118 @@ export const SignUpScreen: React.FC = () => {
           <Text style={styles.languageLabel}>Language:</Text>
           <TouchableOpacity style={styles.languageButton}>
             <Text style={styles.languageText}>English</Text>
-            <Ionicons name="chevron-down" size={14} color={Colors.textPrimary} />
+            <Ionicons name="chevron-down" size={16} color={Colors.white} />
           </TouchableOpacity>
         </View>
       </View>
 
+      {/* Content */}
       <View style={styles.content}>
         <Text style={styles.title}>Sign up</Text>
 
-          <View style={styles.form}>
-            <Controller
-              control={control}
-              name="email"
-              rules={{
-                required: 'Email is required',
-                validate: validateEmail,
-              }}
-              render={({ field: { onChange, onBlur, value } }) => (
-                <Input
-                  label="Email"
-                  placeholder="Enter your email"
-                  value={value}
-                  onChangeText={onChange}
-                  onBlur={onBlur}
-                  errorText={errors.email?.message}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  containerStyle={styles.inputContainer}
-                />
-              )}
-            />
-
-            <Controller
-              control={control}
-              name="password"
-              rules={{
-                required: 'Password is required',
-                validate: validatePassword,
-              }}
-              render={({ field: { onChange, onBlur, value } }) => (
-                <Input
-                  label="Password"
-                  placeholder="Create a password"
-                  value={value}
-                  onChangeText={onChange}
-                  onBlur={onBlur}
-                  errorText={errors.password?.message}
-                  secureTextEntry
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  containerStyle={styles.inputContainer}
-                />
-              )}
-            />
-
-            <View style={styles.checkboxSection}>
-              <TouchableOpacity
-                style={styles.checkboxRow}
-                onPress={() => setAgreeToTerms(!agreeToTerms)}
-              >
-                <View style={[styles.checkbox, agreeToTerms && styles.checkboxChecked]}>
-                  {agreeToTerms && (
-                    <Ionicons name="checkmark" size={14} color={Colors.white} />
-                  )}
+        <View style={styles.form}>
+          <Controller
+            control={control}
+            name="email"
+            rules={{
+              required: 'Email is required',
+              validate: validateEmail,
+            }}
+            render={({ field: { onChange, onBlur, value } }) => (
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Email</Text>
+                <View style={styles.inputWrapper}>
+                  <Input
+                    placeholder="Email"
+                    value={value}
+                    onChangeText={onChange}
+                    onBlur={onBlur}
+                    errorText={errors.email?.message}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    containerStyle={styles.customInputContainer}
+                    style={styles.customInput}
+                  />
                 </View>
-                <Text style={styles.checkboxText}>
-                  I agree to the <Text style={styles.link}>terms and conditions</Text>
-                </Text>
-              </TouchableOpacity>
+              </View>
+            )}
+          />
 
-              <TouchableOpacity
-                style={styles.checkboxRow}
-                onPress={() => setAgreeToPrivacy(!agreeToPrivacy)}
-              >
-                <View style={[styles.checkbox, agreeToPrivacy && styles.checkboxChecked]}>
-                  {agreeToPrivacy && (
-                    <Ionicons name="checkmark" size={14} color={Colors.white} />
-                  )}
+          <Controller
+            control={control}
+            name="password"
+            rules={{
+              required: 'Password is required',
+              validate: validatePassword,
+            }}
+            render={({ field: { onChange, onBlur, value } }) => (
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Password</Text>
+                <View style={styles.inputWrapper}>
+                  <Input
+                    placeholder="Password"
+                    value={value}
+                    onChangeText={onChange}
+                    onBlur={onBlur}
+                    errorText={errors.password?.message}
+                    secureTextEntry
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    containerStyle={styles.customInputContainer}
+                    style={styles.customInput}
+                  />
                 </View>
-                <Text style={styles.checkboxText}>
-                  I agree to the <Text style={styles.link}>privacy policy</Text>
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+              </View>
+            )}
+          />
 
-          <View style={styles.actions}>
-            <Button
-              title="Sign up"
-              onPress={handleSubmit(handleSignUp)}
-              disabled={!isFormValid}
-              loading={isLoading}
-              variant="primary"
-              size="large"
-              style={styles.signUpButton}
-            />
+          <View style={styles.checkboxSection}>
+            <TouchableOpacity
+              style={styles.checkboxRow}
+              onPress={() => setAgreeToTerms(!agreeToTerms)}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: agreeToTerms }}
+            >
+              <View style={[styles.checkbox, agreeToTerms && styles.checkboxChecked]}>
+                {agreeToTerms && (
+                  <Ionicons name="checkmark" size={14} color={Colors.textPrimary} />
+                )}
+              </View>
+              <Text style={styles.checkboxText}>
+                I agree to the <Text style={styles.link}>terms and conditions</Text>
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.checkboxRow}
+              onPress={() => setAgreeToPrivacy(!agreeToPrivacy)}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: agreeToPrivacy }}
+            >
+              <View style={[styles.checkbox, agreeToPrivacy && styles.checkboxChecked]}>
+                {agreeToPrivacy && (
+                  <Ionicons name="checkmark" size={14} color={Colors.textPrimary} />
+                )}
+              </View>
+              <Text style={styles.checkboxText}>
+                I agree to the <Text style={styles.link}>privacy policy</Text>
+              </Text>
+            </TouchableOpacity>
           </View>
+        </View>
+
+        <View style={styles.actions}>
+          <Button
+            title="Sign up"
+            onPress={handleSubmit(handleSignUp)}
+            disabled={!isFormValid}
+            loading={isLoading}
+            variant="primary"
+            size="large"
+            style={styles.signUpButton}
+          />
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -204,7 +220,7 @@ export const SignUpScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: '#F8F9FA', // Light gray background from design
   },
   header: {
     flexDirection: 'row',
@@ -216,15 +232,16 @@ const styles = StyleSheet.create({
   exitButton: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  exitIcon: {
-    fontSize: 16,
-    color: Colors.textPrimary,
-    marginRight: 4,
+    backgroundColor: '#E8F5E8', // Light green background for exit button
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
   },
   exitText: {
     ...Typography.body,
     color: Colors.textPrimary,
+    marginLeft: 4,
+    fontSize: 16,
   },
   languageSelector: {
     flexDirection: 'row',
@@ -234,38 +251,65 @@ const styles = StyleSheet.create({
     ...Typography.body,
     color: Colors.textPrimary,
     marginRight: 8,
+    fontSize: 16,
   },
   languageButton: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: Colors.primaryDark, // Dark green button for language
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
   },
   languageText: {
     ...Typography.body,
-    color: Colors.textPrimary,
+    color: Colors.white,
     marginRight: 8,
-  },
-  dropdownIcon: {
-    fontSize: 12,
-    color: Colors.textPrimary,
+    fontSize: 16,
   },
   content: {
     flex: 1,
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
     paddingTop: 20,
   },
   title: {
     ...Typography.h1,
     color: Colors.textPrimary,
+    fontSize: 32,
+    fontWeight: '700',
     marginBottom: 40,
   },
   form: {
     flex: 1,
   },
-  inputContainer: {
-    marginBottom: 24,
+  inputGroup: {
+    marginBottom: 32,
+  },
+  inputLabel: {
+    ...Typography.body,
+    color: Colors.textPrimary,
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  inputWrapper: {
+    // This will allow us to override the Input component styles
+  },
+  customInputContainer: {
+    marginBottom: 0, // Remove default margin
+  },
+  customInput: {
+    borderRadius: 25, // Very rounded inputs as shown in design
+    borderWidth: 2,
+    borderColor: Colors.textPrimary,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    fontSize: 16,
+    backgroundColor: Colors.white,
+    minHeight: 56, // Make inputs taller to match design
   },
   checkboxSection: {
-    marginTop: 16,
+    marginTop: 24,
     gap: 16,
   },
   checkboxRow: {
@@ -277,7 +321,7 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderWidth: 2,
-    borderColor: Colors.border,
+    borderColor: Colors.textPrimary,
     borderRadius: 4,
     marginRight: 12,
     marginTop: 2,
@@ -286,32 +330,29 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
   },
   checkboxChecked: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-  },
-  checkmark: {
-    color: Colors.white,
-    fontSize: 12,
-    fontWeight: 'bold',
+    backgroundColor: Colors.white,
+    borderColor: Colors.textPrimary,
   },
   checkboxText: {
     ...Typography.body,
     color: Colors.textPrimary,
     flex: 1,
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 16,
+    lineHeight: 22,
   },
   link: {
-    color: Colors.primary,
+    color: Colors.textPrimary,
     fontWeight: '600',
     textDecorationLine: 'underline',
   },
   actions: {
     paddingTop: 32,
+    paddingBottom: 40,
   },
   signUpButton: {
-    backgroundColor: Colors.primary,
-    borderRadius: 8,
+    backgroundColor: Colors.primaryDark,
+    borderRadius: 25,
+    paddingVertical: 16,
   },
 });
 

@@ -52,20 +52,12 @@ const TabIcon: React.FC<{
   };
 
   return (
-    <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+    <View style={{ alignItems: 'center', justifyContent: 'center', minHeight: 32 }}>
       <Ionicons 
         name={getIconName() as any}
-        size={size} 
+        size={focused ? 26 : 24} 
         color={color} 
         style={{ marginBottom: 2 }}
-      />
-      <View
-        style={{
-          width: 4,
-          height: 4,
-          borderRadius: 2,
-          backgroundColor: focused ? color : 'transparent',
-        }}
       />
     </View>
   );
@@ -837,8 +829,8 @@ const TabNavigator: React.FC = () => {
       backgroundColor: Colors.surface,
       borderTopWidth: 1,
       borderTopColor: Colors.border,
-      paddingTop: 12,
-      height: Platform.OS === 'ios' ? 100 : 80,
+      paddingTop: 8,
+      height: Platform.OS === 'ios' ? 90 : 70,
       elevation: 8,
       shadowColor: Colors.black,
       shadowOffset: { width: 0, height: -2 },
@@ -846,8 +838,9 @@ const TabNavigator: React.FC = () => {
       shadowRadius: 4,
     },
     tabBarItemStyle: {
-      paddingBottom: Platform.OS === 'ios' ? 24 : 12,
-      paddingTop: 8,
+      paddingBottom: Platform.OS === 'ios' ? 20 : 8,
+      paddingTop: 4,
+      justifyContent: 'center',
     },
   };
 

@@ -44,7 +44,17 @@ export type AuthStackParamList = {
   // Onboarding Journey Setup
   OnboardingStart: undefined;
   AsylumStatus: undefined;
-  ImmigrationStatus: { asylumStatus?: any };
+  ImmigrationStatus: { 
+    asylumStatusData?: AsylumStatusData;
+  };
+  SpecialStatus: { 
+    onboardingData?: OnboardingData;
+  };
+  OnboardingComplete: {
+    onboardingData?: CompleteOnboardingData;
+  };
+  
+  // Legacy onboarding screens (may be removed)
   PersonalInformation: { 
     asylumStatus?: any;
     immigrationStatus?: any;
@@ -202,18 +212,25 @@ export interface ImmigrationStatusData {
 }
 
 export interface SpecialStatusData {
-  hasSpecialStatus: 'yes' | 'no' | 'not-sure';
-  statusType?: 'tps' | 'parole' | 'daca' | 'other';
-  statusDetails?: string;
-  expirationDate?: string;
+  hasTPS: 'yes' | 'no' | 'not-sure';
+  tpsCountry?: string;
+  tpsExpirationDate?: string;
+  hasParole: 'yes' | 'no' | 'not-sure';
+  paroleType?: string;
+  paroleExpirationDate?: string;
+  hasWorkPermit: 'yes' | 'no' | 'applied';
+  workPermitNumber?: string;
+  workPermitExpirationDate?: string;
+  hasOtherStatus: 'yes' | 'no';
+  otherStatusDescription?: string;
 }
 
 export interface OnboardingData extends AsylumStatusData, ImmigrationStatusData {}
 
 export interface CompleteOnboardingData extends OnboardingData, SpecialStatusData {
-  setupComplete: boolean;
-  timelineGenerated: boolean;
-  profileCreated: boolean;
+  setupComplete?: boolean;
+  timelineGenerated?: boolean;
+  profileCreated?: boolean;
 }
 
 // Screen Props Types for easier typing

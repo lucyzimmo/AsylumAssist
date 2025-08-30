@@ -9,6 +9,7 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  TextInput,
 } from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
 import { StackScreenProps } from '@react-navigation/stack';
@@ -129,12 +130,7 @@ export const AsylumStatusScreen: React.FC<AsylumStatusScreenProps> = ({ navigati
 
       {/* Progress */}
       <View style={styles.progressContainer}>
-        <ProgressIndicator
-          currentStep={1}
-          totalSteps={3}
-          stepLabels={['Asylum Status', 'Immigration Status', 'Special Status']}
-          showLabels={false}
-        />
+        <Text style={styles.progressText}>Step 1 of 3</Text>
       </View>
 
       <KeyboardAvoidingView
@@ -172,34 +168,32 @@ export const AsylumStatusScreen: React.FC<AsylumStatusScreenProps> = ({ navigati
                 </TouchableOpacity>
               </View>
               
-              <Controller
-                control={control}
-                name="entryDate"
-                rules={{
-                  required: 'Entry date is required',
-                  validate: (value) => {
-                    if (!value) return 'Entry date is required';
-                    if (value > new Date()) return 'Entry date cannot be in the future';
-                    return true;
-                  },
-                }}
-                render={({ field: { onChange, value } }) => (
-                  <DateDropdown
-                    label="Entry Date"
-                    value={value}
-                    onDateChange={onChange}
-                    placeholder={{
-                      month: 'Month',
-                      day: 'Day', 
-                      year: 'Year'
-                    }}
-                    maximumDate={new Date()}
-                    error={errors.entryDate?.message}
-                    containerStyle={styles.inputContainer}
-                    required
+              <View style={styles.dateInputRow}>
+                <View style={styles.dateInput}>
+                  <TextInput
+                    style={styles.dateInputField}
+                    placeholder="DD"
+                    keyboardType="numeric"
+                    maxLength={2}
                   />
-                )}
-              />
+                </View>
+                <View style={styles.dateInput}>
+                  <TextInput
+                    style={styles.dateInputField}
+                    placeholder="MM"
+                    keyboardType="numeric"
+                    maxLength={2}
+                  />
+                </View>
+                <View style={styles.dateInput}>
+                  <TextInput
+                    style={styles.dateInputField}
+                    placeholder="YYYY"
+                    keyboardType="numeric"
+                    maxLength={4}
+                  />
+                </View>
+              </View>
               
               {/* Filing Deadline Warning/Info */}
               {filingDeadline && (
@@ -395,42 +389,50 @@ export const AsylumStatusScreen: React.FC<AsylumStatusScreenProps> = ({ navigati
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.surface,
+    backgroundColor: '#F8F9FA',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
     paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
   },
   backButton: {
+    backgroundColor: '#E8F5E8',
+    paddingHorizontal: 16,
     paddingVertical: 8,
+    borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   backButtonText: {
     ...Typography.button,
-    color: Colors.primary,
+    color: Colors.textPrimary,
+    marginLeft: 4,
   },
   helpIcon: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: Colors.primary,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: Colors.primaryDark,
     justifyContent: 'center',
     alignItems: 'center',
   },
   helpText: {
     color: Colors.white,
-    fontSize: 12,
+    fontSize: 16,
     fontWeight: 'bold',
   },
   progressContainer: {
     paddingHorizontal: 24,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    paddingTop: 16,
+  },
+  progressText: {
+    ...Typography.caption,
+    color: Colors.textSecondary,
+    fontSize: 14,
+    marginBottom: 8,
   },
   content: {
     flex: 1,
@@ -481,6 +483,25 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     marginBottom: 16,
+  },
+  dateInputRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 16,
+  },
+  dateInput: {
+    flex: 1,
+  },
+  dateInputField: {
+    borderWidth: 2,
+    borderColor: Colors.textPrimary,
+    borderRadius: 25,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: Colors.white,
+    textAlign: 'center',
+    fontSize: 16,
+    fontWeight: '500',
   },
   alertContainer: {
     marginTop: 8,

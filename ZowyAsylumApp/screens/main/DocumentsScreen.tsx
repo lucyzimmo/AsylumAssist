@@ -29,14 +29,13 @@ const DocumentsScreen: React.FC<DocumentsScreenProps> = ({ navigation }) => {
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Upload Card */}
-        <View style={styles.uploadCard}>
+        <TouchableOpacity style={styles.uploadCard} activeOpacity={0.7}>
           <View style={styles.uploadIcon}>
-            <View style={styles.uploadArrow} />
-            <View style={styles.uploadBase} />
+            <Ionicons name="cloud-upload-outline" size={64} color={Colors.primary} />
           </View>
           <Text style={styles.uploadTitle}>Tap here to upload a new document</Text>
           <Text style={styles.uploadSubtitle}>Max file size: 25MB</Text>
-        </View>
+        </TouchableOpacity>
 
         {/* Documents List */}
         <View style={styles.documentsSection}>
@@ -45,7 +44,7 @@ const DocumentsScreen: React.FC<DocumentsScreenProps> = ({ navigation }) => {
           {/* Document Item - Passport */}
           <View style={styles.documentItem}>
             <View style={styles.documentIcon}>
-              <Ionicons name="document-text" size={20} color={Colors.primary} />
+              <Ionicons name="document-text" size={20} color={Colors.white} />
             </View>
             <View style={styles.documentInfo}>
               <Text style={styles.documentTitle}>Passport</Text>
@@ -59,11 +58,25 @@ const DocumentsScreen: React.FC<DocumentsScreenProps> = ({ navigation }) => {
           {/* Document Item - Form I-589 */}
           <View style={styles.documentItem}>
             <View style={styles.documentIcon}>
-              <Ionicons name="document-text" size={20} color={Colors.primary} />
+              <Ionicons name="document-text" size={20} color={Colors.white} />
             </View>
             <View style={styles.documentInfo}>
               <Text style={styles.documentTitle}>Form I-589</Text>
               <Text style={styles.documentFilename}>form-I-589-final.pdf</Text>
+            </View>
+            <TouchableOpacity style={styles.editButton}>
+              <Text style={styles.editButtonText}>Edit</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Document Item - Form I-765 */}
+          <View style={styles.documentItem}>
+            <View style={styles.documentIcon}>
+              <Ionicons name="document-text" size={20} color={Colors.white} />
+            </View>
+            <View style={styles.documentInfo}>
+              <Text style={styles.documentTitle}>Form I-765</Text>
+              <Text style={styles.documentFilename}>form-I-765.pdf</Text>
             </View>
             <TouchableOpacity style={styles.editButton}>
               <Text style={styles.editButtonText}>Edit</Text>
@@ -124,7 +137,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
     borderWidth: 2,
-    borderColor: '#E8F5E8',
+    borderColor: Colors.primary,
     borderStyle: 'dashed',
     paddingVertical: 40,
     paddingHorizontal: 20,
@@ -134,20 +147,6 @@ const styles = StyleSheet.create({
   uploadIcon: {
     marginBottom: 16,
     alignItems: 'center',
-  },
-  uploadArrow: {
-    width: 40,
-    height: 30,
-    backgroundColor: Colors.primary,
-    borderRadius: 8,
-    marginBottom: 8,
-    transform: [{ rotate: '180deg' }],
-  },
-  uploadBase: {
-    width: 60,
-    height: 40,
-    backgroundColor: Colors.primary,
-    borderRadius: 8,
   },
   uploadTitle: {
     fontSize: 18,

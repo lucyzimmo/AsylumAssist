@@ -12,6 +12,8 @@ import { EmailVerificationScreen } from '../screens/auth/EmailVerificationScreen
 import OnboardingStartScreen from '../screens/onboarding/OnboardingStartScreen';
 import { AsylumStatusScreen } from '../screens/onboarding/AsylumStatusScreen';
 import { ImmigrationStatusScreen } from '../screens/onboarding/ImmigrationStatusScreen';
+import { SpecialStatusScreen } from '../screens/onboarding/SpecialStatusScreen';
+import { OnboardingCompleteScreen } from '../screens/onboarding/OnboardingCompleteScreen';
 
 // Placeholder screens for now
 import { PlaceholderScreen } from '../components/common/PlaceholderScreen';
@@ -183,12 +185,12 @@ export const AuthNavigator: React.FC = () => {
         
         <Stack.Screen 
           name="SpecialStatus" 
-          component={PlaceholderScreen}
+          component={SpecialStatusScreen}
         />
         
         <Stack.Screen 
           name="OnboardingComplete" 
-          component={PlaceholderScreen}
+          component={OnboardingCompleteScreen}
         />
       </Stack.Group>
     </Stack.Navigator>
