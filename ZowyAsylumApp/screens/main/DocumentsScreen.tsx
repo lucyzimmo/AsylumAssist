@@ -1,20 +1,88 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Modal,
+  TextInput,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../constants/Colors';
+import { useDocuments } from '../../hooks/useDocuments';
 
 interface DocumentsScreenProps {
   navigation: any;
 }
 
+// Document type options for the dropdown
+const DOCUMENT_TYPES = [
+  { id: 'passport', label: 'Passport' },
+  { id: 'form-i589', label: 'Form I-589' },
+  { id: 'form-i765', label: 'Form I-765' },
+  { id: 'birth-certificate', label: 'Birth Certificate' },
+  { id: 'driver-license', label: 'Driver\'s License' },
+  { id: 'other', label: 'Other document' },
+];
+
 const DocumentsScreen: React.FC<DocumentsScreenProps> = ({ navigation }) => {
+  const {
+    documents,
+    loading,
+    uploading,
+    error,
+    pickDocument,
+    updateDocument,
+    formatFileSize,
+  } = useDocuments();
+
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [selectedDocumentType, setSelectedDocumentType] = useState('other');
+  const [documentName, setDocumentName] = useState('');
+  const [uploadedFile, setUploadedFile] = useState<any>(null);
+
+  const handleUploadPress = async () => {
+    const success = await pickDocument();
+    
+    if (success && documents.length > 0) {
+      // Get the most recently uploaded document
+      const latestDoc = documents[documents.length - 1];
+      setUploadedFile(latestDoc);
+      setDocumentName(latestDoc.name);
+      setShowUploadModal(true);
+    } else if (error) {
+      Alert.alert('Upload Failed', error);
+    }
+  };
+
+  const handleSaveDocument = async () => {
+    if (uploadedFile && documentName.trim()) {
+      const success = await updateDocument(uploadedFile.id, {
+        name: documentName.trim(),
+        category: selectedDocumentType as any,
+      });
+      
+      if (success) {
+        setShowUploadModal(false);
+        setUploadedFile(null);
+        setDocumentName('');
+        setSelectedDocumentType('other');
+        Alert.alert('Success', 'Document saved successfully!');
+      }
+    }
+  };
+
+  const handleEditDocument = (document: any) => {
+    setUploadedFile(document);
+    setDocumentName(document.name);
+    setSelectedDocumentType(document.category);
+    setShowUploadModal(true);
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Header matching documents.png */}
@@ -29,7 +97,12 @@ const DocumentsScreen: React.FC<DocumentsScreenProps> = ({ navigation }) => {
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Upload Card */}
-        <TouchableOpacity style={styles.uploadCard} activeOpacity={0.7}>
+        <TouchableOpacity 
+          style={styles.uploadCard} 
+          activeOpacity={0.7}
+          onPress={handleUploadPress}
+          disabled={uploading}
+        >
           <View style={styles.uploadIcon}>
             <Ionicons name="cloud-upload-outline" size={64} color={Colors.primary} />
           </View>

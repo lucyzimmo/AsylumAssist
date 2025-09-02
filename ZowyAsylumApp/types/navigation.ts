@@ -93,10 +93,7 @@ export type MainStackParamList = {
     documentType: string; 
     isNew?: boolean;
   };
-  DocumentUpload: { 
-    category: 'passport' | 'forms' | 'evidence' | 'correspondence';
-    required?: boolean;
-  };
+
   FormWizard: { 
     formType: 'i589' | 'i765' | 'i912';
     step?: number;
@@ -145,7 +142,7 @@ export type HomeStackParamList = {
 // Documents Tab Stack
 export type DocumentsStackParamList = {
   DocumentsList: undefined;
-  DocumentsUpload: { category?: string };
+
   DocumentCategories: undefined;
   CategoryDetail: { 
     category: 'required' | 'supporting' | 'correspondence' | 'completed';

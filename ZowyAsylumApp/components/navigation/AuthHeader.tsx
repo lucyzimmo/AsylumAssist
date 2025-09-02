@@ -90,7 +90,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#F8F9FA', // Light gray background from design
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingVertical: 20,
   },
   leftSection: {
     alignItems: 'flex-start',

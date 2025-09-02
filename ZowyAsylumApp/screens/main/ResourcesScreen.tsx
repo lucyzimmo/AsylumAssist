@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,12 +6,16 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  Alert,
+  Modal,
+  ActivityIndicator,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../constants/Colors';
 import { Typography } from '../../constants/Typography';
+import { useResources } from '../../hooks/useResources';
+import { RESOURCE_CATEGORIES } from '../../types/resources';
 
 interface ResourcesScreenProps {
   navigation: any;
@@ -19,9 +23,24 @@ interface ResourcesScreenProps {
 
 const ResourcesScreen: React.FC<ResourcesScreenProps> = ({ navigation }) => {
   const [currentTab, setCurrentTab] = useState<'main' | 'legal' | 'online' | 'process'>('main');
-  const [searchText, setSearchText] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('All');
   const [expandedSections, setExpandedSections] = useState<string[]>([]);
+  const [showDocumentModal, setShowDocumentModal] = useState(false);
+  
+  // Use the resources hook
+  const {
+    resources,
+    featuredResources,
+    searchResults,
+    loading,
+    searching,
+    error,
+    searchQuery,
+    selectedCategory,
+    setSearchQuery,
+    setSelectedCategory,
+    toggleBookmark,
+    isBookmarked,
+  } = useResources();
 
   const mainResourceItems = [
     {
@@ -50,42 +69,23 @@ const ResourcesScreen: React.FC<ResourcesScreenProps> = ({ navigation }) => {
       title: 'Document descriptions',
       subtitle: 'Understanding your immigration documents',
       icon: 'document-text-outline',
-      onPress: () => Alert.alert('Document Descriptions', 'Document descriptions feature coming soon!'),
+      onPress: () => setShowDocumentModal(true),
     },
   ];
 
-  const onlineResourceCategories = ['All', 'Forms', 'Guides', 'Legal', 'Statistics'];
-  
-  const onlineResources = [
-    {
-      id: 'form-i589',
-      title: 'Form I-589 (Application for Asylum)',
-      description: 'The official form used to apply for asylum and for withholding of removal in the United States.',
-      category: 'Forms',
-      isFavorite: false,
-    },
-    {
-      id: 'work-permit-guide', 
-      title: 'Work Permit Guide',
-      description: 'How to obtain work authorization while your asylum case is pending.',
-      category: 'Guides',
-      isFavorite: false,
-    },
-    {
-      id: 'asylum-denied',
-      title: 'What happens if asylum is denied?',
-      description: 'Information about the deportation process and options if your asylum request is denied.',
-      category: 'Legal',
-      isFavorite: false,
-    },
-    {
-      id: 'withholding-removal',
-      title: 'Withholding of Removal',
-      description: 'Information about withholding of removal, an alternative form of relief for people who don\'t qualify for asylum.',
-      category: 'Legal',
-      isFavorite: false,
-    },
-  ];
+  // Handle opening external URLs
+  const handleOpenUrl = async (url: string) => {
+    try {
+      const supported = await Linking.canOpenURL(url);
+      if (supported) {
+        await Linking.openURL(url);
+      } else {
+        console.log("Don't know how to open URI: " + url);
+      }
+    } catch (error) {
+      console.error('Failed to open URL:', error);
+    }
+  };
 
   const asylumProcessSteps = [
     {
@@ -128,6 +128,27 @@ const ResourcesScreen: React.FC<ResourcesScreenProps> = ({ navigation }) => {
     );
   };
 
+
+  const getIconBackgroundColor = (itemId: string) => {
+    switch (itemId) {
+      case 'asylum-process': return '#E8F5E8';
+      case 'document-descriptions': return '#E8F5E8';
+      case 'legal-resources': return '#E8F5E8';
+      case 'online-resources': return '#E8F5E8';
+      default: return '#E8F5E8';
+    }
+  };
+
+  const getIconColor = (itemId: string) => {
+    switch (itemId) {
+      case 'asylum-process': return '#2E6B47';
+      case 'document-descriptions': return '#2E6B47';
+      case 'legal-resources': return '#2E6B47';
+      case 'online-resources': return '#2E6B47';
+      default: return '#2E6B47';
+    }
+  };
+
   const handleBackPress = () => {
     if (currentTab !== 'main') {
       setCurrentTab('main');
@@ -140,8 +161,8 @@ const ResourcesScreen: React.FC<ResourcesScreenProps> = ({ navigation }) => {
     <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
       {mainResourceItems.map((item) => (
         <TouchableOpacity key={item.id} style={styles.resourceCard} onPress={item.onPress}>
-          <View style={styles.resourceIcon}>
-            <Ionicons name={item.icon as any} size={24} color={Colors.primary} />
+          <View style={[styles.resourceIcon, { backgroundColor: getIconBackgroundColor(item.id) }]}>
+            <Ionicons name={item.icon as any} size={24} color={getIconColor(item.id)} />
           </View>
           <View style={styles.resourceContent}>
             <Text style={styles.resourceTitle}>{item.title}</Text>
@@ -150,6 +171,10 @@ const ResourcesScreen: React.FC<ResourcesScreenProps> = ({ navigation }) => {
           <Ionicons name="chevron-forward" size={20} color={Colors.textSecondary} />
         </TouchableOpacity>
       ))}
+      
+      <TouchableOpacity style={styles.helpLink}>
+        <Text style={styles.helpLinkText}>I can't find what I'm looking for</Text>
+      </TouchableOpacity>
     </ScrollView>
   );
 
@@ -167,8 +192,8 @@ const ResourcesScreen: React.FC<ResourcesScreenProps> = ({ navigation }) => {
         <TextInput
           style={styles.searchInput}
           placeholder="State, city, zip code...."
-          value={searchText}
-          onChangeText={setSearchText}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
         />
         <Ionicons name="search" size={20} color={Colors.textSecondary} />
       </View>
@@ -203,15 +228,15 @@ const ResourcesScreen: React.FC<ResourcesScreenProps> = ({ navigation }) => {
       <View style={styles.searchBar}>
         <TextInput
           style={styles.searchInput}
-          placeholder="Search..."
-          value={searchText}
-          onChangeText={setSearchText}
+          placeholder="Search resources..."
+          value={searchQuery}
+          onChangeText={setSearchQuery}
         />
         <Ionicons name="search" size={20} color={Colors.textSecondary} />
       </View>
 
       <ScrollView horizontal style={styles.categoriesContainer} showsHorizontalScrollIndicator={false}>
-        {onlineResourceCategories.map((category) => (
+        {RESOURCE_CATEGORIES.map((category) => (
           <TouchableOpacity
             key={category}
             style={[
@@ -230,28 +255,59 @@ const ResourcesScreen: React.FC<ResourcesScreenProps> = ({ navigation }) => {
         ))}
       </ScrollView>
 
-      {onlineResources
-        .filter(resource => selectedCategory === 'All' || resource.category === selectedCategory)
-        .map((resource) => (
-          <TouchableOpacity key={resource.id} style={styles.onlineResourceCard}>
-            <View style={styles.onlineResourceHeader}>
-              <Text style={styles.onlineResourceTitle}>{resource.title}</Text>
-              <View style={styles.onlineResourceActions}>
-                <TouchableOpacity>
-                  <Ionicons name="open-outline" size={20} color={Colors.textSecondary} />
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.favoriteButton}>
-                  <Ionicons 
-                    name={resource.isFavorite ? "star" : "star-outline"} 
-                    size={20} 
-                    color={resource.isFavorite ? Colors.warning : Colors.textSecondary} 
-                  />
-                </TouchableOpacity>
-              </View>
+      {searching && (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="small" color="#2E6B47" />
+          <Text style={styles.loadingText}>Searching resources...</Text>
+        </View>
+      )}
+
+      {error && (
+        <View style={styles.errorContainer}>
+          <Ionicons name="alert-circle" size={20} color="#DC2626" />
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
+      )}
+
+      {!searching && !error && searchResults.map((resource) => (
+        <View key={resource.id} style={styles.onlineResourceCard}>
+          <View style={styles.onlineResourceHeader}>
+            <Text style={styles.onlineResourceTitle}>{resource.title}</Text>
+            <View style={styles.onlineResourceActions}>
+              <TouchableOpacity onPress={() => handleOpenUrl(resource.url)}>
+                <Ionicons name="open-outline" size={20} color={Colors.textSecondary} />
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.favoriteButton}
+                onPress={() => toggleBookmark(resource.id)}
+              >
+                <Ionicons 
+                  name={isBookmarked(resource.id) ? "star" : "star-outline"} 
+                  size={20} 
+                  color={isBookmarked(resource.id) ? '#34D399' : Colors.textSecondary} 
+                />
+              </TouchableOpacity>
             </View>
-            <Text style={styles.onlineResourceDescription}>{resource.description}</Text>
-          </TouchableOpacity>
-        ))}
+          </View>
+          <Text style={styles.onlineResourceDescription}>{resource.description}</Text>
+          {resource.isOfficial && (
+            <View style={styles.officialBadge}>
+              <Ionicons name="shield-checkmark" size={12} color="#2E6B47" />
+              <Text style={styles.officialBadgeText}>Official USCIS Resource</Text>
+            </View>
+          )}
+        </View>
+      ))}
+
+      {!searching && !error && searchResults.length === 0 && (
+        <View style={styles.noResultsContainer}>
+          <Ionicons name="search" size={48} color="#CCCCCC" />
+          <Text style={styles.noResultsTitle}>No resources found</Text>
+          <Text style={styles.noResultsText}>
+            Try adjusting your search terms or selecting a different category.
+          </Text>
+        </View>
+      )}
     </ScrollView>
   );
 
@@ -319,6 +375,26 @@ const ResourcesScreen: React.FC<ResourcesScreenProps> = ({ navigation }) => {
       {currentTab === 'legal' && renderLegalResources()}
       {currentTab === 'online' && renderOnlineResources()}
       {currentTab === 'process' && renderAsylumProcess()}
+
+      <Modal
+        visible={showDocumentModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowDocumentModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Document Descriptions</Text>
+            <Text style={styles.modalText}>Document descriptions feature coming soon!</Text>
+            <TouchableOpacity
+              style={styles.modalButton}
+              onPress={() => setShowDocumentModal(false)}
+            >
+              <Text style={styles.modalButtonText}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -360,7 +436,7 @@ const styles = StyleSheet.create({
   backText: {
     marginLeft: 4,
     fontSize: 16,
-    color: Colors.textPrimary,
+    color: '#000000',
     fontWeight: '500',
   },
   helpButton: {
@@ -387,49 +463,382 @@ const styles = StyleSheet.create({
     paddingTop: 16,
   },
 
-  // Resources Section
-  resourcesSection: {
-    marginBottom: 32,
-  },
-
-  // Resource Item
-  resourceItem: {
+  // Resource Cards
+  resourceCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    padding: 20,
+    padding: 16,
     marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   resourceIcon: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 20,
+    marginRight: 16,
+  },
+  resourceContent: {
+    flex: 1,
   },
   resourceTitle: {
-    flex: 1,
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '600',
     color: '#000000',
+    marginBottom: 4,
   },
-  chevron: {
-    fontSize: 24,
+  resourceSubtitle: {
+    fontSize: 14,
     color: '#666666',
-    fontWeight: '300',
   },
 
   // Help Link
   helpLink: {
     paddingVertical: 20,
+    alignItems: 'center',
   },
   helpLinkText: {
-    fontSize: 18,
+    fontSize: 16,
     color: '#000000',
     fontWeight: '500',
     textDecorationLine: 'underline',
+  },
+
+  // Search Section
+  searchSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  searchLabel: {
+    fontSize: 16,
+    color: '#000000',
+    marginRight: 12,
+  },
+  searchTypeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#2E6B47',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  searchTypeText: {
+    color: '#FFFFFF',
+    fontWeight: '500',
+    marginRight: 4,
+  },
+
+  // Search Bar
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 25,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#000000',
+  },
+
+  // Categories
+  categoriesContainer: {
+    marginBottom: 16,
+  },
+  categoryButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    marginRight: 8,
+    backgroundColor: '#FFFFFF',
+  },
+  categoryButtonActive: {
+    backgroundColor: '#2E6B47',
+    borderColor: '#2E6B47',
+  },
+  categoryText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#666666',
+  },
+  categoryTextActive: {
+    color: '#FFFFFF',
+  },
+
+  // Online Resource Cards
+  onlineResourceCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  onlineResourceHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+  },
+  onlineResourceTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#000000',
+    flex: 1,
+    marginRight: 12,
+  },
+  onlineResourceActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  favoriteButton: {
+    marginLeft: 12,
+  },
+  onlineResourceDescription: {
+    fontSize: 14,
+    color: '#666666',
+    lineHeight: 20,
+  },
+
+  // Info Card
+  infoCard: {
+    flexDirection: 'row',
+    backgroundColor: '#E3F2FD',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+  infoIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#2196F3',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+    marginTop: 2,
+  },
+  infoIconText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  infoContent: {
+    flex: 1,
+  },
+  infoHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+  },
+  infoTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000000',
+  },
+  infoText: {
+    fontSize: 14,
+    color: '#666666',
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  infoCheckbox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: '#E0E0E0',
+    marginRight: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxInner: {
+    width: 12,
+    height: 12,
+    borderRadius: 2,
+    backgroundColor: 'transparent',
+  },
+  checkboxText: {
+    fontSize: 14,
+    color: '#666666',
+  },
+
+  // Process Steps
+  processStep: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  processStepHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+  },
+  processStepNumber: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#E8F5E8',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
+  },
+  processStepNumberText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#2E6B47',
+  },
+  processStepTitle: {
+    flex: 1,
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#000000',
+  },
+  processStepContent: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+  },
+  processStepText: {
+    fontSize: 14,
+    color: '#666666',
+    lineHeight: 20,
+    marginLeft: 48,
+  },
+
+  // Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 24,
+    width: '100%',
+    maxWidth: 300,
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#000000',
+    marginBottom: 12,
+  },
+  modalText: {
+    fontSize: 14,
+    color: '#666666',
+    textAlign: 'center',
+    marginBottom: 20,
+    lineHeight: 20,
+  },
+  modalButton: {
+    backgroundColor: '#2E6B47',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+    minWidth: 80,
+  },
+  modalButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+
+  // Loading and Error States
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 20,
+  },
+  loadingText: {
+    marginLeft: 8,
+    fontSize: 14,
+    color: '#666666',
+  },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEE2E2',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  errorText: {
+    marginLeft: 8,
+    fontSize: 14,
+    color: '#DC2626',
+    flex: 1,
+  },
+
+  // Official Badge
+  officialBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    backgroundColor: '#E8F5E8',
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+  },
+  officialBadgeText: {
+    marginLeft: 4,
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#2E6B47',
+  },
+
+  // No Results
+  noResultsContainer: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  noResultsTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#666666',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  noResultsText: {
+    fontSize: 14,
+    color: '#999999',
+    textAlign: 'center',
+    lineHeight: 20,
+    paddingHorizontal: 20,
   },
 });
 

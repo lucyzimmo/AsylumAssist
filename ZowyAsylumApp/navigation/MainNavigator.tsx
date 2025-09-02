@@ -18,6 +18,7 @@ import { TabHeader } from '../components/navigation/TabHeader';
 import { PlaceholderScreen } from '../components/common/PlaceholderScreen';
 import DashboardScreen from '../screens/main/DashboardScreen';
 import DocumentsScreen from '../screens/main/DocumentsScreen';
+
 import ResourcesScreen from '../screens/main/ResourcesScreen';
 import ProfileScreen from '../screens/main/ProfileScreen';
 
@@ -227,20 +228,7 @@ const DocumentsStackNavigator: React.FC = () => {
         }}
       />
       
-      <DocumentsStack.Screen
-        name="DocumentsUpload"
-        component={PlaceholderScreen}
-        options={{
-          header: (props) => (
-            <MainHeader
-              {...props}
-              title="Upload Document"
-              showBack={true}
-              showHelp={true}
-            />
-          ),
-        }}
-      />
+
       
       <DocumentsStack.Screen
         name="DocumentCategories"
@@ -830,7 +818,7 @@ const TabNavigator: React.FC = () => {
       borderTopWidth: 1,
       borderTopColor: Colors.border,
       paddingTop: 8,
-      height: Platform.OS === 'ios' ? 90 : 70,
+      height: Platform.OS === 'ios' ? 100 : 78,
       elevation: 8,
       shadowColor: Colors.black,
       shadowOffset: { width: 0, height: -2 },
@@ -838,7 +826,7 @@ const TabNavigator: React.FC = () => {
       shadowRadius: 4,
     },
     tabBarItemStyle: {
-      paddingBottom: Platform.OS === 'ios' ? 20 : 8,
+      paddingBottom: Platform.OS === 'ios' ? 24 : 10,
       paddingTop: 4,
       justifyContent: 'center',
     },
@@ -940,21 +928,7 @@ export const MainNavigator: React.FC = () => {
         }}
       />
       
-      <MainStack.Screen
-        name="DocumentUpload"
-        component={PlaceholderScreen}
-        options={{
-          headerShown: true,
-          header: (props) => (
-            <MainHeader
-              {...props}
-              title="Upload Document"
-              showBack={true}
-              showHelp={true}
-            />
-          ),
-        }}
-      />
+
       
       <MainStack.Screen
         name="FormWizard"

@@ -78,10 +78,10 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: Colors.primary,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    minHeight: 56,
+    minHeight: 64,
   },
   leftSection: {
     flex: 1,

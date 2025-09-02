@@ -1,0 +1,184 @@
+{
+  "resources": [
+    {
+      "id": "form-i589",
+      "title": "Form I-589 (Application for Asylum)",
+      "description": "The official form used to apply for asylum and for withholding of removal in the United States. Must be filed within one year of arrival unless exceptions apply.",
+      "url": "https://www.uscis.gov/i-589",
+      "category": "Forms",
+      "keywords": ["asylum", "application", "i-589", "withholding", "removal", "immigration", "form"],
+      "isOfficial": true,
+      "lastUpdated": "2024-01-15"
+    },
+    {
+      "id": "form-i765",
+      "title": "Form I-765 (Work Authorization Document)",
+      "description": "Application for Employment Authorization Document (EAD). Asylum seekers can apply 150 days after filing their asylum application.",
+      "url": "https://www.uscis.gov/i-765",
+      "category": "Forms",
+      "keywords": ["work", "permit", "authorization", "i-765", "employment", "EAD", "asylum"],
+      "isOfficial": true,
+      "lastUpdated": "2024-01-15"
+    },
+    {
+      "id": "form-i485",
+      "title": "Form I-485 (Adjust Status to Permanent Resident)",
+      "description": "Application to adjust status to permanent resident. Asylees can apply one year after being granted asylum.",
+      "url": "https://www.uscis.gov/i-485",
+      "category": "Forms",
+      "keywords": ["green", "card", "permanent", "resident", "adjust", "status", "i-485", "asylum"],
+      "isOfficial": true,
+      "lastUpdated": "2024-01-15"
+    },
+    {
+      "id": "asylum-guide-uscis",
+      "title": "Asylum Guide - USCIS Official",
+      "description": "Comprehensive guide to the asylum process from USCIS, including eligibility requirements, application procedures, and what to expect.",
+      "url": "https://www.uscis.gov/humanitarian/refugees-and-asylum/asylum",
+      "category": "Guides",
+      "keywords": ["asylum", "guide", "process", "uscis", "official", "requirements", "procedure"],
+      "isOfficial": true,
+      "lastUpdated": "2024-01-15"
+    },
+    {
+      "id": "work-authorization-guide",
+      "title": "Work Authorization for Asylum Seekers",
+      "description": "Step-by-step guide on how to obtain work authorization while your asylum case is pending, including timeline and requirements.",
+      "url": "https://www.uscis.gov/working-in-the-united-states/temporary-workers/employment-authorization-document",
+      "category": "Guides",
+      "keywords": ["work", "authorization", "employment", "asylum", "pending", "guide", "timeline"],
+      "isOfficial": true,
+      "lastUpdated": "2024-01-15"
+    },
+    {
+      "id": "credible-fear-interview",
+      "title": "Credible Fear Interview Guide",
+      "description": "Information about the credible fear screening process for asylum seekers who arrive at the border or are in removal proceedings.",
+      "url": "https://www.uscis.gov/humanitarian/refugees-and-asylum/asylum/credible-fear-screening",
+      "category": "Guides",
+      "keywords": ["credible", "fear", "interview", "screening", "border", "removal", "proceedings"],
+      "isOfficial": true,
+      "lastUpdated": "2024-01-15"
+    },
+    {
+      "id": "asylum-statistics-2023",
+      "title": "Asylum Statistics - Fiscal Year 2023",
+      "description": "Official USCIS statistics on asylum applications, approvals, denials, and processing times for fiscal year 2023.",
+      "url": "https://www.uscis.gov/tools/reports-and-studies/immigration-forms-data",
+      "category": "Statistics",
+      "keywords": ["statistics", "data", "asylum", "2023", "approvals", "denials", "processing", "times"],
+      "isOfficial": true,
+      "lastUpdated": "2024-01-15"
+    },
+    {
+      "id": "processing-times",
+      "title": "Case Processing Times",
+      "description": "Check current processing times for asylum applications, work permits, and other immigration benefits by USCIS office.",
+      "url": "https://egov.uscis.gov/processing-times/",
+      "category": "Statistics",
+      "keywords": ["processing", "times", "asylum", "work", "permit", "timeline", "office"],
+      "isOfficial": true,
+      "lastUpdated": "2024-01-15"
+    },
+    {
+      "id": "asylum-office-locator",
+      "title": "Asylum Office Locator",
+      "description": "Find the asylum office that handles cases in your area, including addresses, phone numbers, and jurisdiction information.",
+      "url": "https://www.uscis.gov/about-us/find-a-uscis-office/field-offices/asylum-offices",
+      "category": "Legal",
+      "keywords": ["asylum", "office", "locator", "jurisdiction", "address", "contact"],
+      "isOfficial": true,
+      "lastUpdated": "2024-01-15"
+    },
+    {
+      "id": "legal-aid-directory",
+      "title": "Pro Bono Legal Services Directory",
+      "description": "Directory of organizations providing free or low-cost legal assistance to asylum seekers and immigrants.",
+      "url": "https://www.justice.gov/eoir/list-pro-bono-legal-service-providers",
+      "category": "Legal",
+      "keywords": ["legal", "aid", "pro", "bono", "free", "assistance", "lawyers", "directory"],
+      "isOfficial": true,
+      "lastUpdated": "2024-01-15"
+    },
+    {
+      "id": "country-conditions-reports",
+      "title": "Country Conditions Reports",
+      "description": "U.S. State Department country reports on human rights practices and conditions that may support asylum claims.",
+      "url": "https://www.state.gov/reports/2023-country-reports-on-human-rights-practices/",
+      "category": "Legal",
+      "keywords": ["country", "conditions", "human", "rights", "reports", "evidence", "persecution"],
+      "isOfficial": true,
+      "lastUpdated": "2024-01-15"
+    },
+    {
+      "id": "immigration-court-manual",
+      "title": "Immigration Court Practice Manual",
+      "description": "Comprehensive manual for immigration court proceedings, including asylum hearings and legal procedures.",
+      "url": "https://www.justice.gov/eoir/immigration-court-practice-manual",
+      "category": "Legal",
+      "keywords": ["immigration", "court", "manual", "hearings", "procedures", "legal", "asylum"],
+      "isOfficial": true,
+      "lastUpdated": "2024-01-15"
+    },
+    {
+      "id": "withholding-removal-guide",
+      "title": "Withholding of Removal",
+      "description": "Information about withholding of removal as an alternative form of protection for those who don't qualify for asylum.",
+      "url": "https://www.uscis.gov/humanitarian/refugees-and-asylum/asylum/withholding-of-removal-and-cat-protection",
+      "category": "Legal",
+      "keywords": ["withholding", "removal", "protection", "alternative", "asylum", "cat", "torture"],
+      "isOfficial": true,
+      "lastUpdated": "2024-01-15"
+    },
+    {
+      "id": "one-year-deadline",
+      "title": "One-Year Filing Deadline for Asylum",
+      "description": "Detailed explanation of the one-year filing deadline for asylum applications and available exceptions.",
+      "url": "https://www.uscis.gov/humanitarian/refugees-and-asylum/asylum/one-year-filing-deadline",
+      "category": "Guides",
+      "keywords": ["one", "year", "deadline", "filing", "asylum", "exceptions", "time", "limit"],
+      "isOfficial": true,
+      "lastUpdated": "2024-01-15"
+    },
+    {
+      "id": "asylum-interview-preparation",
+      "title": "Preparing for Your Asylum Interview",
+      "description": "Guide on how to prepare for your asylum interview, including what documents to bring and what to expect.",
+      "url": "https://www.uscis.gov/humanitarian/refugees-and-asylum/asylum/preparing-for-your-asylum-interview",
+      "category": "Guides",
+      "keywords": ["interview", "preparation", "asylum", "documents", "expect", "process"],
+      "isOfficial": true,
+      "lastUpdated": "2024-01-15"
+    },
+    {
+      "id": "derivative-asylum",
+      "title": "Derivative Asylum for Family Members",
+      "description": "Information about how spouses and unmarried children under 21 can be included in an asylum application.",
+      "url": "https://www.uscis.gov/humanitarian/refugees-and-asylum/asylum/derivative-asylum",
+      "category": "Guides",
+      "keywords": ["derivative", "asylum", "family", "spouse", "children", "include", "application"],
+      "isOfficial": true,
+      "lastUpdated": "2024-01-15"
+    },
+    {
+      "id": "asylum-denials-appeals",
+      "title": "What Happens if Asylum is Denied?",
+      "description": "Information about the appeals process and options available if your asylum application is denied.",
+      "url": "https://www.justice.gov/eoir/board-of-immigration-appeals",
+      "category": "Legal",
+      "keywords": ["denied", "asylum", "appeals", "options", "bia", "board", "immigration"],
+      "isOfficial": true,
+      "lastUpdated": "2024-01-15"
+    },
+    {
+      "id": "travel-document-asylee",
+      "title": "Refugee Travel Document for Asylees",
+      "description": "How to apply for a refugee travel document if you've been granted asylum and need to travel outside the U.S.",
+      "url": "https://www.uscis.gov/i-131",
+      "category": "Forms",
+      "keywords": ["travel", "document", "refugee", "asylee", "i-131", "outside", "us"],
+      "isOfficial": true,
+      "lastUpdated": "2024-01-15"
+    }
+  ]
+}
