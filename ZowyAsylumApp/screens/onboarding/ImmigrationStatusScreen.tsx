@@ -183,7 +183,7 @@ export const ImmigrationStatusScreen: React.FC<ImmigrationStatusScreenProps> = (
                   accessibilityRole="button"
                   accessibilityLabel="More information about EOIR"
                 >
-                  <Text style={styles.infoButtonText}>ℹ️</Text>
+                  <Text style={styles.infoButtonText}>?</Text>
                 </TouchableOpacity>
               </View>
               
@@ -244,7 +244,7 @@ export const ImmigrationStatusScreen: React.FC<ImmigrationStatusScreenProps> = (
                       accessibilityRole="button"
                       accessibilityLabel="More information about court hearings"
                     >
-                      <Text style={styles.infoButtonText}>ℹ️</Text>
+                      <Text style={styles.infoButtonText}>?</Text>
                     </TouchableOpacity>
                   </View>
 

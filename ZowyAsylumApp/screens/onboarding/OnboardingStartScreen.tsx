@@ -7,6 +7,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StackScreenProps } from '@react-navigation/stack';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../constants/Colors';
 import { Typography } from '../../constants/Typography';
 import { Button } from '../../components/ui/Button';
@@ -94,7 +95,7 @@ const OnboardingStartScreen: React.FC<Props> = ({ navigation }) => {
 
             <View style={styles.feature}>
               <View style={styles.featureIconContainer}>
-                <Text style={styles.featureIcon}>🏛️</Text>
+                <Ionicons name="library" size={24} color={Colors.primary} />
               </View>
               <View style={styles.featureContent}>
                 <Text style={styles.featureTitle}>Legal Resources</Text>

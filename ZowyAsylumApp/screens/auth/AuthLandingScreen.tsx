@@ -1,0 +1,163 @@
+import React from 'react';
+import {
+  View,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  Dimensions,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import { Colors } from '../../constants/Colors';
+import { Button } from '../../components/ui/Button';
+import type { StackNavigationProp } from '@react-navigation/stack';
+import type { AuthStackParamList } from '../../types/navigation';
+
+type AuthLandingScreenNavigationProp = StackNavigationProp<
+  AuthStackParamList,
+  'AuthLanding'
+>;
+
+export const AuthLandingScreen: React.FC = () => {
+  const navigation = useNavigation<AuthLandingScreenNavigationProp>();
+
+  const handleSignUp = () => {
+    navigation.navigate('SignUp');
+  };
+
+  const handleLogin = () => {
+    navigation.navigate('Login');
+  };
+
+  const handleContinueAsGuest = () => {
+    const rootNavigation = navigation.getParent();
+    if (rootNavigation) {
+      rootNavigation.navigate('MainStack', { screen: 'Resources' });
+    }
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <View style={styles.content}>
+        {/* Logo Section */}
+        <View style={styles.logoSection}>
+          <Text style={styles.logo}>Zowy</Text>
+          <Text style={styles.tagline}>
+            Navigate your asylum journey with confidence
+          </Text>
+        </View>
+
+        {/* Action Buttons */}
+        <View style={styles.actionSection}>
+          <Button
+            title="Sign up"
+            onPress={handleSignUp}
+            variant="primary"
+            fullWidth
+            style={styles.signUpButton}
+          />
+          
+          <Button
+            title="Log in"
+            onPress={handleLogin}
+            variant="outline"
+            fullWidth
+            style={styles.loginButton}
+          />
+
+          <TouchableOpacity 
+            onPress={handleContinueAsGuest}
+            style={styles.guestButton}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel="Continue as guest to browse resources"
+          >
+            <Text style={styles.guestButtonText}>Continue as guest</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Language Selector Placeholder */}
+        <View style={styles.languageSection}>
+          <TouchableOpacity style={styles.languageButton}>
+            <Text style={styles.languageText}>🌐 English</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </SafeAreaView>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: 24,
+    justifyContent: 'space-between',
+    paddingVertical: 40,
+  },
+
+  // Logo Section
+  logoSection: {
+    alignItems: 'center',
+    marginTop: 80,
+  },
+  logo: {
+    fontSize: 48,
+    fontWeight: 'bold',
+    color: '#2E6B47',
+    marginBottom: 16,
+  },
+  tagline: {
+    fontSize: 18,
+    color: '#666666',
+    textAlign: 'center',
+    lineHeight: 26,
+    paddingHorizontal: 20,
+  },
+
+  // Action Section
+  actionSection: {
+    gap: 16,
+    paddingHorizontal: 8,
+  },
+  signUpButton: {
+    backgroundColor: '#2E6B47',
+    borderRadius: 8,
+    paddingVertical: 16,
+  },
+  loginButton: {
+    backgroundColor: 'transparent',
+    borderColor: '#2E6B47',
+    borderWidth: 2,
+    borderRadius: 8,
+    paddingVertical: 16,
+  },
+  guestButton: {
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  guestButtonText: {
+    fontSize: 16,
+    color: '#666666',
+    textDecorationLine: 'underline',
+  },
+
+  // Language Section
+  languageSection: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  languageButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+  },
+  languageText: {
+    fontSize: 16,
+    color: '#666666',
+  },
+});
+
+export default AuthLandingScreen;

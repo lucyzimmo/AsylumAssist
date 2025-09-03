@@ -26,7 +26,7 @@ export const DashboardScreen: React.FC = () => {
           {/* Info Banner */}
           <View style={styles.infoBanner}>
             <View style={styles.infoIcon}>
-              <Text style={styles.infoIconText}>ℹ️</Text>
+              <Text style={styles.infoIconText}>i</Text>
             </View>
             <View style={styles.infoContent}>
               <Text style={styles.infoTitle}>83 days before you can file form I-765</Text>

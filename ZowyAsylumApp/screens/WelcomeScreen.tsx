@@ -41,25 +41,42 @@ export const WelcomeScreen: React.FC = () => {
   };
 
   return (
-    <View style={styles.container}>
-      {/* Large Green Clover from Start.png */}
-      <View style={styles.cloverBackground}>
-        {/* Main clover shape */}
-        <View style={styles.mainClover} />
-        {/* Center circle */}
-        <View style={styles.cloverCenter} />
-        {/* Bottom decorative circle */}
-        <View style={styles.bottomCircle} />
-      </View>
-
-      <SafeAreaView style={styles.safeArea} edges={['bottom']}>
+    <SafeAreaView style={styles.container}>
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.content}>
           {/* Title Section */}
           <View style={styles.titleSection}>
-            <Text style={styles.title}>Zowy for Asylum</Text>
-            <Text style={styles.description}>
-              Track your progress, manage documents and find resources to help with your asylum application
+            <Text style={styles.title}>Welcome to Zowy</Text>
+            <Text style={styles.subtitle}>
+              Your digital companion for navigating the asylum process in the United States
             </Text>
+          </View>
+
+          {/* Feature List */}
+          <View style={styles.featuresSection}>
+            <View style={styles.featureItem}>
+              <Text style={styles.featureTitle}>Timeline Management</Text>
+              <Text style={styles.featureDescription}>
+                Track important deadlines and court dates
+              </Text>
+            </View>
+
+            <View style={styles.featureItem}>
+              <Text style={styles.featureTitle}>Form Assistance</Text>
+              <Text style={styles.featureDescription}>
+                Get help filling out I-589 and other forms
+              </Text>
+            </View>
+
+            <View style={styles.featureItem}>
+              <Text style={styles.featureTitle}>Legal Resources</Text>
+              <Text style={styles.featureDescription}>
+                Find legal aid organizations and support
+              </Text>
+            </View>
           </View>
 
           {/* Login Link */}
@@ -78,132 +95,118 @@ export const WelcomeScreen: React.FC = () => {
           {/* Action Buttons */}
           <View style={styles.buttonSection}>
             <Button
-              title="View resources"
-              onPress={handleViewResources}
-              variant="outline"
-              fullWidth
-              style={styles.viewResourcesButton}
-            />
-            
-            <Button
-              title="Sign up"
+              title="Get Started"
               onPress={handleSignUp}
               variant="primary"
               fullWidth
-              style={styles.signUpButton}
+              style={styles.getStartedButton}
+            />
+            
+            <Button
+              title="I'll do this later"
+              onPress={handleViewResources}
+              variant="outline"
+              fullWidth
+              style={styles.laterButton}
             />
           </View>
         </View>
-      </SafeAreaView>
-    </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA', // Light gray background to match other screens
-  },
-
-  // Clover Background matching Start.png exactly
-  cloverBackground: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  mainClover: {
-    position: 'absolute',
-    top: -80,
-    left: -40,
-    width: 300,
-    height: 400,
-    backgroundColor: Colors.primary,
-    borderRadius: 150,
-    transform: [
-      { scaleX: 1.3 },
-      { scaleY: 1.2 },
-      { rotate: '-12deg' }
-    ],
-  },
-  cloverCenter: {
-    position: 'absolute',
-    top: 120,
-    left: 40,
-    width: 100,
-    height: 100,
-    backgroundColor: Colors.primaryLight,
-    borderRadius: 50,
-    opacity: 0.9,
-  },
-  bottomCircle: {
-    position: 'absolute',
-    bottom: 100,
-    right: 30,
-    width: 120,
-    height: 120,
-    backgroundColor: Colors.primary,
-    borderRadius: 60,
-    opacity: 0.8,
+    backgroundColor: '#FFFFFF',
   },
 
   // Content Layout
-  safeArea: {
-    flex: 1,
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    minHeight: Dimensions.get('window').height * 0.9,
   },
   content: {
     flex: 1,
     paddingHorizontal: 24,
-    justifyContent: 'flex-end',
-    paddingBottom: 50,
+    paddingVertical: 40,
+    justifyContent: 'center',
   },
 
   // Title Section
   titleSection: {
-    marginBottom: 32,
+    marginBottom: 48,
+    alignItems: 'center',
   },
   title: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#000000',
-    marginBottom: 16,
-    textAlign: 'left',
-  },
-  description: {
-    fontSize: 16,
     color: '#333333',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  subtitle: {
+    fontSize: 18,
+    color: '#666666',
+    lineHeight: 28,
+    textAlign: 'center',
+    paddingHorizontal: 16,
+  },
+
+  // Features Section
+  featuresSection: {
+    marginBottom: 48,
+    paddingHorizontal: 8,
+  },
+  featureItem: {
+    marginBottom: 32,
+    alignItems: 'flex-start',
+  },
+  featureTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#333333',
+    marginBottom: 8,
+  },
+  featureDescription: {
+    fontSize: 16,
+    color: '#666666',
     lineHeight: 24,
-    textAlign: 'left',
   },
 
   // Login Section
   loginSection: {
-    marginBottom: 24,
+    marginBottom: 32,
+    alignItems: 'center',
   },
   loginText: {
     fontSize: 16,
-    color: '#333333',
-    textAlign: 'left',
+    color: '#666666',
+    textAlign: 'center',
   },
   loginLinkText: {
-    color: Colors.primary,
+    color: '#2E6B47',
     fontWeight: '600',
   },
 
   // Button Section
   buttonSection: {
     gap: 16,
+    paddingHorizontal: 8,
   },
-  viewResourcesButton: {
-    backgroundColor: Colors.white,
-    borderColor: Colors.textPrimary,
-    borderWidth: 2,
-    borderRadius: 25,
+  getStartedButton: {
+    backgroundColor: '#2E6B47',
+    borderRadius: 8,
+    paddingVertical: 16,
   },
-  signUpButton: {
-    backgroundColor: Colors.primaryDark, // Dark green from design
-    borderRadius: 25,
+  laterButton: {
+    backgroundColor: 'transparent',
+    borderColor: '#666666',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingVertical: 16,
   },
 });
 

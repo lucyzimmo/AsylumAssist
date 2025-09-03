@@ -7,98 +7,82 @@ import {
   TouchableOpacity,
   Alert,
   Linking,
+  TextInput,
+  Switch,
+  Modal,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../constants/Colors';
+import { useTimeline } from '../../hooks/useTimeline';
+import { JourneyStep } from '../../types/timeline';
 
 interface DashboardScreenProps {
   navigation: any;
 }
 
-// Timeline data based on the mockups
-const timelineSteps = [
-  {
-    id: 'arrival',
-    title: 'Arrival',
-    progress: '30% complete',
-    nextStep: 'Consult an attorney to determine if you should apply for asylum.',
-    alert: {
-      type: 'warning',
-      title: 'Next Deadline: 340 days left',
-      message: 'You must file form I-589 before 05/05/2026. Click here to learn more.',
-    },
-    hasMarkAsDone: true,
-  },
-  {
-    id: 'interview',
-    title: 'Interview',
-    progress: '30% complete',
-    nextStep: 'Your affirmative asylum interview is on 08/09/2025. Make sure you prepare your supporting documents, along with English translations.',
-    alert: {
-      type: 'warning',
-      title: 'Next Deadline: 41 days left',
-      message: 'Your affirmative asylum interview is on 08/09/2025. Click here to learn more.',
-    },
-    hasMarkAsDone: true,
-  },
-  {
-    id: 'work-permit',
-    title: 'Arrival',
-    progress: '30% complete',
-    nextStep: 'Apply for a work permit after 02/09/2025.',
-    alert: {
-      type: 'info',
-      title: '83 days before you can file form I-765',
-      message: 'You can apply for a work permit on 02/09/2025. Click here to learn more.',
-    },
-    hasMarkAsDone: false,
-  },
-];
-
 const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
-  const [currentStepIndex, setCurrentStepIndex] = useState(0);
-  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(true); // For demo, set to false to show empty state
-  const [completedSteps, setCompletedSteps] = useState<string[]>([]);
+  const {
+    timeline,
+    steps,
+    alerts,
+    currentStep,
+    loading,
+    error,
+    editMode,
+    markStepComplete,
+    updateStep,
+    enterEditMode,
+    exitEditMode,
+    getOverallProgress,
+    getNextActionableStep,
+    initializeTimeline
+  } = useTimeline();
+
   const [showCompletedSteps, setShowCompletedSteps] = useState(false);
-  
-  const currentStep = timelineSteps[currentStepIndex];
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingStep, setEditingStep] = useState<JourneyStep | null>(null);
+  const [editingStepNotes, setEditingStepNotes] = useState('');
+  const [editingStepDeadline, setEditingStepDeadline] = useState('');
+
+  // Get the primary alert to display
+  const primaryAlert = alerts.length > 0 ? alerts[0] : null;
 
   const handleAddToCalendar = () => {
-    // Extract date from the current step's alert message
-    let eventTitle = 'Asylum Process Step';
-    let eventDate = new Date();
+    if (!currentStep || !currentStep.deadline) return;
     
-    if (currentStep.alert.title.includes('Deadline')) {
-      eventTitle = currentStep.alert.title;
-      // Parse date from message if available
-      const dateMatch = currentStep.alert.message.match(/(\d{2}\/\d{2}\/\d{4})/);
-      if (dateMatch) {
-        eventDate = new Date(dateMatch[1]);
-      }
-    }
-
+    const eventTitle = `${currentStep.title} Deadline`;
+    const eventDate = new Date(currentStep.deadline);
+    
     // Create calendar URL for iOS/Android
     const startDate = eventDate.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
     const endDate = new Date(eventDate.getTime() + 60 * 60 * 1000).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
     
-    const calendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(eventTitle)}&dates=${startDate}/${endDate}&details=${encodeURIComponent(currentStep.nextStep)}`;
+    const calendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(eventTitle)}&dates=${startDate}/${endDate}&details=${encodeURIComponent(currentStep.description)}`;
     
     Linking.openURL(calendarUrl).catch(() => {
       Alert.alert('Calendar Error', 'Unable to open calendar. Please add this event manually.');
     });
   };
 
-  const handleMarkAsDone = () => {
+  const handleMarkAsDone = async () => {
+    if (!currentStep) return;
+    
     Alert.alert(
       'Mark as Done',
-      'Are you sure you want to mark this step as completed?',
+      `Are you sure you want to mark "${currentStep.title}" as completed?`,
       [
         { text: 'Cancel', style: 'cancel' },
         { 
           text: 'Mark Done', 
-          onPress: () => {
-            setCompletedSteps(prev => [...prev, currentStep.id]);
-            Alert.alert('Success', 'Step marked as completed!');
+          onPress: async () => {
+            const success = await markStepComplete(currentStep.id, true);
+            if (success) {
+              Alert.alert('Success', 'Step marked as completed!');
+            } else {
+              Alert.alert('Error', 'Failed to update step. Please try again.');
+            }
           }
         }
       ]
@@ -114,22 +98,48 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
   };
 
   const handleEditTimeline = () => {
-    Alert.alert(
-      'Edit Timeline',
-      'Do you want to update your asylum journey information?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Update Information', 
-          onPress: () => {
-            // Navigate back to onboarding to update information
-            navigation.getParent()?.navigate('AuthStack', { 
-              screen: 'OnboardingStart'
-            });
-          }
-        }
-      ]
-    );
+    if (editMode) {
+      exitEditMode();
+    } else {
+      enterEditMode();
+    }
+  };
+
+  const handleEditStep = (step: JourneyStep) => {
+    setEditingStep(step);
+    setEditingStepNotes(step.notes || '');
+    setEditingStepDeadline(step.deadline || '');
+    setShowEditModal(true);
+  };
+
+  const handleSaveStepEdit = async () => {
+    if (!editingStep) return;
+
+    const updates: Partial<JourneyStep> = {
+      notes: editingStepNotes,
+      deadline: editingStepDeadline || undefined,
+    };
+
+    const success = await updateStep(editingStep.id, updates);
+    if (success) {
+      setShowEditModal(false);
+      setEditingStep(null);
+      Alert.alert('Success', 'Step updated successfully!');
+    } else {
+      Alert.alert('Error', 'Failed to update step. Please try again.');
+    }
+  };
+
+  const handleStartJourney = async () => {
+    // Initialize timeline with default entry date (today)
+    const today = new Date().toISOString().split('T')[0];
+    const success = await initializeTimeline(today, false);
+    
+    if (success) {
+      Alert.alert('Success', 'Your timeline has been created! You can edit dates and details using the edit timeline feature.');
+    } else {
+      Alert.alert('Error', 'Failed to initialize timeline. Please try again.');
+    }
   };
 
   const handleShowCompletedSteps = () => {
@@ -160,8 +170,38 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
     );
   };
 
+  // Loading state
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#2E6B47" />
+          <Text style={styles.loadingText}>Loading your timeline...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorTitle}>Something went wrong</Text>
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity 
+            style={styles.retryButton}
+            onPress={handleStartJourney}
+          >
+            <Text style={styles.retryButtonText}>Start Journey</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   // Empty state when user hasn't completed onboarding
-  if (!hasCompletedOnboarding) {
+  if (!timeline) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
@@ -193,11 +233,9 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
             </Text>
             <TouchableOpacity 
               style={styles.startQuestionnaireButton}
-              onPress={() => navigation.getParent()?.navigate('AuthStack', { 
-                screen: 'OnboardingStart'
-              })}
+              onPress={handleStartJourney}
             >
-              <Text style={styles.startQuestionnaireText}>Start questionnaire</Text>
+              <Text style={styles.startQuestionnaireText}>Start journey</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -222,23 +260,29 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Alert Banner */}
-        <TouchableOpacity style={[
-          styles.alertBanner,
-          currentStep.alert.type === 'warning' ? styles.warningBanner : styles.infoBanner
-        ]}>
-          <View style={[
-            styles.alertIcon,
-            currentStep.alert.type === 'warning' ? styles.warningIcon : styles.infoIconStyle
+        {primaryAlert && (
+          <TouchableOpacity style={[
+            styles.alertBanner,
+            primaryAlert.type === 'warning' ? styles.warningBanner :
+            primaryAlert.type === 'critical' ? styles.criticalBanner : styles.infoBanner
           ]}>
-            <Text style={styles.alertIconText}>
-              {currentStep.alert.type === 'warning' ? '!' : 'i'}
-            </Text>
-          </View>
-          <View style={styles.alertContent}>
-            <Text style={styles.alertTitle}>{currentStep.alert.title}</Text>
-            <Text style={styles.alertText}>{currentStep.alert.message}</Text>
-          </View>
-        </TouchableOpacity>
+            <View style={[
+              styles.alertIcon,
+              primaryAlert.type === 'warning' ? styles.warningIcon :
+              primaryAlert.type === 'critical' ? styles.criticalIcon : styles.infoIconStyle
+            ]}>
+              <Ionicons 
+                name={primaryAlert.type === 'critical' || primaryAlert.type === 'warning' ? "warning" : "information-circle"} 
+                size={16} 
+                color="#FFFFFF" 
+              />
+            </View>
+            <View style={styles.alertContent}>
+              <Text style={styles.alertTitle}>{primaryAlert.title}</Text>
+              <Text style={styles.alertText}>{primaryAlert.message}</Text>
+            </View>
+          </TouchableOpacity>
+        )}
 
         {/* Timeline Card */}
         <View style={styles.timelineCard}>
@@ -246,8 +290,12 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
           <View style={styles.progressHeader}>
             <View style={styles.progressDot} />
             <View style={styles.progressInfo}>
-              <Text style={styles.timelineTitle}>{currentStep.title}</Text>
-              <Text style={styles.progressPercent}>{currentStep.progress}</Text>
+              <Text style={styles.timelineTitle}>
+                {currentStep?.title || 'Timeline Progress'}
+              </Text>
+              <Text style={styles.progressPercent}>
+                {getOverallProgress()}% complete
+              </Text>
             </View>
           </View>
 
@@ -263,57 +311,73 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
             </TouchableOpacity>
 
             {/* Show completed steps if toggled */}
-            {showCompletedSteps && completedSteps.length > 0 && (
+            {showCompletedSteps && (
               <View style={styles.completedStepsSection}>
                 <Text style={styles.completedStepsTitle}>Completed Steps:</Text>
-                {completedSteps.map((stepId) => {
-                  const step = timelineSteps.find(s => s.id === stepId);
-                  return step ? (
-                    <View key={stepId} style={styles.completedStepItem}>
+                {steps.filter(s => s.completed).length > 0 ? (
+                  steps.filter(s => s.completed).map((step) => (
+                    <View key={step.id} style={styles.completedStepItem}>
                       <View style={styles.completedStepDot} />
                       <Text style={styles.completedStepText}>{step.title}</Text>
-                      <Text style={styles.completedStepCheck}>✓</Text>
+                      <Ionicons name="checkmark" size={18} color={Colors.primary} />
                     </View>
-                  ) : null;
-                })}
+                  ))
+                ) : (
+                  <Text style={styles.noCompletedStepsText}>No completed steps yet.</Text>
+                )}
               </View>
             )}
 
-            {showCompletedSteps && completedSteps.length === 0 && (
-              <View style={styles.noCompletedSteps}>
-                <Text style={styles.noCompletedStepsText}>No completed steps yet.</Text>
-              </View>
-            )}
+            {currentStep && (
+              <>
+                <View style={styles.nextStepSection}>
+                  <View style={styles.nextStepDot} />
+                  <View style={styles.nextStepContent}>
+                    <Text style={styles.nextStepLabel}>Current step:</Text>
+                    <Text style={styles.nextStepText}>{currentStep.description}</Text>
+                    {currentStep.nextActions.length > 0 && (
+                      <View style={styles.nextActionsContainer}>
+                        <Text style={styles.nextActionsLabel}>Next actions:</Text>
+                        {currentStep.nextActions.map((action, index) => (
+                          <Text key={index} style={styles.nextActionText}>• {action}</Text>
+                        ))}
+                      </View>
+                    )}
+                  </View>
+                </View>
 
-            <View style={styles.nextStepSection}>
-              <View style={styles.nextStepDot} />
-              <View style={styles.nextStepContent}>
-                <Text style={styles.nextStepLabel}>Next step:</Text>
-                <Text style={styles.nextStepText}>{currentStep.nextStep}</Text>
-              </View>
-            </View>
+                <TouchableOpacity 
+                  style={styles.addToCalendarButton}
+                  onPress={handleAddToCalendar}
+                >
+                  <Text style={styles.addToCalendarText}>Add to calendar</Text>
+                </TouchableOpacity>
 
-            <TouchableOpacity 
-              style={styles.addToCalendarButton}
-              onPress={handleAddToCalendar}
-            >
-              <Text style={styles.addToCalendarText}>Add to calendar</Text>
-            </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.viewResourcesButton}
+                  onPress={() => navigation.navigate('Resources')}
+                >
+                  <Text style={styles.viewResourcesText}>View resources</Text>
+                </TouchableOpacity>
 
-            <TouchableOpacity 
-              style={styles.viewResourcesButton}
-              onPress={() => navigation.navigate('Resources')}
-            >
-              <Text style={styles.viewResourcesText}>View resources</Text>
-            </TouchableOpacity>
+                {!currentStep.completed && (
+                  <TouchableOpacity 
+                    style={styles.markAsDoneButton}
+                    onPress={handleMarkAsDone}
+                  >
+                    <Text style={styles.markAsDoneText}>Mark as done</Text>
+                  </TouchableOpacity>
+                )}
 
-            {currentStep.hasMarkAsDone && (
-              <TouchableOpacity 
-                style={styles.markAsDoneButton}
-                onPress={handleMarkAsDone}
-              >
-                <Text style={styles.markAsDoneText}>Mark as done</Text>
-              </TouchableOpacity>
+                {editMode && (
+                  <TouchableOpacity 
+                    style={styles.editStepButton}
+                    onPress={() => handleEditStep(currentStep)}
+                  >
+                    <Text style={styles.editStepText}>Edit this step</Text>
+                  </TouchableOpacity>
+                )}
+              </>
             )}
           </View>
 
@@ -322,22 +386,10 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
             style={styles.editTimelineLink}
             onPress={handleEditTimeline}
           >
-            <Text style={styles.editTimelineText}>Edit timeline</Text>
+            <Text style={styles.editTimelineText}>
+              {editMode ? 'Exit edit mode' : 'Edit timeline'}
+            </Text>
           </TouchableOpacity>
-        </View>
-
-        {/* Navigation Dots */}
-        <View style={styles.navigationDots}>
-          {timelineSteps.map((_, index) => (
-            <TouchableOpacity
-              key={index}
-              style={[
-                styles.navigationDot,
-                index === currentStepIndex && styles.navigationDotActive
-              ]}
-              onPress={() => setCurrentStepIndex(index)}
-            />
-          ))}
         </View>
 
         {/* Download Timeline Button */}
@@ -348,6 +400,78 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
           <Text style={styles.downloadTimelineText}>Download full timeline</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      {/* Edit Step Modal */}
+      <Modal
+        visible={showEditModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowEditModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Edit Step</Text>
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={() => setShowEditModal(false)}
+              >
+                <Ionicons name="close" size={24} color="#666666" />
+              </TouchableOpacity>
+            </View>
+
+            {editingStep && (
+              <>
+                <Text style={styles.stepTitle}>{editingStep.title}</Text>
+                
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Deadline (YYYY-MM-DD)</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    value={editingStepDeadline}
+                    onChangeText={setEditingStepDeadline}
+                    placeholder="Enter deadline date"
+                    placeholderTextColor="#999999"
+                  />
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Notes</Text>
+                  <TextInput
+                    style={[styles.textInput, styles.multilineInput]}
+                    value={editingStepNotes}
+                    onChangeText={setEditingStepNotes}
+                    placeholder="Add personal notes..."
+                    placeholderTextColor="#999999"
+                    multiline
+                    numberOfLines={4}
+                  />
+                </View>
+
+                <View style={styles.switchContainer}>
+                  <Text style={styles.switchLabel}>Mark as completed</Text>
+                  <Switch
+                    value={editingStep.completed}
+                    onValueChange={async (value) => {
+                      await markStepComplete(editingStep.id, value);
+                      setEditingStep({...editingStep, completed: value});
+                    }}
+                    trackColor={{ false: '#E0E0E0', true: '#2E6B47' }}
+                    thumbColor={editingStep.completed ? '#FFFFFF' : '#FFFFFF'}
+                  />
+                </View>
+
+                <TouchableOpacity
+                  style={styles.saveButton}
+                  onPress={handleSaveStepEdit}
+                >
+                  <Text style={styles.saveButtonText}>Save Changes</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -712,6 +836,182 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#333333',
     fontWeight: '500',
+  },
+
+  // Loading/Error States
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: '#666666',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+  errorTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333333',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#666666',
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  retryButton: {
+    backgroundColor: '#2E6B47',
+    borderRadius: 25,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+  },
+  retryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+
+  // Critical Alert Banner
+  criticalBanner: {
+    backgroundColor: '#FFEBEE', // Light red
+  },
+  criticalIcon: {
+    backgroundColor: '#F44336', // Red
+  },
+
+  // Next Actions
+  nextActionsContainer: {
+    marginTop: 12,
+  },
+  nextActionsLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333333',
+    marginBottom: 8,
+  },
+  nextActionText: {
+    fontSize: 14,
+    color: '#666666',
+    marginBottom: 4,
+    paddingLeft: 8,
+  },
+
+  // Edit Step Button
+  editStepButton: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: '#2E6B47',
+    borderRadius: 25,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  editStepText: {
+    fontSize: 16,
+    color: '#2E6B47',
+    fontWeight: '500',
+  },
+
+  // Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 24,
+    paddingBottom: 40,
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333333',
+  },
+  closeButton: {
+    padding: 4,
+  },
+
+  // Step Title in Modal
+  stepTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333333',
+    marginBottom: 20,
+  },
+
+  // Form Inputs
+  inputGroup: {
+    marginBottom: 20,
+  },
+  inputLabel: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#333333',
+    marginBottom: 8,
+  },
+  textInput: {
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: '#333333',
+    backgroundColor: '#FFFFFF',
+  },
+  multilineInput: {
+    height: 100,
+    textAlignVertical: 'top',
+  },
+
+  // Switch Container
+  switchContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#E0E0E0',
+  },
+  switchLabel: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#333333',
+  },
+
+  // Save Button
+  saveButton: {
+    backgroundColor: '#2E6B47',
+    borderRadius: 8,
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  saveButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 

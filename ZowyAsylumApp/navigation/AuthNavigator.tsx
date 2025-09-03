@@ -5,6 +5,8 @@ import { AuthStackParamList } from '../types/navigation';
 import { AuthHeader } from '../components/navigation/AuthHeader';
 
 // Import screens
+import { SplashScreen } from '../screens/SplashScreen';
+import { AuthLandingScreen } from '../screens/auth/AuthLandingScreen';
 import { WelcomeScreen } from '../screens/WelcomeScreen';
 import { SignUpScreen } from '../screens/auth/SignUpScreen';
 import { LoginScreen } from '../screens/auth/LoginScreen';
@@ -65,9 +67,28 @@ export const AuthNavigator: React.FC = () => {
         ...defaultScreenOptions,
         headerShown: false, // We'll use custom headers where needed
       }}
-      initialRouteName="Welcome"
+      initialRouteName="Splash"
     >
-      {/* Welcome Flow */}
+      {/* App Launch Flow */}
+      <Stack.Screen 
+        name="Splash" 
+        component={SplashScreen}
+        options={{
+          gestureEnabled: false,
+          headerShown: false,
+        }}
+      />
+
+      <Stack.Screen 
+        name="AuthLanding" 
+        component={AuthLandingScreen}
+        options={{
+          gestureEnabled: false,
+          headerShown: false,
+        }}
+      />
+
+      {/* Legacy Welcome Screen - can be used for tutorial */}
       <Stack.Screen 
         name="Welcome" 
         component={WelcomeScreen}

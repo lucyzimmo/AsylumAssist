@@ -161,7 +161,7 @@ export const SpecialStatusScreen: React.FC<SpecialStatusScreenProps> = ({
                   accessibilityRole="button"
                   accessibilityLabel="More information about TPS"
                 >
-                  <Text style={styles.infoButtonText}>ℹ️</Text>
+                  <Text style={styles.infoButtonText}>?</Text>
                 </TouchableOpacity>
               </View>
 
@@ -266,7 +266,7 @@ export const SpecialStatusScreen: React.FC<SpecialStatusScreenProps> = ({
                   accessibilityRole="button"
                   accessibilityLabel="More information about parole"
                 >
-                  <Text style={styles.infoButtonText}>ℹ️</Text>
+                  <Text style={styles.infoButtonText}>?</Text>
                 </TouchableOpacity>
               </View>
 
@@ -354,7 +354,7 @@ export const SpecialStatusScreen: React.FC<SpecialStatusScreenProps> = ({
                   accessibilityRole="button"
                   accessibilityLabel="More information about work permits"
                 >
-                  <Text style={styles.infoButtonText}>ℹ️</Text>
+                  <Text style={styles.infoButtonText}>?</Text>
                 </TouchableOpacity>
               </View>
 

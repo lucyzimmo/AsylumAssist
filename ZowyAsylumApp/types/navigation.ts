@@ -34,7 +34,9 @@ export type RootStackParamList = {
 
 // Authentication Flow
 export type AuthStackParamList = {
-  Welcome: undefined;
+  Splash: undefined;
+  AuthLanding: undefined;
+  Welcome: undefined; // Keep for legacy/tutorial use
   SignUp: undefined;
   Login: undefined;
   ForgotPassword: undefined;

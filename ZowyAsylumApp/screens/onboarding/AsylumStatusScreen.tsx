@@ -164,7 +164,7 @@ export const AsylumStatusScreen: React.FC<AsylumStatusScreenProps> = ({ navigati
                   accessibilityRole="button"
                   accessibilityLabel="More information about entry date"
                 >
-                  <Text style={styles.infoButtonText}>ℹ️</Text>
+                  <Text style={styles.infoButtonText}>?</Text>
                 </TouchableOpacity>
               </View>
               
@@ -220,7 +220,7 @@ export const AsylumStatusScreen: React.FC<AsylumStatusScreenProps> = ({ navigati
                   accessibilityRole="button"
                   accessibilityLabel="More information about Form I-589"
                 >
-                  <Text style={styles.infoButtonText}>ℹ️</Text>
+                  <Text style={styles.infoButtonText}>?</Text>
                 </TouchableOpacity>
               </View>
 

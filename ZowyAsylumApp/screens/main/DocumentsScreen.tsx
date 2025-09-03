@@ -44,6 +44,7 @@ const DocumentsScreen: React.FC<DocumentsScreenProps> = ({ navigation }) => {
   const [selectedDocumentType, setSelectedDocumentType] = useState('other');
   const [documentName, setDocumentName] = useState('');
   const [uploadedFile, setUploadedFile] = useState<any>(null);
+  const [selectedDocument, setSelectedDocument] = useState<any>(null);
 
   const handleUploadPress = async () => {
     const success = await pickDocument();
@@ -60,8 +61,9 @@ const DocumentsScreen: React.FC<DocumentsScreenProps> = ({ navigation }) => {
   };
 
   const handleSaveDocument = async () => {
-    if (uploadedFile && documentName.trim()) {
-      const success = await updateDocument(uploadedFile.id, {
+    const documentToUpdate = uploadedFile || selectedDocument;
+    if (documentToUpdate && documentName.trim()) {
+      const success = await updateDocument(documentToUpdate.id, {
         name: documentName.trim(),
         category: selectedDocumentType as any,
       });
@@ -69,6 +71,7 @@ const DocumentsScreen: React.FC<DocumentsScreenProps> = ({ navigation }) => {
       if (success) {
         setShowUploadModal(false);
         setUploadedFile(null);
+        setSelectedDocument(null);
         setDocumentName('');
         setSelectedDocumentType('other');
         Alert.alert('Success', 'Document saved successfully!');
@@ -77,7 +80,8 @@ const DocumentsScreen: React.FC<DocumentsScreenProps> = ({ navigation }) => {
   };
 
   const handleEditDocument = (document: any) => {
-    setUploadedFile(document);
+    setSelectedDocument(document);
+    setUploadedFile(null); // Clear uploaded file since we're editing existing
     setDocumentName(document.name);
     setSelectedDocumentType(document.category);
     setShowUploadModal(true);
@@ -114,49 +118,98 @@ const DocumentsScreen: React.FC<DocumentsScreenProps> = ({ navigation }) => {
         <View style={styles.documentsSection}>
           <Text style={styles.sectionTitle}>Your documents</Text>
           
-          {/* Document Item - Passport */}
-          <View style={styles.documentItem}>
-            <View style={styles.documentIcon}>
-              <Ionicons name="document-text" size={20} color={Colors.white} />
-            </View>
-            <View style={styles.documentInfo}>
-              <Text style={styles.documentTitle}>Passport</Text>
-              <Text style={styles.documentFilename}>IMG_345345.jpg</Text>
-            </View>
-            <TouchableOpacity style={styles.editButton}>
-              <Text style={styles.editButtonText}>Edit</Text>
-            </TouchableOpacity>
-          </View>
+          {documents.length === 0 ? (
+            <Text style={styles.noDocuments}>No documents uploaded yet</Text>
+          ) : (
+            documents.map((document) => (
+              <View key={document.id} style={styles.documentItem}>
+                <View style={styles.documentIcon}>
+                  <Ionicons name="document-text" size={20} color={Colors.white} />
+                </View>
+                <View style={styles.documentInfo}>
+                  <Text style={styles.documentTitle}>
+                    {DOCUMENT_TYPES.find(type => type.id === document.category)?.label || 'Other document'}
+                  </Text>
+                  <Text style={styles.documentFilename}>{document.name}</Text>
+                </View>
+                <TouchableOpacity 
+                  style={styles.editButton}
+                  onPress={() => handleEditDocument(document)}
+                >
+                  <Text style={styles.editButtonText}>Edit</Text>
+                </TouchableOpacity>
+              </View>
+            ))
+          )}
+        </View>
+      </ScrollView>
 
-          {/* Document Item - Form I-589 */}
-          <View style={styles.documentItem}>
-            <View style={styles.documentIcon}>
-              <Ionicons name="document-text" size={20} color={Colors.white} />
+      {/* Upload Modal */}
+      <Modal
+        visible={showUploadModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowUploadModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            {/* Modal Header */}
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Document Details</Text>
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={() => setShowUploadModal(false)}
+              >
+                <Ionicons name="close" size={24} color="#666666" />
+              </TouchableOpacity>
             </View>
-            <View style={styles.documentInfo}>
-              <Text style={styles.documentTitle}>Form I-589</Text>
-              <Text style={styles.documentFilename}>form-I-589-final.pdf</Text>
-            </View>
-            <TouchableOpacity style={styles.editButton}>
-              <Text style={styles.editButtonText}>Edit</Text>
-            </TouchableOpacity>
-          </View>
 
-          {/* Document Item - Form I-765 */}
-          <View style={styles.documentItem}>
-            <View style={styles.documentIcon}>
-              <Ionicons name="document-text" size={20} color={Colors.white} />
+            {/* Document Preview */}
+            {(uploadedFile || selectedDocument) && (
+              <View style={styles.documentPreview}>
+                <Text style={styles.previewFilename}>
+                  {(uploadedFile || selectedDocument)?.name}
+                </Text>
+                <Text style={styles.previewSize}>
+                  {formatFileSize((uploadedFile || selectedDocument)?.size || 0)}
+                </Text>
+              </View>
+            )}
+
+            {/* Document Type Dropdown */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Document type</Text>
+              <View style={styles.dropdownContainer}>
+                <TouchableOpacity style={styles.dropdown}>
+                  <Text style={styles.dropdownText}>
+                    {DOCUMENT_TYPES.find(type => type.id === selectedDocumentType)?.label || 'Other document'}
+                  </Text>
+                  <Ionicons name="chevron-down" size={20} color="#666666" />
+                </TouchableOpacity>
+              </View>
             </View>
-            <View style={styles.documentInfo}>
-              <Text style={styles.documentTitle}>Form I-765</Text>
-              <Text style={styles.documentFilename}>form-I-765.pdf</Text>
+
+            {/* Document Name Input */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Document name</Text>
+              <TextInput
+                style={styles.textInput}
+                value={documentName}
+                onChangeText={setDocumentName}
+                placeholder="Enter document name"
+              />
             </View>
-            <TouchableOpacity style={styles.editButton}>
-              <Text style={styles.editButtonText}>Edit</Text>
+
+            {/* Save Button */}
+            <TouchableOpacity
+              style={styles.saveButton}
+              onPress={handleSaveDocument}
+            >
+              <Text style={styles.saveButtonText}>Save</Text>
             </TouchableOpacity>
           </View>
         </View>
-      </ScrollView>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -288,6 +341,111 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#333333',
     fontWeight: '500',
+  },
+
+  // No Documents
+  noDocuments: {
+    fontSize: 16,
+    color: '#999999',
+    textAlign: 'center',
+    marginTop: 40,
+  },
+
+  // Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 24,
+    paddingBottom: 40,
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#000000',
+  },
+  closeButton: {
+    padding: 4,
+  },
+
+  // Document Preview
+  documentPreview: {
+    backgroundColor: '#F5F5F5',
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 20,
+  },
+  previewFilename: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000000',
+    marginBottom: 4,
+  },
+  previewSize: {
+    fontSize: 14,
+    color: '#666666',
+  },
+
+  // Form Inputs
+  inputGroup: {
+    marginBottom: 20,
+  },
+  inputLabel: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#000000',
+    marginBottom: 8,
+  },
+  dropdownContainer: {
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderRadius: 8,
+  },
+  dropdown: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  dropdownText: {
+    fontSize: 16,
+    color: '#000000',
+  },
+  textInput: {
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: '#000000',
+  },
+
+  // Save Button
+  saveButton: {
+    backgroundColor: '#2E6B47',
+    borderRadius: 8,
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  saveButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 

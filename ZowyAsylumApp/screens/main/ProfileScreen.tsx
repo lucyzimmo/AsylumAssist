@@ -70,7 +70,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
       case 'about-zowy':
         Alert.alert(
           'About Zowy',
-          'Zowy for Asylum is designed to help asylum seekers navigate the U.S. immigration system. Our mission is to provide clear guidance, timeline tracking, and resources to support your asylum journey.\n\nVersion: 1.0.0\nDeveloped with care for the asylum seeking community.',
+          'Zowy for Asylum is designed to help asylum seekers navigate the U.S. immigration system.\n\n📅 Timeline Management\nTrack important deadlines and court dates\n\n📄 Form Assistance\nGet help filling out I-589 and other forms\n\n🏢 Legal Resources\nFind legal aid organizations and support\n\nOur mission is to provide clear guidance, timeline tracking, and resources to support your asylum journey.\n\nVersion: 1.0.0\nDeveloped with care for the asylum seeking community.',
           [{ text: 'OK' }]
         );
         break;

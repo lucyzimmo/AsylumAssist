@@ -10,6 +10,7 @@ import {
   Animated,
 } from 'react-native';
 import { StackScreenProps } from '@react-navigation/stack';
+import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors } from '../../constants/Colors';
 import { Typography } from '../../constants/Typography';
@@ -266,10 +267,10 @@ export const OnboardingCompleteScreen: React.FC<OnboardingCompleteScreenProps> =
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'overdue': return '⚠️';
-      case 'pending': return '📋';
-      case 'completed': return '✅';
-      default: return '📋';
+      case 'overdue': return <Ionicons name="warning" size={16} color="#F44336" />;
+      case 'pending': return <Ionicons name="ellipse" size={12} color="#666666" />;
+      case 'completed': return <Ionicons name="checkmark" size={16} color={Colors.primary} />;
+      default: return <Ionicons name="ellipse" size={12} color="#666666" />;
     }
   };
 
@@ -346,9 +347,7 @@ export const OnboardingCompleteScreen: React.FC<OnboardingCompleteScreenProps> =
               <View key={item.id} style={styles.timelineItem}>
                 <View style={styles.timelineItemHeader}>
                   <View style={styles.timelineItemIcon}>
-                    <Text style={styles.timelineItemIconText}>
-                      {getStatusIcon(item.status)}
-                    </Text>
+                    {getStatusIcon(item.status)}
                   </View>
                   <View style={styles.timelineItemContent}>
                     <Text style={styles.timelineItemTitle}>{item.title}</Text>
@@ -404,7 +403,7 @@ export const OnboardingCompleteScreen: React.FC<OnboardingCompleteScreenProps> =
             </View>
 
             <View style={styles.benefit}>
-              <Text style={styles.benefitIcon}>🏛️</Text>
+              <Ionicons name="library" size={24} color={Colors.primary} style={styles.benefitIcon} />
               <View style={styles.benefitContent}>
                 <Text style={styles.benefitTitle}>Find legal help</Text>
                 <Text style={styles.benefitDescription}>
