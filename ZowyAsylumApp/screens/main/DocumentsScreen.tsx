@@ -201,15 +201,14 @@ const DocumentsScreen: React.FC<DocumentsScreenProps> = ({ navigation }) => {
           setShowUploadProgress(false);
           setUploadProgress(0);
           
-          if (success) {
-            setShowUploadModal(false);
-            setUploadedFile(null);
-            setSelectedDocument(null);
-            setDocumentName('');
-            setSelectedDocumentType('other');
-            setIsReplacing(false);
-            Alert.alert('Success', 'Document uploaded and saved successfully!');
-          }
+                  if (success) {
+          setShowUploadModal(false);
+          setUploadedFile(null);
+          setSelectedDocument(null);
+          setDocumentName('');
+          setSelectedDocumentType('other');
+          Alert.alert('Success', 'Document uploaded and saved successfully!');
+        }
         }, 1000);
       } else {
         // For editing existing documents, no upload progress needed
@@ -224,7 +223,6 @@ const DocumentsScreen: React.FC<DocumentsScreenProps> = ({ navigation }) => {
           setSelectedDocument(null);
           setDocumentName('');
           setSelectedDocumentType('other');
-          setIsReplacing(false);
           Alert.alert('Success', 'Document updated successfully!');
         }
       }
@@ -236,7 +234,6 @@ const DocumentsScreen: React.FC<DocumentsScreenProps> = ({ navigation }) => {
     setUploadedFile(null); // Clear uploaded file since we're editing existing
     setDocumentName(document.name);
     setSelectedDocumentType(document.category);
-    setIsReplacing(false);
     setShowUploadModal(true);
   };
 
@@ -316,7 +313,7 @@ const DocumentsScreen: React.FC<DocumentsScreenProps> = ({ navigation }) => {
             <View style={styles.uploadProgressCard}>
               <Ionicons name="cloud-upload-outline" size={32} color={Colors.primary} />
               <Text style={styles.uploadProgressText}>
-                {isReplacing ? 'Replacing document...' : 'Processing document...'}
+                Processing document...
               </Text>
               <View style={styles.progressBarContainer}>
                 <View style={[styles.progressBar, { width: `${uploadProgress}%` }]} />
@@ -452,7 +449,7 @@ const DocumentsScreen: React.FC<DocumentsScreenProps> = ({ navigation }) => {
             {/* Modal Header */}
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
-                {isReplacing ? 'Replace Document' : (uploadedFile ? 'Document Details' : 'Edit Document')}
+                {uploadedFile ? 'Document Details' : 'Edit Document'}
               </Text>
               <TouchableOpacity
                 style={styles.closeButton}
@@ -556,7 +553,7 @@ const DocumentsScreen: React.FC<DocumentsScreenProps> = ({ navigation }) => {
                 styles.saveButtonText,
                 !documentName.trim() && styles.saveButtonTextDisabled
               ]}>
-                {isReplacing ? 'Replace Document' : (uploadedFile ? 'Upload & Save' : 'Save Changes')}
+                {uploadedFile ? 'Upload & Save' : 'Save Changes'}
               </Text>
             </TouchableOpacity>
           </View>
@@ -913,22 +910,6 @@ const styles = StyleSheet.create({
   documentActions: {
     flexDirection: 'row',
     gap: 8,
-  },
-  replaceButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: '#007AFF',
-    borderRadius: 16,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  replaceButtonText: {
-    fontSize: 12,
-    color: '#007AFF',
-    fontWeight: '500',
   },
   editButton: {
     backgroundColor: 'transparent',
