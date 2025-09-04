@@ -116,7 +116,6 @@ const DocumentsScreen: React.FC<DocumentsScreenProps> = ({ navigation }) => {
   const [documentToDelete, setDocumentToDelete] = useState<string | null>(null);
   const [showUploadProgress, setShowUploadProgress] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
-  const [isReplacing, setIsReplacing] = useState(false);
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
