@@ -17,6 +17,7 @@ import { Typography } from '../../constants/Typography';
 import { Button } from '../../components/ui/Button';
 import { Alert } from '../../components/ui/Alert';
 import { AuthStackParamList } from '../../types/navigation';
+import timelineService from '../../services/timelineService';
 
 type OnboardingCompleteScreenProps = StackScreenProps<AuthStackParamList, 'OnboardingComplete'>;
 
@@ -73,12 +74,19 @@ export const OnboardingCompleteScreen: React.FC<OnboardingCompleteScreenProps> =
       // Save onboarding data to storage
       await AsyncStorage.setItem('userOnboardingData', JSON.stringify(onboardingData));
 
-      // Generate personalized timeline based on user's situation
+      // Initialize timeline with actual service using questionnaire data
+      const entryDate = onboardingData.entryDate || new Date().toISOString().split('T')[0];
+      const hasAttorney = false; // Can be determined from future questions
+      
+      const personalizedTimeline = await timelineService.initializeTimeline(
+        entryDate, 
+        hasAttorney, 
+        onboardingData
+      );
+
+      // Convert to local timeline format for display (temporary)
       const generatedTimeline = createTimelineFromData(onboardingData);
       
-      // Save timeline to storage
-      await AsyncStorage.setItem('userTimeline', JSON.stringify(generatedTimeline));
-
       // Simulate processing time for better UX
       setTimeout(() => {
         setTimeline(generatedTimeline);

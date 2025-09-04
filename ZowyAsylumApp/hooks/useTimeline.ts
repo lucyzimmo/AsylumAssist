@@ -173,7 +173,7 @@ export const useTimeline = (): UseTimelineReturn => {
   return {
     // Data
     timeline,
-    steps: filteredSteps,
+    steps, // Return all steps, not filtered ones for the dashboard
     alerts,
     currentStep,
     

@@ -59,6 +59,7 @@ export const ImmigrationStatusScreen: React.FC<ImmigrationStatusScreenProps> = (
     // Save form data to context/storage
     const combinedData = {
       ...route?.params?.asylumStatusData,
+      visitedEOIR: true, // Always true since they answered the EOIR question
       hasCase: data.hasCase as 'yes' | 'no',
       nextHearingDate: data.nextHearingDate?.toISOString(),
       assignedCourt: data.assignedCourt,
@@ -131,46 +132,6 @@ export const ImmigrationStatusScreen: React.FC<ImmigrationStatusScreenProps> = (
 
           {/* Form */}
           <View style={styles.form}>
-            {/* EOIR Case Question */}
-            <View style={styles.questionContainer}>
-              <View style={styles.questionHeader}>
-                <Text style={styles.questionTitle}>
-                  Does the EOIR website show that you have a case?
-                </Text>
-                <TouchableOpacity
-                  onPress={() => setShowCaseInfo(true)}
-                  style={styles.infoButton}
-                  accessibilityRole="button"
-                  accessibilityLabel="More information about EOIR cases"
-                >
-                  <Text style={styles.infoButtonText}>?</Text>
-                </TouchableOpacity>
-              </View>
-
-              <Controller
-                control={control}
-                name="hasCase"
-                rules={{ required: 'Please select an option' }}
-                render={({ field: { onChange, value } }) => (
-                  <Dropdown
-                    placeholder="Select option"
-                    options={[
-                      { label: 'Yes', value: 'yes' },
-                      { label: 'No', value: 'no' },
-                    ]}
-                    value={value}
-                    onSelect={onChange}
-                    error={errors.hasCase?.message}
-                    containerStyle={styles.inputContainer}
-                  />
-                )}
-              />
-              
-              {errors.visitedEOIR && (
-                <Text style={styles.errorText}>{errors.visitedEOIR.message}</Text>
-              )}
-            </View>
-
             {/* EOIR Case Question */}
             <View style={styles.questionContainer}>
               <View style={styles.questionHeader}>
@@ -460,6 +421,30 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     lineHeight: 22,
   },
+  linkSection: {
+    marginBottom: 32,
+  },
+  linkLabel: {
+    ...Typography.body,
+    color: Colors.textSecondary,
+    marginBottom: 12,
+    lineHeight: 20,
+  },
+  linkButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: Colors.primaryLight,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+  },
+  linkText: {
+    ...Typography.button,
+    color: Colors.primary,
+    marginLeft: 8,
+  },
   form: {
     flex: 1,
   },
@@ -490,22 +475,6 @@ const styles = StyleSheet.create({
   },
   infoButtonText: {
     fontSize: 16,
-  },
-  linkContainer: {
-    marginBottom: 16,
-  },
-  linkButton: {
-    backgroundColor: Colors.primaryLight,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: Colors.primary,
-  },
-  linkButtonText: {
-    ...Typography.button,
-    color: Colors.primaryDark,
-    textAlign: 'center',
   },
   inputContainer: {
     marginBottom: 16,
@@ -555,6 +524,10 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderTopWidth: 1,
     borderTopColor: Colors.border,
+    gap: 12,
+  },
+  backButtonStyle: {
+    marginBottom: 8,
   },
   continueButton: {
     backgroundColor: Colors.primaryDark,

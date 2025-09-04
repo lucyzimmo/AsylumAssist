@@ -1,9 +1,9 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   StyleSheet,
   Text,
-  ActivityIndicator,
+  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -18,8 +18,25 @@ type SplashScreenNavigationProp = StackNavigationProp<
 
 export const SplashScreen: React.FC = () => {
   const navigation = useNavigation<SplashScreenNavigationProp>();
+  const [fadeAnim] = useState(new Animated.Value(0));
+  const [scaleAnim] = useState(new Animated.Value(0.5));
 
   useEffect(() => {
+    // Start animations
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 1000,
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        tension: 50,
+        friction: 5,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
     // Check authentication status and route accordingly
     const checkAuthAndRoute = () => {
       setTimeout(() => {
@@ -42,30 +59,37 @@ export const SplashScreen: React.FC = () => {
           // Navigate to auth landing
           navigation.navigate('AuthLanding');
         }
-      }, 2000); // 2 second splash delay
+      }, 2500); // 2.5 second splash delay
     };
 
     checkAuthAndRoute();
-  }, [navigation]);
+  }, [navigation, fadeAnim, scaleAnim]);
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        {/* Logo */}
-        <Text style={styles.logo}>Zowy</Text>
-        
-        {/* Loading Indicator */}
-        <ActivityIndicator 
-          size="large" 
-          color={Colors.primary} 
-          style={styles.loader}
-        />
+        <Animated.View 
+          style={[
+            styles.logoContainer,
+            {
+              opacity: fadeAnim,
+              transform: [{ scale: scaleAnim }]
+            }
+          ]}
+        >
+          <Text style={styles.logo}>Zowy</Text>
+          <Text style={styles.tagline}>Navigate with confidence</Text>
+        </Animated.View>
       </View>
       
-      {/* Brand Footer */}
-      <View style={styles.footer}>
-        <Text style={styles.footerText}>Your journey starts here</Text>
-      </View>
+      <Animated.View 
+        style={[
+          styles.footer,
+          { opacity: fadeAnim }
+        ]}
+      >
+        <Text style={styles.footerText}>Your asylum journey companion</Text>
+      </Animated.View>
     </SafeAreaView>
   );
 };
@@ -80,23 +104,29 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  logoContainer: {
+    alignItems: 'center',
+  },
   logo: {
-    fontSize: 64,
+    fontSize: 72,
     fontWeight: 'bold',
     color: '#2E6B47',
-    marginBottom: 40,
+    marginBottom: 16,
   },
-  loader: {
-    marginTop: 20,
+  tagline: {
+    fontSize: 18,
+    color: '#666666',
+    fontWeight: '500',
+    letterSpacing: 0.5,
   },
   footer: {
-    paddingBottom: 40,
+    paddingBottom: 50,
     alignItems: 'center',
   },
   footerText: {
     fontSize: 16,
-    color: '#666666',
-    fontStyle: 'italic',
+    color: '#999999',
+    fontWeight: '400',
   },
 });
 

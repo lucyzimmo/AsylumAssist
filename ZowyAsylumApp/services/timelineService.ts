@@ -1,33 +1,51 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { UserJourney, JourneyStep, DeadlineCalculation, TimelineAlert } from '../types/timeline';
 
-const TIMELINE_STORAGE_KEY = '@zowy_timeline';
+const TIMELINE_BASE_KEY = '@zowy_timeline';
+const TIMELINE_STORAGE_KEY = '@zowy_timeline_data';
+const USER_SESSION_KEY = '@zowy_user_session';
+
+export type UserType = 'new_user' | 'returning_user' | 'guest';
+
+export interface UserSession {
+  userId: string;
+  userType: UserType;
+  email?: string;
+  createdAt: string;
+}
 
 class TimelineService {
   private userJourney: UserJourney | null = null;
+  private currentSession: UserSession | null = null;
 
   /**
-   * Initialize timeline for a new user
+   * Initialize timeline for a new user with questionnaire data
    */
-  async initializeTimeline(entryDate: string, hasAttorney: boolean = false): Promise<UserJourney> {
+  async initializeTimeline(entryDate: string, hasAttorney: boolean = false, questionnaireData?: any): Promise<UserJourney> {
     const deadlines = this.calculateDeadlines(entryDate);
+    
+    // Customize steps based on questionnaire data
+    const hasFiledI589 = questionnaireData?.hasFiledI589 === 'yes';
+    const hasCourtProceedings = questionnaireData?.hasCourtProceedings === 'yes';
+    const i589SubmissionDate = questionnaireData?.i589SubmissionDate;
+    const courtHearingDate = questionnaireData?.courtHearingDate;
     
     const initialSteps: JourneyStep[] = [
       {
         id: 'arrival',
-        title: 'Arrival & Initial Settlement',
+        title: 'Arrival',
         completed: false,
-        progress: 0,
+        progress: 30,
         dependencies: [],
         nextActions: [
-          'Document your entry date',
-          'Find temporary housing',
-          'Consult with an attorney if possible'
+          'Consult an attorney to determine if you should apply for asylum',
+          'Document your entry date and gather arrival evidence',
+          'Begin collecting supporting documents from your home country'
         ],
         deadline: deadlines.oneYearDeadline,
         daysUntilDeadline: this.calculateDaysUntil(deadlines.oneYearDeadline),
-        urgencyLevel: 'medium',
-        description: 'Begin settling in the US and preparing for asylum application',
+        urgencyLevel: 'high',
+        description: 'Consult an attorney to determine if you should apply for asylum',
         requiredDocuments: [
           'Passport or travel documents',
           'Evidence of entry date',
@@ -43,18 +61,22 @@ class TimelineService {
       {
         id: 'application',
         title: 'File I-589 Application',
-        completed: false,
-        progress: 0,
+        completed: hasFiledI589,
+        progress: hasFiledI589 ? 100 : 0,
         dependencies: ['arrival'],
-        nextActions: [
+        nextActions: hasFiledI589 ? [
+          'Application filed successfully',
+          'Wait for interview scheduling',
+          'Continue gathering supporting evidence'
+        ] : [
           'Complete Form I-589',
           'Gather supporting evidence',
           'File application with USCIS'
         ],
         deadline: deadlines.oneYearDeadline,
         daysUntilDeadline: this.calculateDaysUntil(deadlines.oneYearDeadline),
-        urgencyLevel: 'critical',
-        description: 'File your asylum application within one year of arrival',
+        urgencyLevel: hasFiledI589 ? 'low' : 'critical',
+        description: hasFiledI589 ? 'I-589 application has been filed' : 'File your asylum application within one year of arrival',
         requiredDocuments: [
           'Completed Form I-589',
           'Supporting evidence',
@@ -70,17 +92,19 @@ class TimelineService {
       },
       {
         id: 'interview',
-        title: 'Asylum Interview',
+        title: 'Interview',
         completed: false,
-        progress: 0,
+        progress: 30,
         dependencies: ['application'],
         nextActions: [
-          'Prepare for interview',
-          'Review application',
-          'Practice testimony'
+          'Your affirmative asylum interview is on 08/09/2025. Make sure you prepare your supporting documents, along with English translations',
+          'Review your I-589 application thoroughly',
+          'Practice your testimony with your attorney'
         ],
-        urgencyLevel: 'high',
-        description: 'Attend your asylum interview with USCIS',
+        deadline: '2025-08-09',
+        daysUntilDeadline: this.calculateDaysUntil('2025-08-09'),
+        urgencyLevel: 'critical',
+        description: 'Your affirmative asylum interview is on 08/09/2025. Make sure you prepare your supporting documents, along with English translations',
         requiredDocuments: [
           'All original documents',
           'Translations',
@@ -98,16 +122,16 @@ class TimelineService {
         title: 'Work Authorization',
         completed: false,
         progress: 0,
-        dependencies: ['application'],
+        dependencies: [],
         nextActions: [
-          'File Form I-765',
-          'Pay filing fee or request fee waiver',
-          'Attend biometrics appointment'
+          'Apply for a work permit after 02/09/2025',
+          'File Form I-765 with USCIS',
+          'Pay filing fee or request fee waiver'
         ],
-        deadline: deadlines.workPermitEligible,
-        daysUntilDeadline: this.calculateDaysUntil(deadlines.workPermitEligible),
+        deadline: '2025-02-09',
+        daysUntilDeadline: this.calculateDaysUntil('2025-02-09'),
         urgencyLevel: 'medium',
-        description: 'Apply for work authorization 150 days after filing I-589',
+        description: 'Apply for a work permit after 02/09/2025',
         requiredDocuments: [
           'Form I-765',
           'Copy of I-589 receipt',
@@ -249,7 +273,7 @@ class TimelineService {
   }
 
   /**
-   * Get current timeline alerts
+   * Get current timeline alerts with specific messaging
    */
   getTimelineAlerts(): TimelineAlert[] {
     if (!this.userJourney) return [];
@@ -259,15 +283,38 @@ class TimelineService {
     this.userJourney.steps.forEach(step => {
       if (step.deadline && !step.completed) {
         const daysLeft = this.calculateDaysUntil(step.deadline);
+        const deadlineDate = new Date(step.deadline).toLocaleDateString('en-US', {
+          month: '2-digit',
+          day: '2-digit', 
+          year: 'numeric'
+        });
         
         let alertType: TimelineAlert['type'] = 'info';
-        if (daysLeft < 30) alertType = 'critical';
-        else if (daysLeft < 90) alertType = 'warning';
+        let title = '';
+        let message = '';
+        
+        if (step.id === 'application') {
+          alertType = daysLeft < 90 ? 'warning' : 'info';
+          title = `Next Deadline: ${daysLeft} days left`;
+          message = `You must file form I-589 before ${deadlineDate}. Click here to learn more.`;
+        } else if (step.id === 'interview') {
+          alertType = daysLeft < 60 ? 'warning' : 'info';
+          title = `Next Deadline: ${daysLeft} days left`;
+          message = `Your affirmative asylum interview is on ${deadlineDate}. Click here to learn more.`;
+        } else if (step.id === 'work-permit') {
+          alertType = 'info';
+          title = `${daysLeft} days before you can file form I-765`;
+          message = `You can apply for a work permit on ${deadlineDate}. Click here to learn more.`;
+        } else {
+          alertType = daysLeft < 30 ? 'critical' : daysLeft < 90 ? 'warning' : 'info';
+          title = `Next Deadline: ${daysLeft} days left`;
+          message = `${step.title} deadline is ${deadlineDate}. Click here to learn more.`;
+        }
         
         alerts.push({
           type: alertType,
-          title: `${step.title} Deadline`,
-          message: `${daysLeft} days left to complete ${step.title.toLowerCase()}`,
+          title,
+          message,
           deadline: step.deadline,
           daysLeft,
           actionRequired: daysLeft < 30,

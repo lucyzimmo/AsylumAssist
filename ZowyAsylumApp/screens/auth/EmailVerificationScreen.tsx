@@ -65,8 +65,8 @@ export const EmailVerificationScreen: React.FC = () => {
   };
 
   const handleContinue = () => {
-    // Navigate to onboarding start
-    navigation.navigate('OnboardingStart');
+    // Navigate directly to asylum status questionnaire, bypassing feature overview
+    navigation.navigate('AsylumStatus');
   };
 
   const handleChangeEmail = () => {

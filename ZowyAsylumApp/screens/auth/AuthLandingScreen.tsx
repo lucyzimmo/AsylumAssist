@@ -43,7 +43,10 @@ export const AuthLandingScreen: React.FC = () => {
         <View style={styles.logoSection}>
           <Text style={styles.logo}>Zowy</Text>
           <Text style={styles.tagline}>
-            Navigate your asylum journey with confidence
+            Your trusted guide through the asylum process
+          </Text>
+          <Text style={styles.supportText}>
+            Track deadlines, manage documents, find legal help
           </Text>
         </View>
 
@@ -105,17 +108,26 @@ const styles = StyleSheet.create({
     marginTop: 80,
   },
   logo: {
-    fontSize: 48,
+    fontSize: 52,
     fontWeight: 'bold',
     color: '#2E6B47',
-    marginBottom: 16,
+    marginBottom: 20,
   },
   tagline: {
-    fontSize: 18,
+    fontSize: 20,
+    color: '#333333',
+    textAlign: 'center',
+    lineHeight: 28,
+    paddingHorizontal: 20,
+    marginBottom: 12,
+    fontWeight: '600',
+  },
+  supportText: {
+    fontSize: 16,
     color: '#666666',
     textAlign: 'center',
-    lineHeight: 26,
-    paddingHorizontal: 20,
+    lineHeight: 24,
+    paddingHorizontal: 32,
   },
 
   // Action Section

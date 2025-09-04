@@ -245,6 +245,8 @@ export const SpecialStatusScreen: React.FC<SpecialStatusScreenProps> = ({
                           year: 'Year'
                         }}
                         minimumDate={new Date()}
+                        maximumDate={new Date(2030, 11, 31)}
+                        yearRange={{ start: 2024, end: 2030 }}
                         error={errors.tpsExpirationDate?.message}
                         containerStyle={styles.inputContainer}
                       />
@@ -333,6 +335,8 @@ export const SpecialStatusScreen: React.FC<SpecialStatusScreenProps> = ({
                           year: 'Year'
                         }}
                         minimumDate={new Date()}
+                        maximumDate={new Date(2030, 11, 31)}
+                        yearRange={{ start: 2024, end: 2030 }}
                         error={errors.paroleExpirationDate?.message}
                         containerStyle={styles.inputContainer}
                       />
@@ -434,6 +438,8 @@ export const SpecialStatusScreen: React.FC<SpecialStatusScreenProps> = ({
                             year: 'Year'
                           }}
                           minimumDate={new Date()}
+                          maximumDate={new Date(2030, 11, 31)}
+                          yearRange={{ start: 2024, end: 2030 }}
                           error={errors.workPermitExpirationDate?.message}
                           containerStyle={styles.inputContainer}
                         />

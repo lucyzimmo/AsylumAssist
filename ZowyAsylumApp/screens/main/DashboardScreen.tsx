@@ -14,6 +14,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
 import { Colors } from '../../constants/Colors';
 import { useTimeline } from '../../hooks/useTimeline';
 import { JourneyStep } from '../../types/timeline';
@@ -36,8 +38,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
     enterEditMode,
     exitEditMode,
     getOverallProgress,
-    getNextActionableStep,
-    initializeTimeline
+    getNextActionableStep
   } = useTimeline();
 
   const [showCompletedSteps, setShowCompletedSteps] = useState(false);
@@ -45,21 +46,25 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
   const [editingStep, setEditingStep] = useState<JourneyStep | null>(null);
   const [editingStepNotes, setEditingStepNotes] = useState('');
   const [editingStepDeadline, setEditingStepDeadline] = useState('');
+  const [selectedStepIndex, setSelectedStepIndex] = useState(0);
 
   // Get the primary alert to display
   const primaryAlert = alerts.length > 0 ? alerts[0] : null;
+  
+  // Get the currently selected step
+  const selectedStep = steps[selectedStepIndex] || currentStep;
 
   const handleAddToCalendar = () => {
-    if (!currentStep || !currentStep.deadline) return;
+    if (!selectedStep || !selectedStep.deadline) return;
     
-    const eventTitle = `${currentStep.title} Deadline`;
-    const eventDate = new Date(currentStep.deadline);
+    const eventTitle = `${selectedStep.title} Deadline`;
+    const eventDate = new Date(selectedStep.deadline);
     
     // Create calendar URL for iOS/Android
     const startDate = eventDate.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
     const endDate = new Date(eventDate.getTime() + 60 * 60 * 1000).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
     
-    const calendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(eventTitle)}&dates=${startDate}/${endDate}&details=${encodeURIComponent(currentStep.description)}`;
+    const calendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(eventTitle)}&dates=${startDate}/${endDate}&details=${encodeURIComponent(selectedStep.description || '')}`;
     
     Linking.openURL(calendarUrl).catch(() => {
       Alert.alert('Calendar Error', 'Unable to open calendar. Please add this event manually.');
@@ -67,34 +72,115 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
   };
 
   const handleMarkAsDone = async () => {
-    if (!currentStep) return;
+    const stepToComplete = steps[selectedStepIndex];
+    if (!stepToComplete) return;
     
+    const success = await markStepComplete(stepToComplete.id, true);
+    if (!success) {
+      Alert.alert('Error', 'Failed to update step. Please try again.');
+      return;
+    }
+    
+    // Show success feedback
     Alert.alert(
-      'Mark as Done',
-      `Are you sure you want to mark "${currentStep.title}" as completed?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Mark Done', 
-          onPress: async () => {
-            const success = await markStepComplete(currentStep.id, true);
-            if (success) {
-              Alert.alert('Success', 'Step marked as completed!');
-            } else {
-              Alert.alert('Error', 'Failed to update step. Please try again.');
-            }
-          }
-        }
-      ]
-    );
-  };
-
-  const handleDownloadTimeline = () => {
-    Alert.alert(
-      'Download Timeline',
-      'Timeline download feature coming soon! This will generate a PDF of your complete asylum journey timeline.',
+      'Step Completed!', 
+      `"${stepToComplete.title}" has been marked as done.`,
       [{ text: 'OK' }]
     );
+    
+    // Auto-advance to next incomplete step
+    const nextIncompleteIndex = steps.findIndex((step, index) => 
+      index > selectedStepIndex && !step.completed
+    );
+    
+    if (nextIncompleteIndex !== -1) {
+      setSelectedStepIndex(nextIncompleteIndex);
+    }
+  };
+
+  const handleStepNavigation = (index: number) => {
+    if (index >= 0 && index < steps.length) {
+      setSelectedStepIndex(index);
+    }
+  };
+
+  const handleDownloadTimeline = async () => {
+    try {
+      const currentDate = new Date().toLocaleDateString();
+      const progress = getOverallProgress();
+      
+      const completedSteps = steps.filter(step => step.completed);
+      const pendingSteps = steps.filter(step => !step.completed);
+      
+      const htmlContent = `
+        <html>
+          <head>
+            <style>
+              body { font-family: Arial, sans-serif; margin: 40px; color: #333; }
+              h1 { color: #2E6B47; border-bottom: 2px solid #2E6B47; padding-bottom: 10px; }
+              h2 { color: #2E6B47; margin-top: 30px; }
+              .progress { background: #E8F5E8; padding: 15px; border-radius: 8px; margin: 20px 0; }
+              .step { margin: 15px 0; padding: 10px; border-left: 3px solid #2E6B47; }
+              .completed { background-color: #f8fff8; }
+              .pending { background-color: #fff8f0; border-left-color: #FFA726; }
+              .step-title { font-weight: bold; margin-bottom: 5px; }
+              .step-date { color: #666; font-size: 14px; }
+              .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #ccc; font-size: 12px; color: #666; }
+            </style>
+          </head>
+          <body>
+            <h1>Your Asylum Journey Timeline</h1>
+            <p><strong>Generated:</strong> ${currentDate}</p>
+            
+            <div class="progress">
+              <h3>Progress Summary</h3>
+              <p><strong>${progress}% Complete</strong></p>
+              <p>${completedSteps.length} of ${steps.length} steps completed</p>
+            </div>
+
+            ${completedSteps.length > 0 ? `
+              <h2>Completed Steps</h2>
+              ${completedSteps.map(step => `
+                <div class="step completed">
+                  <div class="step-title">✓ ${step.title}</div>
+                  ${step.deadline ? `<div class="step-date">Deadline: ${new Date(step.deadline).toLocaleDateString()}</div>` : ''}
+                  ${step.completedDate ? `<div class="step-date">Completed: ${new Date(step.completedDate).toLocaleDateString()}</div>` : ''}
+                </div>
+              `).join('')}
+            ` : ''}
+
+            ${pendingSteps.length > 0 ? `
+              <h2>Upcoming Steps</h2>
+              ${pendingSteps.map(step => `
+                <div class="step pending">
+                  <div class="step-title">${step.title}</div>
+                  ${step.deadline ? `<div class="step-date">Deadline: ${new Date(step.deadline).toLocaleDateString()}</div>` : ''}
+                  ${step.description ? `<div style="margin-top: 8px; color: #555;">${step.description}</div>` : ''}
+                </div>
+              `).join('')}
+            ` : ''}
+
+            <div class="footer">
+              <p>Generated by Zowy - Your asylum journey companion</p>
+              <p>This document contains your personal timeline and should be kept confidential.</p>
+            </div>
+          </body>
+        </html>
+      `;
+
+      const { uri } = await Print.printToFileAsync({ html: htmlContent });
+      
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(uri, {
+          mimeType: 'application/pdf',
+          dialogTitle: 'Share your timeline',
+        });
+      } else {
+        Alert.alert('PDF Created', 'Your timeline has been saved successfully.');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to generate PDF. Please try again.');
+    }
   };
 
   const handleEditTimeline = () => {
@@ -105,12 +191,6 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
     }
   };
 
-  const handleEditStep = (step: JourneyStep) => {
-    setEditingStep(step);
-    setEditingStepNotes(step.notes || '');
-    setEditingStepDeadline(step.deadline || '');
-    setShowEditModal(true);
-  };
 
   const handleSaveStepEdit = async () => {
     if (!editingStep) return;
@@ -130,16 +210,10 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
     }
   };
 
-  const handleStartJourney = async () => {
-    // Initialize timeline with default entry date (today)
-    const today = new Date().toISOString().split('T')[0];
-    const success = await initializeTimeline(today, false);
-    
-    if (success) {
-      Alert.alert('Success', 'Your timeline has been created! You can edit dates and details using the edit timeline feature.');
-    } else {
-      Alert.alert('Error', 'Failed to initialize timeline. Please try again.');
-    }
+  const handleStartJourney = () => {
+    // Navigate to the journey questionnaire
+    const rootNavigation = navigation.getParent?.() || navigation;
+    rootNavigation.navigate('AuthStack', { screen: 'AsylumStatus' });
   };
 
   const handleShowCompletedSteps = () => {
@@ -227,15 +301,15 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
 
           {/* Call to Action */}
           <View style={styles.ctaSection}>
-            <Text style={styles.ctaTitle}>Tell us about your journey</Text>
+            <Text style={styles.ctaTitle}>Complete journey questionnaire to see your timeline</Text>
             <Text style={styles.ctaSubtitle}>
-              We need you to answer some questions about your asylum status so we can generate your timeline and determine your next steps.
+              Answer a few questions about your asylum status to create your personalized timeline.
             </Text>
             <TouchableOpacity 
               style={styles.startQuestionnaireButton}
               onPress={handleStartJourney}
             >
-              <Text style={styles.startQuestionnaireText}>Start journey</Text>
+              <Text style={styles.startQuestionnaireText}>Start questionnaire</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -259,21 +333,17 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Alert Banner */}
+        {/* Dynamic Alert Banner */}
         {primaryAlert && (
           <TouchableOpacity style={[
             styles.alertBanner,
             primaryAlert.type === 'warning' ? styles.warningBanner :
             primaryAlert.type === 'critical' ? styles.criticalBanner : styles.infoBanner
           ]}>
-            <View style={[
-              styles.alertIcon,
-              primaryAlert.type === 'warning' ? styles.warningIcon :
-              primaryAlert.type === 'critical' ? styles.criticalIcon : styles.infoIconStyle
-            ]}>
+            <View style={styles.alertIcon}>
               <Ionicons 
                 name={primaryAlert.type === 'critical' || primaryAlert.type === 'warning' ? "warning" : "information-circle"} 
-                size={16} 
+                size={20} 
                 color="#FFFFFF" 
               />
             </View>
@@ -284,73 +354,64 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
           </TouchableOpacity>
         )}
 
-        {/* Timeline Card */}
-        <View style={styles.timelineCard}>
-          {/* Progress Header */}
-          <View style={styles.progressHeader}>
-            <View style={styles.progressDot} />
-            <View style={styles.progressInfo}>
-              <Text style={styles.timelineTitle}>
-                {currentStep?.title || 'Timeline Progress'}
-              </Text>
-              <Text style={styles.progressPercent}>
-                {getOverallProgress()}% complete
-              </Text>
-            </View>
-          </View>
-
-          {/* Card Content */}
-          <View style={styles.cardContent}>
-            <TouchableOpacity 
-              style={styles.showCompletedButton}
-              onPress={handleShowCompletedSteps}
-            >
-              <Text style={styles.showCompletedText}>
-                {showCompletedSteps ? 'Hide completed steps' : 'Show completed steps'}
-              </Text>
-            </TouchableOpacity>
-
-            {/* Show completed steps if toggled */}
-            {showCompletedSteps && (
-              <View style={styles.completedStepsSection}>
-                <Text style={styles.completedStepsTitle}>Completed Steps:</Text>
-                {steps.filter(s => s.completed).length > 0 ? (
-                  steps.filter(s => s.completed).map((step) => (
-                    <View key={step.id} style={styles.completedStepItem}>
-                      <View style={styles.completedStepDot} />
-                      <Text style={styles.completedStepText}>{step.title}</Text>
-                      <Ionicons name="checkmark" size={18} color={Colors.primary} />
-                    </View>
-                  ))
-                ) : (
-                  <Text style={styles.noCompletedStepsText}>No completed steps yet.</Text>
-                )}
+        {/* Current Step Card */}
+        {selectedStep && (
+          <View style={styles.stepCard}>
+            {/* Step Header with Progress */}
+            <View style={styles.stepCardHeader}>
+              <View style={styles.stepTimeline}>
+                <View style={[styles.timelineDot, selectedStep.completed ? styles.completedDot : styles.activeDot]} />
+                <View style={styles.timelineLine} />
               </View>
-            )}
+              <View style={styles.stepHeaderContent}>
+                <Text style={styles.stepName}>{selectedStep.title}</Text>
+                <Text style={styles.stepProgress}>{Math.round(selectedStep.progress || 0)}% complete</Text>
+              </View>
+            </View>
 
-            {currentStep && (
-              <>
-                <View style={styles.nextStepSection}>
-                  <View style={styles.nextStepDot} />
-                  <View style={styles.nextStepContent}>
-                    <Text style={styles.nextStepLabel}>Current step:</Text>
-                    <Text style={styles.nextStepText}>{currentStep.description}</Text>
-                    {currentStep.nextActions.length > 0 && (
-                      <View style={styles.nextActionsContainer}>
-                        <Text style={styles.nextActionsLabel}>Next actions:</Text>
-                        {currentStep.nextActions.map((action, index) => (
-                          <Text key={index} style={styles.nextActionText}>• {action}</Text>
-                        ))}
+            {/* Step Content */}
+            <View style={styles.stepCardContent}>
+              {/* Show Completed Steps Toggle */}
+              <TouchableOpacity 
+                style={styles.showCompletedToggle}
+                onPress={handleShowCompletedSteps}
+              >
+                <Text style={styles.showCompletedText}>
+                  {showCompletedSteps ? 'Hide completed steps' : 'Show completed steps'}
+                </Text>
+              </TouchableOpacity>
+
+              {/* Completed Steps List */}
+              {showCompletedSteps && (
+                <View style={styles.completedStepsSection}>
+                  {steps.filter(s => s.completed).length > 0 ? (
+                    steps.filter(s => s.completed).map((step) => (
+                      <View key={step.id} style={styles.completedStepRow}>
+                        <Ionicons name="checkmark-circle" size={16} color={Colors.primary} />
+                        <Text style={styles.completedStepText}>{step.title}</Text>
                       </View>
-                    )}
-                  </View>
+                    ))
+                  ) : (
+                    <Text style={styles.noCompletedText}>No completed steps yet</Text>
+                  )}
                 </View>
+              )}
 
+              {/* Next Step */}
+              <View style={styles.nextStepSection}>
+                <Text style={styles.nextStepLabel}>Next step:</Text>
+                <Text style={styles.nextStepDescription}>
+                  {selectedStep.description || selectedStep.nextActions?.[0] || 'Continue with your asylum process'}
+                </Text>
+              </View>
+
+              {/* Action Buttons */}
+              <View style={styles.stepActions}>
                 <TouchableOpacity 
-                  style={styles.addToCalendarButton}
+                  style={styles.addToCalendarLink}
                   onPress={handleAddToCalendar}
                 >
-                  <Text style={styles.addToCalendarText}>Add to calendar</Text>
+                  <Text style={styles.linkText}>Add to calendar</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity 
@@ -360,7 +421,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
                   <Text style={styles.viewResourcesText}>View resources</Text>
                 </TouchableOpacity>
 
-                {!currentStep.completed && (
+                {!selectedStep.completed && (
                   <TouchableOpacity 
                     style={styles.markAsDoneButton}
                     onPress={handleMarkAsDone}
@@ -368,31 +429,38 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
                     <Text style={styles.markAsDoneText}>Mark as done</Text>
                   </TouchableOpacity>
                 )}
-
-                {editMode && (
-                  <TouchableOpacity 
-                    style={styles.editStepButton}
-                    onPress={() => handleEditStep(currentStep)}
-                  >
-                    <Text style={styles.editStepText}>Edit this step</Text>
-                  </TouchableOpacity>
-                )}
-              </>
-            )}
+              </View>
+            </View>
           </View>
+        )}
 
-          {/* Edit Timeline Link */}
-          <TouchableOpacity 
-            style={styles.editTimelineLink}
-            onPress={handleEditTimeline}
-          >
-            <Text style={styles.editTimelineText}>
-              {editMode ? 'Exit edit mode' : 'Edit timeline'}
-            </Text>
-          </TouchableOpacity>
+        {/* Progress Indicators */}
+        <View style={styles.progressIndicators}>
+          {steps.slice(0, 5).map((step, index) => (
+            <TouchableOpacity 
+              key={step.id} 
+              style={[
+                styles.progressDot,
+                step.completed ? styles.completedProgressDot : 
+                index === selectedStepIndex ? styles.activeProgressDot : 
+                styles.inactiveProgressDot
+              ]} 
+              onPress={() => handleStepNavigation(index)}
+            />
+          ))}
         </View>
 
-        {/* Download Timeline Button */}
+        {/* Edit Timeline Link */}
+        <TouchableOpacity 
+          style={styles.editTimelineLink}
+          onPress={editMode ? exitEditMode : enterEditMode}
+        >
+          <Text style={styles.editTimelineText}>
+            {editMode ? 'Save changes' : 'Edit timeline'}
+          </Text>
+        </TouchableOpacity>
+
+        {/* Download Button */}
         <TouchableOpacity 
           style={styles.downloadTimelineButton}
           onPress={handleDownloadTimeline}
@@ -422,7 +490,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
 
             {editingStep && (
               <>
-                <Text style={styles.stepTitle}>{editingStep.title}</Text>
+                <Text style={styles.modalStepTitle}>{editingStep.title}</Text>
                 
                 <View style={styles.inputGroup}>
                   <Text style={styles.inputLabel}>Deadline (YYYY-MM-DD)</Text>
@@ -674,111 +742,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
   },
-  showCompletedButton: {
-    marginBottom: 16,
-  },
-  showCompletedText: {
-    fontSize: 16,
-    color: '#666666',
-  },
-  completedStepsSection: {
-    marginTop: 16,
-    marginBottom: 16,
-    paddingVertical: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#E0E0E0',
-  },
-  completedStepsTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#000000',
-    marginBottom: 12,
-  },
-  completedStepItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  completedStepDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: Colors.primary,
-    marginRight: 12,
-  },
-  completedStepText: {
-    fontSize: 16,
-    color: '#333333',
-    flex: 1,
-  },
-  completedStepCheck: {
-    fontSize: 18,
-    color: Colors.primary,
-    fontWeight: 'bold',
-  },
-  noCompletedSteps: {
-    marginTop: 16,
-    marginBottom: 16,
-    paddingVertical: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#E0E0E0',
-  },
-  noCompletedStepsText: {
-    fontSize: 16,
-    color: '#999999',
-    textAlign: 'center',
-    fontStyle: 'italic',
-  },
-  nextStepSection: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 20,
-  },
-  nextStepDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#CCCCCC',
-    marginRight: 12,
-    marginTop: 4,
-  },
-  nextStepContent: {
-    flex: 1,
-  },
-  nextStepLabel: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#000000',
-    marginBottom: 4,
-  },
-  nextStepText: {
-    fontSize: 16,
-    color: '#333333',
-    lineHeight: 22,
-  },
-  addToCalendarButton: {
-    alignSelf: 'center',
-    marginBottom: 16,
-  },
-  addToCalendarText: {
-    fontSize: 16,
-    color: '#666666',
-    textDecorationLine: 'underline',
-  },
-  viewResourcesButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: '#333333',
-    borderRadius: 25,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    alignItems: 'center',
-  },
-  viewResourcesText: {
-    fontSize: 16,
-    color: '#333333',
-    fontWeight: '500',
-  },
   markAsDoneButton: {
     backgroundColor: Colors.primaryDark,
     borderRadius: 25,
@@ -951,8 +914,8 @@ const styles = StyleSheet.create({
     padding: 4,
   },
 
-  // Step Title in Modal
-  stepTitle: {
+  // Step Title in Modal (renamed to modalStepTitle)
+  modalStepTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#333333',
@@ -1012,6 +975,180 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
+  },
+
+  // Timeline Card Styles
+  stepCard: {
+    backgroundColor: '#E8F5E8',
+    borderRadius: 12,
+    marginBottom: 20,
+    marginHorizontal: 16,
+    overflow: 'hidden',
+  },
+  stepCardHeader: {
+    backgroundColor: '#E8F5E8',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  stepTimeline: {
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  timelineDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginBottom: 8,
+  },
+  activeDot: {
+    backgroundColor: '#4CAF50',
+  },
+  completedDot: {
+    backgroundColor: '#4CAF50',
+  },
+  timelineLine: {
+    width: 2,
+    height: 40,
+    backgroundColor: '#4CAF50',
+  },
+  stepHeaderContent: {
+    flex: 1,
+  },
+  stepName: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333333',
+    marginBottom: 4,
+  },
+  stepProgress: {
+    fontSize: 16,
+    color: '#333333',
+  },
+  stepCardContent: {
+    backgroundColor: '#FFFFFF',
+    padding: 16,
+  },
+  showCompletedToggle: {
+    marginBottom: 16,
+  },
+  showCompletedText: {
+    fontSize: 14,
+    color: '#666666',
+  },
+  completedStepsSection: {
+    marginBottom: 16,
+  },
+  completedStepRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  completedStepText: {
+    fontSize: 14,
+    color: '#333333',
+    marginLeft: 8,
+  },
+  noCompletedText: {
+    fontSize: 14,
+    color: '#999999',
+    fontStyle: 'italic',
+  },
+  nextStepSection: {
+    marginBottom: 20,
+  },
+  nextStepLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333333',
+    marginBottom: 8,
+  },
+  nextStepDescription: {
+    fontSize: 16,
+    color: '#333333',
+    lineHeight: 24,
+  },
+  stepActions: {
+    gap: 12,
+  },
+  addToCalendarLink: {
+    alignSelf: 'center',
+    paddingVertical: 8,
+  },
+  linkText: {
+    fontSize: 16,
+    color: '#333333',
+    textDecorationLine: 'underline',
+  },
+  viewResourcesButton: {
+    borderWidth: 2,
+    borderColor: '#333333',
+    borderRadius: 25,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  viewResourcesText: {
+    fontSize: 16,
+    color: '#333333',
+    fontWeight: '500',
+  },
+  markAsDoneButton: {
+    backgroundColor: '#2E6B47',
+    borderRadius: 25,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  markAsDoneText: {
+    fontSize: 16,
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  progressIndicators: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+    gap: 8,
+  },
+  progressDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+  activeProgressDot: {
+    backgroundColor: '#2E6B47',
+  },
+  completedProgressDot: {
+    backgroundColor: '#4CAF50',
+  },
+  inactiveProgressDot: {
+    backgroundColor: '#CCCCCC',
+  },
+  editTimelineLink: {
+    alignSelf: 'flex-end',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginBottom: 20,
+  },
+  editTimelineText: {
+    fontSize: 14,
+    color: '#333333',
+    textDecorationLine: 'underline',
+  },
+  downloadTimelineButton: {
+    borderWidth: 2,
+    borderColor: '#333333',
+    borderRadius: 25,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginHorizontal: 16,
+    marginBottom: 20,
+  },
+  downloadTimelineText: {
+    fontSize: 16,
+    color: '#333333',
+    fontWeight: '500',
   },
 });
 
