@@ -19,7 +19,8 @@
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#7CB342"
-      }
+      },
+      "package": "com.zowy.asylum"
     },
     "web": {},
     "plugins": [

@@ -19,40 +19,79 @@ interface DocumentsScreenProps {
   navigation: any;
 }
 
-// Complete document type options for asylum seekers
+// Complete document type options for asylum seekers - organized by category
 const DOCUMENT_TYPES = [
   // Identity Documents
-  { id: 'passport', label: 'Passport', category: 'identity' },
-  { id: 'birth-certificate', label: 'Birth Certificate', category: 'identity' },
-  { id: 'national-id', label: 'National ID', category: 'identity' },
-  { id: 'driver-license', label: 'Driver\'s License', category: 'identity' },
-  { id: 'marriage-certificate', label: 'Marriage Certificate', category: 'identity' },
+  { id: 'passport', label: 'Passport', category: 'identity', icon: 'card-outline' },
+  { id: 'birth-certificate', label: 'Birth Certificate', category: 'identity', icon: 'card-outline' },
+  { id: 'national-id', label: 'National ID', category: 'identity', icon: 'card-outline' },
+  { id: 'driver-license', label: 'Driver\'s License', category: 'identity', icon: 'card-outline' },
+  { id: 'marriage-certificate', label: 'Marriage Certificate', category: 'identity', icon: 'card-outline' },
   
   // Asylum Application Forms
-  { id: 'form-i589', label: 'Form I-589 (Asylum Application)', category: 'asylum_application' },
-  { id: 'form-i765', label: 'Form I-765 (Work Authorization)', category: 'work_authorization' },
-  { id: 'form-i912', label: 'Form I-912 (Fee Waiver)', category: 'asylum_application' },
-  { id: 'filing-receipt', label: 'USCIS Filing Receipt', category: 'asylum_application' },
+  { id: 'form-i589', label: 'Form I-589 (Asylum Application)', category: 'asylum_application', icon: 'document-text-outline' },
+  { id: 'form-i765', label: 'Form I-765 (Work Authorization)', category: 'work_authorization', icon: 'briefcase-outline' },
+  { id: 'form-i912', label: 'Form I-912 (Fee Waiver)', category: 'asylum_application', icon: 'document-text-outline' },
+  { id: 'filing-receipt', label: 'USCIS Filing Receipt', category: 'asylum_application', icon: 'document-text-outline' },
   
   // Supporting Evidence
-  { id: 'police-report', label: 'Police Reports', category: 'supporting_evidence' },
-  { id: 'medical-records', label: 'Medical Records', category: 'medical_records' },
-  { id: 'psychological-evaluation', label: 'Psychological Evaluation', category: 'medical_records' },
-  { id: 'country-report', label: 'Country Condition Reports', category: 'supporting_evidence' },
-  { id: 'news-articles', label: 'News Articles/Evidence', category: 'supporting_evidence' },
-  { id: 'witness-statement', label: 'Witness Statements', category: 'supporting_evidence' },
-  { id: 'photos-evidence', label: 'Photos/Visual Evidence', category: 'supporting_evidence' },
+  { id: 'police-report', label: 'Police Reports', category: 'supporting_evidence', icon: 'folder-outline' },
+  { id: 'medical-records', label: 'Medical Records', category: 'medical_records', icon: 'medical-outline' },
+  { id: 'psychological-evaluation', label: 'Psychological Evaluation', category: 'medical_records', icon: 'medical-outline' },
+  { id: 'country-report', label: 'Country Condition Reports', category: 'supporting_evidence', icon: 'folder-outline' },
+  { id: 'news-articles', label: 'News Articles/Evidence', category: 'supporting_evidence', icon: 'folder-outline' },
+  { id: 'witness-statement', label: 'Witness Statements', category: 'supporting_evidence', icon: 'folder-outline' },
+  { id: 'photos-evidence', label: 'Photos/Visual Evidence', category: 'supporting_evidence', icon: 'folder-outline' },
   
   // Legal Documents
-  { id: 'court-documents', label: 'Court Documents', category: 'legal_documents' },
-  { id: 'attorney-letters', label: 'Attorney Letters', category: 'legal_documents' },
-  { id: 'legal-notices', label: 'Legal Notices', category: 'legal_documents' },
+  { id: 'court-documents', label: 'Court Documents', category: 'legal_documents', icon: 'scale-outline' },
+  { id: 'attorney-letters', label: 'Attorney Letters', category: 'legal_documents', icon: 'scale-outline' },
+  { id: 'legal-notices', label: 'Legal Notices', category: 'legal_documents', icon: 'scale-outline' },
   
   // Other
-  { id: 'translation', label: 'Certified Translations', category: 'other' },
-  { id: 'affidavit', label: 'Affidavits', category: 'other' },
-  { id: 'other', label: 'Other Document', category: 'other' },
+  { id: 'translation', label: 'Certified Translations', category: 'other', icon: 'document-outline' },
+  { id: 'affidavit', label: 'Affidavits', category: 'other', icon: 'document-outline' },
+  { id: 'other', label: 'Other Document', category: 'other', icon: 'document-outline' },
 ];
+
+// Group document types by category for better organization
+const DOCUMENT_CATEGORIES = {
+  identity: {
+    title: 'Identity Documents',
+    icon: 'card-outline',
+    types: DOCUMENT_TYPES.filter(type => type.category === 'identity')
+  },
+  asylum_application: {
+    title: 'Asylum Application',
+    icon: 'document-text-outline',
+    types: DOCUMENT_TYPES.filter(type => type.category === 'asylum_application')
+  },
+  work_authorization: {
+    title: 'Work Authorization',
+    icon: 'briefcase-outline',
+    types: DOCUMENT_TYPES.filter(type => type.category === 'work_authorization')
+  },
+  supporting_evidence: {
+    title: 'Supporting Evidence',
+    icon: 'folder-outline',
+    types: DOCUMENT_TYPES.filter(type => type.category === 'supporting_evidence')
+  },
+  medical_records: {
+    title: 'Medical Records',
+    icon: 'medical-outline',
+    types: DOCUMENT_TYPES.filter(type => type.category === 'medical_records')
+  },
+  legal_documents: {
+    title: 'Legal Documents',
+    icon: 'scale-outline',
+    types: DOCUMENT_TYPES.filter(type => type.category === 'legal_documents')
+  },
+  other: {
+    title: 'Other Documents',
+    icon: 'document-outline',
+    types: DOCUMENT_TYPES.filter(type => type.category === 'other')
+  }
+};
 
 const DocumentsScreen: React.FC<DocumentsScreenProps> = ({ navigation }) => {
   const {
@@ -77,30 +116,16 @@ const DocumentsScreen: React.FC<DocumentsScreenProps> = ({ navigation }) => {
   const [documentToDelete, setDocumentToDelete] = useState<string | null>(null);
   const [showUploadProgress, setShowUploadProgress] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
+  const [isReplacing, setIsReplacing] = useState(false);
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
   const handleUploadPress = async () => {
     try {
-      setShowUploadProgress(true);
-      setUploadProgress(0);
-      
-      // Simulate upload progress
-      const progressInterval = setInterval(() => {
-        setUploadProgress(prev => {
-          if (prev >= 90) {
-            clearInterval(progressInterval);
-            return 90;
-          }
-          return prev + 10;
-        });
-      }, 200);
-      
       const success = await pickDocument({
         allowMultiple: false,
         mediaTypes: ['document', 'photo'],
       });
-      
-      clearInterval(progressInterval);
-      setUploadProgress(100);
       
       if (success && documents.length > 0) {
         // Get the most recently uploaded document
@@ -113,7 +138,6 @@ const DocumentsScreen: React.FC<DocumentsScreenProps> = ({ navigation }) => {
             'Please select a file smaller than 10MB for optimal performance.',
             [{ text: 'OK' }]
           );
-          setShowUploadProgress(false);
           return;
         }
         
@@ -126,41 +150,84 @@ const DocumentsScreen: React.FC<DocumentsScreenProps> = ({ navigation }) => {
             'Please select a PDF, image, or document file.',
             [{ text: 'OK' }]
           );
-          setShowUploadProgress(false);
           return;
         }
         
         setUploadedFile(latestDoc);
         setDocumentName(latestDoc.name);
+        setSelectedDocumentType('other'); // Reset to default
         setShowUploadModal(true);
       } else if (error) {
         Alert.alert('Upload Failed', error);
       }
     } catch (err) {
-      Alert.alert('Upload Error', 'Failed to upload document. Please try again.');
-    } finally {
-      setTimeout(() => {
-        setShowUploadProgress(false);
-        setUploadProgress(0);
-      }, 1000);
+      Alert.alert('Upload Error', 'Failed to select document. Please try again.');
     }
   };
 
   const handleSaveDocument = async () => {
+    if (!documentName.trim()) {
+      Alert.alert('Document Name Required', 'Please enter a name for your document.');
+      return;
+    }
+    
     const documentToUpdate = uploadedFile || selectedDocument;
-    if (documentToUpdate && documentName.trim()) {
-      const success = await updateDocument(documentToUpdate.id, {
-        name: documentName.trim(),
-        category: selectedDocumentType as any,
-      });
-      
-      if (success) {
-        setShowUploadModal(false);
-        setUploadedFile(null);
-        setSelectedDocument(null);
-        setDocumentName('');
-        setSelectedDocumentType('other');
-        Alert.alert('Success', 'Document saved successfully!');
+    if (documentToUpdate) {
+      // Show upload progress when user confirms
+      if (uploadedFile) {
+        setShowUploadProgress(true);
+        setUploadProgress(0);
+        
+        // Simulate upload progress
+        const progressInterval = setInterval(() => {
+          setUploadProgress(prev => {
+            if (prev >= 90) {
+              clearInterval(progressInterval);
+              return 90;
+            }
+            return prev + 10;
+          });
+        }, 200);
+        
+        // Update the document with user's input
+        const success = await updateDocument(documentToUpdate.id, {
+          name: documentName.trim(),
+          category: selectedDocumentType as any,
+        });
+        
+        clearInterval(progressInterval);
+        setUploadProgress(100);
+        
+        setTimeout(() => {
+          setShowUploadProgress(false);
+          setUploadProgress(0);
+          
+          if (success) {
+            setShowUploadModal(false);
+            setUploadedFile(null);
+            setSelectedDocument(null);
+            setDocumentName('');
+            setSelectedDocumentType('other');
+            setIsReplacing(false);
+            Alert.alert('Success', 'Document uploaded and saved successfully!');
+          }
+        }, 1000);
+      } else {
+        // For editing existing documents, no upload progress needed
+        const success = await updateDocument(documentToUpdate.id, {
+          name: documentName.trim(),
+          category: selectedDocumentType as any,
+        });
+        
+        if (success) {
+          setShowUploadModal(false);
+          setUploadedFile(null);
+          setSelectedDocument(null);
+          setDocumentName('');
+          setSelectedDocumentType('other');
+          setIsReplacing(false);
+          Alert.alert('Success', 'Document updated successfully!');
+        }
       }
     }
   };
@@ -170,8 +237,11 @@ const DocumentsScreen: React.FC<DocumentsScreenProps> = ({ navigation }) => {
     setUploadedFile(null); // Clear uploaded file since we're editing existing
     setDocumentName(document.name);
     setSelectedDocumentType(document.category);
+    setIsReplacing(false);
     setShowUploadModal(true);
   };
+
+
 
   const handleDeleteDocument = (document: any) => {
     Alert.alert(
@@ -199,6 +269,21 @@ const DocumentsScreen: React.FC<DocumentsScreenProps> = ({ navigation }) => {
     setShowHelpModal(true);
   };
 
+  const getDocumentTypeLabel = (category: string) => {
+    return DOCUMENT_TYPES.find(type => type.id === category)?.label || 'Other document';
+  };
+
+  const getDocumentTypeIcon = (category: string) => {
+    return (DOCUMENT_TYPES.find(type => type.id === category)?.icon || 'document-outline') as keyof typeof Ionicons.glyphMap;
+  };
+
+  const filteredDocuments = selectedCategory === 'all' 
+    ? documents 
+    : documents.filter(doc => {
+        const docType = DOCUMENT_TYPES.find(type => type.id === doc.category);
+        return docType?.category === selectedCategory;
+      });
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Header matching documents.png */}
@@ -223,7 +308,7 @@ const DocumentsScreen: React.FC<DocumentsScreenProps> = ({ navigation }) => {
             <Ionicons name="cloud-upload-outline" size={64} color={Colors.primary} />
           </View>
           <Text style={styles.uploadTitle}>Tap here to upload a new document</Text>
-          <Text style={styles.uploadSubtitle}>Max file size: 25MB</Text>
+          <Text style={styles.uploadSubtitle}>Max file size: 10MB</Text>
         </TouchableOpacity>
 
         {/* Upload Progress Indicator */}
@@ -231,7 +316,9 @@ const DocumentsScreen: React.FC<DocumentsScreenProps> = ({ navigation }) => {
           <View style={styles.uploadProgressContainer}>
             <View style={styles.uploadProgressCard}>
               <Ionicons name="cloud-upload-outline" size={32} color={Colors.primary} />
-              <Text style={styles.uploadProgressText}>Uploading document...</Text>
+              <Text style={styles.uploadProgressText}>
+                {isReplacing ? 'Replacing document...' : 'Processing document...'}
+              </Text>
               <View style={styles.progressBarContainer}>
                 <View style={[styles.progressBar, { width: `${uploadProgress}%` }]} />
               </View>
@@ -240,21 +327,94 @@ const DocumentsScreen: React.FC<DocumentsScreenProps> = ({ navigation }) => {
           </View>
         )}
 
+        {/* Category Filter */}
+        {documents.length > 0 && (
+          <View style={styles.categoryFilter}>
+            <Text style={styles.filterLabel}>Filter by category:</Text>
+            <View style={styles.categoryDropdownContainer}>
+              <TouchableOpacity 
+                style={styles.categoryDropdown}
+                onPress={() => setShowCategoryDropdown(!showCategoryDropdown)}
+              >
+                <Text style={styles.categoryDropdownText}>
+                  {selectedCategory === 'all' ? 'All Categories' : DOCUMENT_CATEGORIES[selectedCategory as keyof typeof DOCUMENT_CATEGORIES]?.title}
+                </Text>
+                <Ionicons 
+                  name={showCategoryDropdown ? "chevron-up" : "chevron-down"} 
+                  size={20} 
+                  color="#666666" 
+                />
+              </TouchableOpacity>
+              
+              {showCategoryDropdown && (
+                <View style={styles.categoryDropdownOptions}>
+                  <TouchableOpacity
+                    style={[
+                      styles.categoryDropdownOption,
+                      selectedCategory === 'all' && styles.selectedCategoryOption
+                    ]}
+                    onPress={() => {
+                      setSelectedCategory('all');
+                      setShowCategoryDropdown(false);
+                    }}
+                  >
+                    <Ionicons name="apps-outline" size={16} color="#666666" />
+                    <Text style={[
+                      styles.categoryDropdownOptionText,
+                      selectedCategory === 'all' && styles.selectedCategoryOptionText
+                    ]}>
+                      All Categories
+                    </Text>
+                  </TouchableOpacity>
+                  {Object.entries(DOCUMENT_CATEGORIES).map(([key, category]) => (
+                    <TouchableOpacity
+                      key={key}
+                      style={[
+                        styles.categoryDropdownOption,
+                        selectedCategory === key && styles.selectedCategoryOption
+                      ]}
+                      onPress={() => {
+                        setSelectedCategory(key);
+                        setShowCategoryDropdown(false);
+                      }}
+                    >
+                      <Ionicons name={category.icon as keyof typeof Ionicons.glyphMap} size={16} color="#666666" />
+                      <Text style={[
+                        styles.categoryDropdownOptionText,
+                        selectedCategory === key && styles.selectedCategoryOptionText
+                      ]}>
+                        {category.title}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </View>
+          </View>
+        )}
+
         {/* Documents List */}
         <View style={styles.documentsSection}>
-          <Text style={styles.sectionTitle}>Your documents</Text>
+          <Text style={styles.sectionTitle}>
+            Your documents {selectedCategory !== 'all' && `(${filteredDocuments.length})`}
+          </Text>
           
-          {documents.length === 0 ? (
-            <Text style={styles.noDocuments}>No documents uploaded yet</Text>
+          {filteredDocuments.length === 0 ? (
+            <View style={styles.noDocumentsContainer}>
+              <Ionicons name="document-outline" size={48} color="#CCCCCC" />
+              <Text style={styles.noDocuments}>
+                {selectedCategory === 'all' ? 'No documents uploaded yet' : 'No documents in this category'}
+              </Text>
+            </View>
           ) : (
-            documents.map((document) => (
+            filteredDocuments.map((document) => (
               <View key={document.id} style={styles.documentItem}>
                 <View style={styles.documentIcon}>
-                  <Ionicons name="document-text" size={20} color={Colors.white} />
+                  <Ionicons name={getDocumentTypeIcon(document.category)} size={20} color={Colors.white} />
                 </View>
                 <View style={styles.documentInfo}>
                   <Text style={styles.documentTitle}>
-                    {DOCUMENT_TYPES.find(type => type.id === document.category)?.label || 'Other document'}
+                    {getDocumentTypeLabel(document.category)}
                   </Text>
                   <Text style={styles.documentFilename}>{document.name}</Text>
                   <Text style={styles.documentSize}>{formatFileSize(document.size || 0)}</Text>
@@ -292,7 +452,9 @@ const DocumentsScreen: React.FC<DocumentsScreenProps> = ({ navigation }) => {
           <View style={styles.modalContent}>
             {/* Modal Header */}
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Document Details</Text>
+              <Text style={styles.modalTitle}>
+                {isReplacing ? 'Replace Document' : (uploadedFile ? 'Document Details' : 'Edit Document')}
+              </Text>
               <TouchableOpacity
                 style={styles.closeButton}
                 onPress={() => setShowUploadModal(false)}
@@ -322,7 +484,7 @@ const DocumentsScreen: React.FC<DocumentsScreenProps> = ({ navigation }) => {
                   onPress={() => setShowDropdown(!showDropdown)}
                 >
                   <Text style={styles.dropdownText}>
-                    {DOCUMENT_TYPES.find(type => type.id === selectedDocumentType)?.label || 'Other document'}
+                    {getDocumentTypeLabel(selectedDocumentType)}
                   </Text>
                   <Ionicons 
                     name={showDropdown ? "chevron-up" : "chevron-down"} 
@@ -334,28 +496,36 @@ const DocumentsScreen: React.FC<DocumentsScreenProps> = ({ navigation }) => {
                 {showDropdown && (
                   <View style={styles.dropdownOptions}>
                     <ScrollView style={styles.dropdownScroll} nestedScrollEnabled>
-                      {DOCUMENT_TYPES.map((type) => (
-                        <TouchableOpacity
-                          key={type.id}
-                          style={[
-                            styles.dropdownOption,
-                            selectedDocumentType === type.id && styles.selectedOption
-                          ]}
-                          onPress={() => {
-                            setSelectedDocumentType(type.id);
-                            setShowDropdown(false);
-                          }}
-                        >
-                          <Text style={[
-                            styles.dropdownOptionText,
-                            selectedDocumentType === type.id && styles.selectedOptionText
-                          ]}>
-                            {type.label}
-                          </Text>
-                          {selectedDocumentType === type.id && (
-                            <Ionicons name="checkmark" size={18} color={Colors.primary} />
-                          )}
-                        </TouchableOpacity>
+                      {Object.entries(DOCUMENT_CATEGORIES).map(([categoryKey, category]) => (
+                        <View key={categoryKey}>
+                          <View style={styles.categoryHeader}>
+                            <Ionicons name={category.icon as keyof typeof Ionicons.glyphMap} size={16} color="#666666" />
+                            <Text style={styles.categoryHeaderText}>{category.title}</Text>
+                          </View>
+                          {category.types.map((type) => (
+                            <TouchableOpacity
+                              key={type.id}
+                              style={[
+                                styles.dropdownOption,
+                                selectedDocumentType === type.id && styles.selectedOption
+                              ]}
+                              onPress={() => {
+                                setSelectedDocumentType(type.id);
+                                setShowDropdown(false);
+                              }}
+                            >
+                              <Text style={[
+                                styles.dropdownOptionText,
+                                selectedDocumentType === type.id && styles.selectedOptionText
+                              ]}>
+                                {type.label}
+                              </Text>
+                              {selectedDocumentType === type.id && (
+                                <Ionicons name="checkmark" size={18} color={Colors.primary} />
+                              )}
+                            </TouchableOpacity>
+                          ))}
+                        </View>
                       ))}
                     </ScrollView>
                   </View>
@@ -376,10 +546,19 @@ const DocumentsScreen: React.FC<DocumentsScreenProps> = ({ navigation }) => {
 
             {/* Save Button */}
             <TouchableOpacity
-              style={styles.saveButton}
+              style={[
+                styles.saveButton,
+                !documentName.trim() && styles.saveButtonDisabled
+              ]}
               onPress={handleSaveDocument}
+              disabled={!documentName.trim()}
             >
-              <Text style={styles.saveButtonText}>Save</Text>
+              <Text style={[
+                styles.saveButtonText,
+                !documentName.trim() && styles.saveButtonTextDisabled
+              ]}>
+                {isReplacing ? 'Replace Document' : (uploadedFile ? 'Upload & Save' : 'Save Changes')}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -450,6 +629,22 @@ const DocumentsScreen: React.FC<DocumentsScreenProps> = ({ navigation }) => {
                 <View style={styles.helpItem}>
                   <Ionicons name="checkmark-circle" size={16} color="#4CAF50" />
                   <Text style={styles.helpItemText}>Include certified translations for non-English documents</Text>
+                </View>
+              </View>
+
+              <View style={styles.helpSection}>
+                <Text style={styles.helpSectionTitle}>Document Management</Text>
+                <View style={styles.helpItem}>
+                  <Ionicons name="refresh" size={16} color="#007AFF" />
+                  <Text style={styles.helpItemText}>Replace: Upload a new version of an existing document</Text>
+                </View>
+                <View style={styles.helpItem}>
+                  <Ionicons name="create" size={16} color="#333333" />
+                  <Text style={styles.helpItemText}>Edit: Change document name and category</Text>
+                </View>
+                <View style={styles.helpItem}>
+                  <Ionicons name="trash" size={16} color="#FF4444" />
+                  <Text style={styles.helpItemText}>Delete: Remove document permanently (cannot be undone)</Text>
                 </View>
               </View>
 
@@ -594,6 +789,76 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 
+  // Category Filter
+  categoryFilter: {
+    marginBottom: 24,
+  },
+  filterLabel: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#000000',
+    marginBottom: 8,
+  },
+  categoryDropdownContainer: {
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderRadius: 8,
+    position: 'relative',
+  },
+  categoryDropdown: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+  },
+  categoryDropdownText: {
+    fontSize: 16,
+    color: '#000000',
+  },
+  categoryDropdownOptions: {
+    position: 'absolute',
+    top: '100%',
+    left: 0,
+    right: 0,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderTopWidth: 0,
+    borderBottomLeftRadius: 8,
+    borderBottomRightRadius: 8,
+    maxHeight: 300,
+    zIndex: 1000,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+  },
+  categoryDropdownOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  selectedCategoryOption: {
+    backgroundColor: '#F0F8F0',
+  },
+  categoryDropdownOptionText: {
+    fontSize: 14,
+    color: '#333333',
+    marginLeft: 12,
+    flex: 1,
+  },
+  selectedCategoryOptionText: {
+    color: Colors.primary,
+    fontWeight: '500',
+  },
+
   // Documents Section
   documentsSection: {
     marginBottom: 32,
@@ -613,6 +878,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   documentIcon: {
     width: 48,
@@ -644,6 +914,22 @@ const styles = StyleSheet.create({
   documentActions: {
     flexDirection: 'row',
     gap: 8,
+  },
+  replaceButton: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: '#007AFF',
+    borderRadius: 16,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  replaceButtonText: {
+    fontSize: 12,
+    color: '#007AFF',
+    fontWeight: '500',
   },
   editButton: {
     backgroundColor: 'transparent',
@@ -679,11 +965,16 @@ const styles = StyleSheet.create({
   },
 
   // No Documents
+  noDocumentsContainer: {
+    alignItems: 'center',
+    marginTop: 40,
+    paddingVertical: 40,
+  },
   noDocuments: {
     fontSize: 16,
     color: '#999999',
     textAlign: 'center',
-    marginTop: 40,
+    marginTop: 16,
   },
 
   // Modal
@@ -773,7 +1064,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 0,
     borderBottomLeftRadius: 8,
     borderBottomRightRadius: 8,
-    maxHeight: 300,
+    maxHeight: 400,
     zIndex: 1000,
     elevation: 8,
     shadowColor: '#000',
@@ -782,7 +1073,22 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
   },
   dropdownScroll: {
-    maxHeight: 300,
+    maxHeight: 400,
+  },
+  categoryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: '#F8F8F8',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+  },
+  categoryHeaderText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666666',
+    marginLeft: 8,
   },
   dropdownOption: {
     flexDirection: 'row',
@@ -827,6 +1133,12 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
+  },
+  saveButtonDisabled: {
+    backgroundColor: '#CCCCCC',
+  },
+  saveButtonTextDisabled: {
+    color: '#999999',
   },
 
   // Help Modal Styles
