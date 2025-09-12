@@ -60,7 +60,7 @@ export const AuthLandingScreen: React.FC = () => {
             title="Sign up"
             onPress={handleSignUp}
             variant="primary"
-            fullWidth
+            
             style={styles.signUpButton}
           />
           
@@ -68,7 +68,7 @@ export const AuthLandingScreen: React.FC = () => {
             title="Log in"
             onPress={handleLogin}
             variant="outline"
-            fullWidth
+            
             style={styles.loginButton}
           />
 

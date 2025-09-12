@@ -631,8 +631,8 @@ const DocumentsScreen: React.FC<DocumentsScreenProps> = ({ navigation }) => {
               <View style={styles.helpSection}>
                 <Text style={styles.helpSectionTitle}>Document Management</Text>
                 <View style={styles.helpItem}>
-                  <Ionicons name="refresh" size={16} color="#007AFF" />
-                  <Text style={styles.helpItemText}>Replace: Upload a new version of an existing document</Text>
+                  <Ionicons name="eye" size={16} color="#2196F3" />
+                  <Text style={styles.helpItemText}>View: Tap to open document</Text>
                 </View>
                 <View style={styles.helpItem}>
                   <Ionicons name="create" size={16} color="#333333" />
@@ -646,10 +646,7 @@ const DocumentsScreen: React.FC<DocumentsScreenProps> = ({ navigation }) => {
 
               <View style={styles.helpSection}>
                 <Text style={styles.helpSectionTitle}>Need More Help?</Text>
-                <TouchableOpacity style={styles.helpContactButton}>
-                  <Ionicons name="call" size={16} color={Colors.primary} />
-                  <Text style={styles.helpContactText}>Contact Support: 1-800-ASYLUM</Text>
-                </TouchableOpacity>
+                
                 <TouchableOpacity style={styles.helpContactButton}>
                   <Ionicons name="mail" size={16} color={Colors.primary} />
                   <Text style={styles.helpContactText}>Email: help@zowy.app</Text>

@@ -7,11 +7,14 @@ import {
   TouchableOpacity,
   Alert,
   Linking,
+  Share,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 import { HomeStackScreenProps } from '../../types/navigation';
 import { Colors } from '../../constants/Colors';
 import { Typography } from '../../constants/Typography';
@@ -330,6 +333,161 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
     setExpandedItems(newExpanded);
   };
 
+  const generateCalendarEvents = () => {
+    const events = timelineItems
+      .filter(item => item.date)
+      .map(item => {
+        const date = new Date(item.date!);
+        const formattedDate = date.toISOString().split('T')[0].replace(/-/g, '');
+        
+        // Create ICS format event
+        const eventString = [
+          'BEGIN:VEVENT',
+          `DTSTART:${formattedDate}T090000Z`,
+          `DTEND:${formattedDate}T100000Z`,
+          `SUMMARY:${item.title}`,
+          `DESCRIPTION:${item.description}${item.subItems ? '\\n\\nSupporting Actions:\\n' + item.subItems.map(sub => `• ${sub.title}`).join('\\n') : ''}`,
+          `CATEGORIES:${item.category}`,
+          `STATUS:TENTATIVE`,
+          'END:VEVENT'
+        ].join('\n');
+        
+        return eventString;
+      });
+
+    const icsContent = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//Zowy Asylum App//Timeline Events//EN',
+      'CALSCALE:GREGORIAN',
+      ...events,
+      'END:VCALENDAR'
+    ].join('\n');
+
+    return icsContent;
+  };
+
+  const handleCalendarExport = async () => {
+    try {
+      // Instead of generating ICS files, provide a user-friendly list of dates
+      const datesList = timelineItems
+        .filter(item => item.date)
+        .sort((a, b) => new Date(a.date!).getTime() - new Date(b.date!).getTime())
+        .map(item => {
+          const date = new Date(item.date!);
+          const daysUntil = Math.ceil((date.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+          const urgency = daysUntil < 0 ? ' (OVERDUE)' : daysUntil <= 30 ? ' (URGENT)' : '';
+          
+          return `📅 ${date.toLocaleDateString()} - ${item.title}${urgency}\n   ${item.description}`;
+        })
+        .join('\n\n');
+
+      const calendarText = `🗓️ ASYLUM TIMELINE - IMPORTANT DATES\n\n${datesList}\n\n📝 Instructions:\n1. Copy these dates\n2. Open your calendar app\n3. Create new events for each date\n4. Set reminders as needed\n\n⚠️ These dates are critical for your asylum case. Missing deadlines can severely impact your application.`;
+
+      await Share.share({
+        message: calendarText,
+        title: 'Asylum Timeline Dates',
+      });
+
+      Alert.alert(
+        'Calendar Dates Shared',
+        'Your important dates have been shared. You can copy them and manually add to your calendar app for the most reliable reminders.',
+        [{ text: 'OK' }]
+      );
+    } catch (error) {
+      console.error('Calendar export error:', error);
+      Alert.alert(
+        'Share Failed', 
+        'Unable to share calendar dates. Here are your important dates:\n\n' + 
+        timelineItems
+          .filter(item => item.date)
+          .map(item => `• ${item.title}: ${new Date(item.date!).toLocaleDateString()}`)
+          .join('\n') + 
+          '\n\nPlease manually add these to your calendar.',
+        [{ text: 'OK' }]
+      );
+    }
+  };
+
+  const generatePDFContent = () => {
+    const today = new Date().toLocaleDateString();
+    
+    let content = `ASYLUM TIMELINE REPORT\n`;
+    content += `Generated: ${today}\n`;
+    content += `\n========================================\n\n`;
+
+    if (nextDeadline) {
+      content += `🚨 YOUR NEXT DEADLINE:\n`;
+      content += `${nextDeadline.title}\n`;
+      content += `Date: ${new Date(nextDeadline.date!).toLocaleDateString()}\n`;
+      content += `${nextDeadline.description}\n\n`;
+      content += `========================================\n\n`;
+    }
+
+    const categories = ['Court Dates & Hearings', 'Filing Deadlines', 'Work Authorization Actions', 'Supportive Notes'];
+    
+    categories.forEach(category => {
+      const categoryItems = timelineItems.filter(item => item.category === category);
+      if (categoryItems.length > 0) {
+        content += `${category.toUpperCase()}\n`;
+        content += `${'-'.repeat(category.length)}\n\n`;
+        
+        categoryItems.forEach((item, index) => {
+          content += `${index + 1}. ${item.title}\n`;
+          if (item.date) {
+            const date = new Date(item.date);
+            const daysUntil = Math.ceil((date.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+            content += `   Date: ${date.toLocaleDateString()}`;
+            if (daysUntil >= 0) {
+              content += ` (${daysUntil} days remaining)`;
+            } else {
+              content += ` (OVERDUE)`;
+            }
+            content += `\n`;
+          }
+          content += `   Priority: ${item.priority.toUpperCase()}\n`;
+          content += `   Description: ${item.description}\n`;
+          
+          if (item.subItems && item.subItems.length > 0) {
+            content += `   Supporting Actions:\n`;
+            item.subItems.forEach(subItem => {
+              content += `   • ${subItem.title}\n`;
+              content += `     ${subItem.description}\n`;
+            });
+          }
+          content += `\n`;
+        });
+        content += `\n`;
+      }
+    });
+
+    content += `========================================\n`;
+    content += `Generated by Zowy Asylum App\n`;
+    content += `For assistance, consult with an immigration attorney.\n`;
+
+    return content;
+  };
+
+  const handlePDFExport = async () => {
+    try {
+      const pdfContent = generatePDFContent();
+      
+      await Share.share({
+        message: pdfContent,
+        title: 'Asylum Timeline Report',
+      });
+      
+      Alert.alert(
+        'Timeline Report',
+        'Your timeline report has been shared. You can save it as a PDF from your share options.',
+        [{ text: 'OK' }]
+      );
+    } catch (error) {
+      console.error('PDF export error:', error);
+      Alert.alert('Error', 'Failed to export timeline report. Please try again.');
+    }
+  };
+
   const renderTimelineItem = (item: TimelineItem, index: number) => {
     const getPriorityColor = () => {
       switch (item.priority) {
@@ -592,10 +750,18 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
             <Button
               title="Save My Timeline"
               onPress={() => {
-                Alert.alert('Export Options', 'Choose export format:', [
+                Alert.alert('Export Options', 'Choose how to save your timeline:', [
                   { text: 'Cancel', style: 'cancel' },
-                  { text: 'Add to Calendar', onPress: () => Alert.alert('Calendar', 'Calendar export coming soon') },
-                  { text: 'Export to PDF', onPress: () => Alert.alert('PDF', 'PDF export coming soon') }
+                  { 
+                    text: 'Share Calendar Dates', 
+                    onPress: handleCalendarExport,
+                    style: 'default'
+                  },
+                  { 
+                    text: 'Export Report', 
+                    onPress: handlePDFExport,
+                    style: 'default'
+                  }
                 ]);
               }}
               style={styles.exportButton}

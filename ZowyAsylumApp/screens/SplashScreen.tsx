@@ -78,7 +78,7 @@ export const SplashScreen: React.FC = () => {
           ]}
         >
           <Text style={styles.logo}>Zowy</Text>
-          <Text style={styles.tagline}>Navigate with confidence</Text>
+          <Text style={styles.tagline}>Navigate your journey with confidence</Text>
         </Animated.View>
       </View>
       
