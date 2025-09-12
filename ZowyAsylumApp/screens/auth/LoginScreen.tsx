@@ -15,7 +15,7 @@ import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import type { AuthStackParamList } from '../../types/navigation';
-import { AuthService, TEST_USER_EMAIL, TEST_USER_PASSWORD } from '../../services/authService';
+import { AuthService, TEST_USERNAME, TEST_USER_PASSWORD } from '../../services/authService';
 import { Ionicons } from '@expo/vector-icons';
 
 type LoginScreenNavigationProp = StackNavigationProp<
@@ -24,7 +24,7 @@ type LoginScreenNavigationProp = StackNavigationProp<
 >;
 
 interface LoginForm {
-  email: string;
+  username: string;
   password: string;
 }
 
@@ -40,22 +40,22 @@ export const LoginScreen: React.FC = () => {
   } = useForm<LoginForm>({
     mode: 'onChange',
     defaultValues: {
-      email: TEST_USER_EMAIL,
+      username: TEST_USERNAME,
       password: TEST_USER_PASSWORD,
     },
   });
 
-  const validateEmail = (email: string) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email) || 'Please enter a valid email address';
+  const validateUsername = (username: string) => {
+    const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
+    return usernameRegex.test(username) || 'Username must be 3-20 characters (letters, numbers, underscore only)';
   };
 
   const handleLogin = async (data: LoginForm) => {
     setIsLoading(true);
     try {
-      const result = await AuthService.signIn(data.email, data.password);
+      const result = await AuthService.signIn(data.username, data.password);
       if (!result.success) {
-        Alert.alert('Login failed', result.error || 'Invalid email or password');
+        Alert.alert('Login failed', result.error || 'Invalid username or password');
         return;
       }
       // Navigate to main app on success
@@ -79,20 +79,19 @@ export const LoginScreen: React.FC = () => {
         <View style={styles.form}>
           <Controller
             control={control}
-            name="email"
+            name="username"
             rules={{
-              required: 'Email is required',
-              validate: validateEmail,
+              required: 'Username is required',
+              validate: validateUsername,
             }}
             render={({ field: { onChange, onBlur, value } }) => (
               <Input
-                label="Email"
-                placeholder="Enter your email"
+                label="Username"
+                placeholder="Enter your username"
                 value={value}
                 onChangeText={onChange}
                 onBlur={onBlur}
-                errorText={errors.email?.message}
-                keyboardType="email-address"
+                errorText={errors.username?.message}
                 autoCapitalize="none"
                 autoCorrect={false}
                 containerStyle={styles.inputContainer}

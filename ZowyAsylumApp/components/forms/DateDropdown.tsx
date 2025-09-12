@@ -155,7 +155,7 @@ export const DateDropdown: React.FC<DateDropdownProps> = ({
     year: 'Year',
   },
   minimumDate,
-  maximumDate = new Date(),
+  maximumDate,
   error,
   disabled = false,
   containerStyle,
@@ -212,8 +212,8 @@ export const DateDropdown: React.FC<DateDropdownProps> = ({
 
   const yearOptions = React.useMemo(() => {
     const currentYear = new Date().getFullYear();
-    const startYear = yearRange?.start || (minimumDate?.getFullYear() || 1900);
-    const endYear = yearRange?.end || (maximumDate?.getFullYear() || currentYear);
+    const startYear = yearRange?.start || (minimumDate?.getFullYear() || 1950);
+    const endYear = yearRange?.end || (maximumDate?.getFullYear() || currentYear + 10);
     
     const years = [];
     for (let year = endYear; year >= startYear; year--) {
@@ -268,6 +268,7 @@ export const DateDropdown: React.FC<DateDropdownProps> = ({
       // Validate against min/max dates
       const isValidDate = (!minimumDate || newDate >= minimumDate) && 
                          (!maximumDate || newDate <= maximumDate);
+      
       
       if (isValidDate) {
         onDateChange(newDate);

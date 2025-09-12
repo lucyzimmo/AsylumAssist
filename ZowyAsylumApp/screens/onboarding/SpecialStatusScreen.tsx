@@ -9,30 +9,31 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
 import { StackScreenProps } from '@react-navigation/stack';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../constants/Colors';
 import { Typography } from '../../constants/Typography';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { ProgressIndicator } from '../../components/ui/ProgressIndicator';
-import { Alert } from '../../components/ui/Alert';
+import { Alert as UIAlert } from '../../components/ui/Alert';
 import { Modal } from '../../components/ui/Modal';
 import { DateDropdown } from '../../components/forms/DateDropdown';
 import { Dropdown } from '../../components/ui/Dropdown';
 import { AuthStackParamList } from '../../types/navigation';
+import { getTPSCountryOptions, getTPSExpirationDate } from '../../constants/tpsCountries';
+import timelineService from '../../services/timelineService';
 
 interface SpecialStatusFormData {
   hasTPS: 'yes' | 'no' | '';
   tpsCountry?: string;
-  tpsExpirationDate?: Date | null;
   hasParole: 'yes' | 'no' | '';
   paroleType?: string;
   paroleExpirationDate?: Date | null;
-  hasWorkPermit: 'yes' | 'no' | 'applied' | '';
-  workPermitNumber?: string;
-  workPermitExpirationDate?: Date | null;
   hasOtherStatus: 'yes' | 'no' | '';
   otherStatusDescription?: string;
 }
@@ -45,7 +46,8 @@ export const SpecialStatusScreen: React.FC<SpecialStatusScreenProps> = ({
 }) => {
   const [showTPSInfo, setShowTPSInfo] = useState(false);
   const [showParoleInfo, setShowParoleInfo] = useState(false);
-  const [showWorkPermitInfo, setShowWorkPermitInfo] = useState(false);
+  const [showOtherStatusInfo, setShowOtherStatusInfo] = useState(false);
+  const [isGeneratingTimeline, setIsGeneratingTimeline] = useState(false);
 
   const {
     control,
@@ -56,13 +58,9 @@ export const SpecialStatusScreen: React.FC<SpecialStatusScreenProps> = ({
     defaultValues: {
       hasTPS: '',
       tpsCountry: '',
-      tpsExpirationDate: null,
       hasParole: '',
       paroleType: '',
       paroleExpirationDate: null,
-      hasWorkPermit: '',
-      workPermitNumber: '',
-      workPermitExpirationDate: null,
       hasOtherStatus: '',
       otherStatusDescription: '',
     },
@@ -70,30 +68,56 @@ export const SpecialStatusScreen: React.FC<SpecialStatusScreenProps> = ({
   });
 
   const hasTPS = watch('hasTPS');
+  const tpsCountry = watch('tpsCountry');
   const hasParole = watch('hasParole');
-  const hasWorkPermit = watch('hasWorkPermit');
   const hasOtherStatus = watch('hasOtherStatus');
 
-  const handleComplete = (data: SpecialStatusFormData) => {
-    // Combine all onboarding data
-    const completeOnboardingData = {
-      ...route?.params?.onboardingData,
-      hasTPS: data.hasTPS as 'yes' | 'no',
-      tpsCountry: data.tpsCountry,
-      tpsExpirationDate: data.tpsExpirationDate?.toISOString(),
-      hasParole: data.hasParole as 'yes' | 'no',
-      paroleType: data.paroleType,
-      paroleExpirationDate: data.paroleExpirationDate?.toISOString(),
-      hasWorkPermit: data.hasWorkPermit as 'yes' | 'no' | 'applied',
-      workPermitNumber: data.workPermitNumber,
-      workPermitExpirationDate: data.workPermitExpirationDate?.toISOString(),
-      hasOtherStatus: data.hasOtherStatus as 'yes' | 'no',
-      otherStatusDescription: data.otherStatusDescription,
-    };
+  const handleComplete = async (data: SpecialStatusFormData) => {
+    setIsGeneratingTimeline(true);
+    
+    try {
+      // Get TPS expiration date automatically from country lookup
+      const tpsExpirationDate = data.tpsCountry ? getTPSExpirationDate(data.tpsCountry) : null;
+      
+      // Combine all onboarding data
+      const completeOnboardingData = {
+        ...route?.params?.onboardingData,
+        hasTPS: data.hasTPS as 'yes' | 'no',
+        tpsCountry: data.tpsCountry,
+        tpsExpirationDate,
+        hasParole: data.hasParole as 'yes' | 'no',
+        paroleType: data.paroleType,
+        paroleExpirationDate: data.paroleExpirationDate?.toISOString(),
+        hasOtherStatus: data.hasOtherStatus as 'yes' | 'no',
+        otherStatusDescription: data.otherStatusDescription,
+      };
 
-    navigation.navigate('OnboardingComplete', {
-      onboardingData: completeOnboardingData,
-    });
+      // Save onboarding data to storage
+      await AsyncStorage.setItem('userOnboardingData', JSON.stringify(completeOnboardingData));
+
+      // Initialize timeline with actual service using questionnaire data
+      const entryDate = completeOnboardingData.entryDate || new Date().toISOString().split('T')[0];
+      const hasAttorney = false; // Can be determined from future questions
+      
+      await timelineService.initializeTimeline(
+        entryDate, 
+        hasAttorney, 
+        completeOnboardingData
+      );
+
+      // Navigate directly to the main dashboard
+      navigation.getParent()?.navigate('MainStack');
+      
+    } catch (error) {
+      console.error('Error generating timeline:', error);
+      Alert.alert(
+        'Error', 
+        'There was an error setting up your timeline. Please try again.',
+        [{ text: 'OK' }]
+      );
+    } finally {
+      setIsGeneratingTimeline(false);
+    }
   };
 
   const handleGoBack = () => {
@@ -112,7 +136,7 @@ export const SpecialStatusScreen: React.FC<SpecialStatusScreenProps> = ({
           accessibilityRole="button"
           accessibilityLabel="Go back"
         >
-          <Text style={styles.backButtonText}>← Exit</Text>
+          <Text style={styles.backButtonText}>← Back</Text>
         </TouchableOpacity>
         
         <TouchableOpacity
@@ -141,9 +165,9 @@ export const SpecialStatusScreen: React.FC<SpecialStatusScreenProps> = ({
         >
           {/* Title */}
           <View style={styles.titleSection}>
-            <Text style={styles.title}>Special Status and Work Authorization</Text>
+            <Text style={styles.title}>Special Immigration Status</Text>
             <Text style={styles.subtitle}>
-              Let's check if you have any special immigration status or work authorization that might affect your asylum case.
+              Tell us about any special immigration status you may have, such as TPS, parole, or work authorization.
             </Text>
           </View>
 
@@ -161,7 +185,7 @@ export const SpecialStatusScreen: React.FC<SpecialStatusScreenProps> = ({
                   accessibilityRole="button"
                   accessibilityLabel="More information about TPS"
                 >
-                  <Text style={styles.infoButtonText}>?</Text>
+                  <Ionicons name="information-circle" size={20} color={Colors.info} />
                 </TouchableOpacity>
               </View>
 
@@ -183,76 +207,48 @@ export const SpecialStatusScreen: React.FC<SpecialStatusScreenProps> = ({
                   />
                 )}
               />
-
-              {/* TPS Information Alert */}
-              {hasTPS === 'yes' && (
-                <View style={styles.alertContainer}>
-                  <Alert
-                    variant="info"
-                    title="TPS and asylum applications"
-                    message="Having TPS does not prevent you from applying for asylum. You can still file Form I-589 while maintaining TPS status."
-                  />
-                </View>
+              
+              {errors.hasTPS && (
+                <Text style={styles.errorText}>{errors.hasTPS.message}</Text>
               )}
             </View>
 
-            {/* TPS Details */}
+            {/* Conditional Fields for TPS */}
             {hasTPS === 'yes' && (
               <>
                 <View style={styles.questionContainer}>
                   <Text style={styles.questionTitle}>
                     Which country is your TPS for?
                   </Text>
-                  
                   <Controller
                     control={control}
                     name="tpsCountry"
                     rules={{
-                      required: hasTPS === 'yes' ? 'Country is required' : false,
+                      required: 'TPS country is required',
                     }}
-                    render={({ field: { onChange, onBlur, value } }) => (
-                      <Input
-                        value={value || ''}
-                        onChangeText={onChange}
-                        onBlur={onBlur}
-                        placeholder="e.g., El Salvador, Haiti, Venezuela"
-                        errorText={errors.tpsCountry?.message}
-                        containerStyle={styles.inputContainer}
-                      />
+                    render={({ field: { onChange, value } }) => (
+                                              <Dropdown
+                          placeholder="Select TPS country"
+                          options={getTPSCountryOptions()}
+                          value={value || ''}
+                          onSelect={onChange}
+                          error={errors.tpsCountry?.message}
+                          containerStyle={styles.inputContainer}
+                        />
                     )}
                   />
                 </View>
 
-                <View style={styles.questionContainer}>
-                  <Text style={styles.questionTitle}>
-                    When does your TPS expire?
-                  </Text>
-                  
-                  <Controller
-                    control={control}
-                    name="tpsExpirationDate"
-                    rules={{
-                      required: hasTPS === 'yes' ? 'Expiration date is required' : false,
-                    }}
-                    render={({ field: { onChange, value } }) => (
-                      <DateDropdown
-                        label="TPS Expiration Date"
-                        value={value}
-                        onDateChange={onChange}
-                        placeholder={{
-                          month: 'Month',
-                          day: 'Day', 
-                          year: 'Year'
-                        }}
-                        minimumDate={new Date()}
-                        maximumDate={new Date(2030, 11, 31)}
-                        yearRange={{ start: 2024, end: 2030 }}
-                        error={errors.tpsExpirationDate?.message}
-                        containerStyle={styles.inputContainer}
-                      />
-                    )}
-                  />
-                </View>
+                {/* Show current expiration info */}
+                {tpsCountry && (
+                  <View style={styles.questionContainer}>
+                    <UIAlert
+                      variant="info"
+                      title="TPS Expiration Information"
+                      message={`Current TPS expires: ${new Date(getTPSExpirationDate(tpsCountry) || '').toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}. This date may change based on DHS announcements.`}
+                    />
+                  </View>
+                )}
               </>
             )}
 
@@ -260,7 +256,7 @@ export const SpecialStatusScreen: React.FC<SpecialStatusScreenProps> = ({
             <View style={styles.questionContainer}>
               <View style={styles.questionHeader}>
                 <Text style={styles.questionTitle}>
-                  Do you have parole status in the United States?
+                  Do you have humanitarian parole or advance parole?
                 </Text>
                 <TouchableOpacity
                   onPress={() => setShowParoleInfo(true)}
@@ -268,7 +264,7 @@ export const SpecialStatusScreen: React.FC<SpecialStatusScreenProps> = ({
                   accessibilityRole="button"
                   accessibilityLabel="More information about parole"
                 >
-                  <Text style={styles.infoButtonText}>?</Text>
+                  <Ionicons name="information-circle" size={20} color={Colors.info} />
                 </TouchableOpacity>
               </View>
 
@@ -290,27 +286,34 @@ export const SpecialStatusScreen: React.FC<SpecialStatusScreenProps> = ({
                   />
                 )}
               />
+              
+              {errors.hasParole && (
+                <Text style={styles.errorText}>{errors.hasParole.message}</Text>
+              )}
             </View>
 
-            {/* Parole Details */}
+            {/* Conditional Fields for Parole */}
             {hasParole === 'yes' && (
               <>
                 <View style={styles.questionContainer}>
                   <Text style={styles.questionTitle}>
                     What type of parole do you have?
                   </Text>
-                  
                   <Controller
                     control={control}
                     name="paroleType"
-                    render={({ field: { onChange, onBlur, value } }) => (
+                    rules={{
+                      required: 'Parole type is required',
+                    }}
+                    render={({ field: { onChange, value } }) => (
                       <Input
-                        value={value || ''}
+                        label="Parole Type"
+                        value={value}
                         onChangeText={onChange}
-                        onBlur={onBlur}
-                        placeholder="e.g., Humanitarian Parole, Cuban Family Reunification"
-                        errorText={errors.paroleType?.message}
+                        placeholder="e.g., Humanitarian parole, Advance parole, Medical parole"
+                        error={errors.paroleType?.message}
                         containerStyle={styles.inputContainer}
+                        required
                       />
                     )}
                   />
@@ -320,10 +323,12 @@ export const SpecialStatusScreen: React.FC<SpecialStatusScreenProps> = ({
                   <Text style={styles.questionTitle}>
                     When does your parole expire?
                   </Text>
-                  
                   <Controller
                     control={control}
                     name="paroleExpirationDate"
+                    rules={{
+                      required: 'Parole expiration date is required',
+                    }}
                     render={({ field: { onChange, value } }) => (
                       <DateDropdown
                         label="Parole Expiration Date"
@@ -335,10 +340,9 @@ export const SpecialStatusScreen: React.FC<SpecialStatusScreenProps> = ({
                           year: 'Year'
                         }}
                         minimumDate={new Date()}
-                        maximumDate={new Date(2030, 11, 31)}
-                        yearRange={{ start: 2024, end: 2030 }}
                         error={errors.paroleExpirationDate?.message}
                         containerStyle={styles.inputContainer}
+                        required
                       />
                     )}
                   />
@@ -346,115 +350,22 @@ export const SpecialStatusScreen: React.FC<SpecialStatusScreenProps> = ({
               </>
             )}
 
-            {/* Work Authorization */}
+
+            {/* Other Immigration Status */}
             <View style={styles.questionContainer}>
               <View style={styles.questionHeader}>
                 <Text style={styles.questionTitle}>
-                  Do you have work authorization (Employment Authorization Document - EAD)?
+                  Do you have any other immigration status or pending applications?
                 </Text>
                 <TouchableOpacity
-                  onPress={() => setShowWorkPermitInfo(true)}
+                  onPress={() => setShowOtherStatusInfo(true)}
                   style={styles.infoButton}
                   accessibilityRole="button"
-                  accessibilityLabel="More information about work permits"
+                  accessibilityLabel="More information about other immigration status"
                 >
-                  <Text style={styles.infoButtonText}>?</Text>
+                  <Ionicons name="information-circle" size={20} color={Colors.info} />
                 </TouchableOpacity>
               </View>
-
-              <Controller
-                control={control}
-                name="hasWorkPermit"
-                rules={{ required: 'Please select an option' }}
-                render={({ field: { onChange, value } }) => (
-                  <Dropdown
-                    placeholder="Select option"
-                    options={[
-                      { label: 'Yes', value: 'yes' },
-                      { label: 'No', value: 'no' },
-                      { label: 'I have applied but haven\'t received it yet', value: 'applied' },
-                    ]}
-                    value={value}
-                    onSelect={onChange}
-                    error={errors.hasWorkPermit?.message}
-                    containerStyle={styles.inputContainer}
-                  />
-                )}
-              />
-
-              {/* Work Authorization Timeline Alert */}
-              {hasWorkPermit === 'no' && (
-                <View style={styles.alertContainer}>
-                  <Alert
-                    variant="info"
-                    title="Apply for work authorization"
-                    message="You can apply for work authorization 150 days after filing your asylum application. This allows you to work legally while your case is pending."
-                  />
-                </View>
-              )}
-            </View>
-
-            {/* Work Permit Details */}
-            {(hasWorkPermit === 'yes' || hasWorkPermit === 'applied') && (
-              <>
-                <View style={styles.questionContainer}>
-                  <Text style={styles.questionTitle}>
-                    {hasWorkPermit === 'yes' ? 'Work permit number' : 'Receipt number for work permit application'}
-                  </Text>
-                  
-                  <Controller
-                    control={control}
-                    name="workPermitNumber"
-                    render={({ field: { onChange, onBlur, value } }) => (
-                      <Input
-                        value={value || ''}
-                        onChangeText={onChange}
-                        onBlur={onBlur}
-                        placeholder={hasWorkPermit === 'yes' ? 'EAD card number' : 'Receipt number'}
-                        errorText={errors.workPermitNumber?.message}
-                        containerStyle={styles.inputContainer}
-                      />
-                    )}
-                  />
-                </View>
-
-                {hasWorkPermit === 'yes' && (
-                  <View style={styles.questionContainer}>
-                    <Text style={styles.questionTitle}>
-                      When does your work permit expire?
-                    </Text>
-                    
-                    <Controller
-                      control={control}
-                      name="workPermitExpirationDate"
-                      render={({ field: { onChange, value } }) => (
-                        <DateDropdown
-                          label="Work Permit Expiration Date"
-                          value={value}
-                          onDateChange={onChange}
-                          placeholder={{
-                            month: 'Month',
-                            day: 'Day', 
-                            year: 'Year'
-                          }}
-                          minimumDate={new Date()}
-                          maximumDate={new Date(2030, 11, 31)}
-                          yearRange={{ start: 2024, end: 2030 }}
-                          error={errors.workPermitExpirationDate?.message}
-                          containerStyle={styles.inputContainer}
-                        />
-                      )}
-                    />
-                  </View>
-                )}
-              </>
-            )}
-
-            {/* Other Status */}
-            <View style={styles.questionContainer}>
-              <Text style={styles.questionTitle}>
-                Do you have any other immigration status or pending applications?
-              </Text>
 
               <Controller
                 control={control}
@@ -474,28 +385,35 @@ export const SpecialStatusScreen: React.FC<SpecialStatusScreenProps> = ({
                   />
                 )}
               />
+              
+              {errors.hasOtherStatus && (
+                <Text style={styles.errorText}>{errors.hasOtherStatus.message}</Text>
+              )}
             </View>
 
-            {/* Other Status Details */}
+            {/* Conditional Fields for Other Status */}
             {hasOtherStatus === 'yes' && (
               <View style={styles.questionContainer}>
                 <Text style={styles.questionTitle}>
-                  Please describe your other status or pending applications
+                  Please describe your other immigration status or pending applications
                 </Text>
-                
                 <Controller
                   control={control}
                   name="otherStatusDescription"
-                  render={({ field: { onChange, onBlur, value } }) => (
+                  rules={{
+                    required: 'Description is required',
+                  }}
+                  render={({ field: { onChange, value } }) => (
                     <Input
-                      value={value || ''}
+                      label="Status Description"
+                      value={value}
                       onChangeText={onChange}
-                      onBlur={onBlur}
-                      placeholder="e.g., U Visa application, VAWA petition"
+                      placeholder="e.g., Pending green card application, U visa application, etc."
+                      error={errors.otherStatusDescription?.message}
+                      containerStyle={styles.inputContainer}
                       multiline
                       numberOfLines={3}
-                      errorText={errors.otherStatusDescription?.message}
-                      containerStyle={styles.inputContainer}
+                      required
                     />
                   )}
                 />
@@ -503,84 +421,92 @@ export const SpecialStatusScreen: React.FC<SpecialStatusScreenProps> = ({
             )}
           </View>
         </ScrollView>
-
-        {/* Navigation Buttons */}
-        <View style={styles.buttonContainer}>
-          <Button
-            title="Complete setup"
-            onPress={handleSubmit(handleComplete)}
-            variant="primary"
-            fullWidth
-            style={styles.completeButton}
-          />
-        </View>
       </KeyboardAvoidingView>
 
+      {/* Bottom Button */}
+      <View style={styles.buttonContainer}>
+        <Button
+          title={isGeneratingTimeline ? "Setting up your timeline..." : "Complete Questionnaire"}
+          onPress={handleSubmit(handleComplete)}
+          disabled={!isValid || isGeneratingTimeline}
+          loading={isGeneratingTimeline}
+          style={styles.completeButton}
+        />
+      </View>
+
       {/* Information Modals */}
+      
+      {/* TPS Info Modal */}
       <Modal
         visible={showTPSInfo}
         onClose={() => setShowTPSInfo(false)}
-        title="Temporary Protected Status (TPS)"
-        size="large"
+        title="TPS Information"
       >
-        <Text style={styles.modalText}>
-          Temporary Protected Status (TPS) is protection given to people from certain countries 
-          experiencing ongoing armed conflict, environmental disaster, or other extraordinary circumstances.
-          {'\n\n'}
-          <Text style={styles.bold}>Countries currently designated for TPS include:</Text>
-          {'\n'}• El Salvador
-          {'\n'}• Haiti
-          {'\n'}• Honduras
-          {'\n'}• Nepal
-          {'\n'}• Nicaragua
-          {'\n'}• Somalia
-          {'\n'}• Sudan
-          {'\n'}• South Sudan
-          {'\n'}• Syria
-          {'\n'}• Venezuela
-          {'\n'}• Yemen
-          {'\n\n'}
-          <Text style={styles.bold}>Important:</Text> Having TPS does not prevent you from applying for asylum.
-        </Text>
+        <View style={styles.modalContent}>
+          <Text style={styles.modalText}>
+            <Text style={styles.bold}>What is TPS?</Text>{'\n\n'}
+            Temporary Protected Status (TPS) is a temporary immigration status granted to eligible nationals of designated countries facing ongoing armed conflict, environmental disaster, or other extraordinary conditions.{'\n\n'}
+            <Text style={styles.bold}>Key benefits:</Text>{'\n\n'}
+            • Protection from deportation{'\n'}
+            • Work authorization{'\n'}
+            • Travel permission{'\n'}
+            • Can apply for asylum even after one-year deadline{'\n\n'}
+            <Text style={styles.bold}>Common TPS countries:</Text>{'\n\n'}
+            • El Salvador, Honduras, Haiti{'\n'}
+            • Nicaragua, Venezuela, Myanmar{'\n'}
+            • Syria, Yemen, Somalia{'\n\n'}
+            <Text style={styles.bold}>Why this matters for asylum:</Text>{'\n\n'}
+            Having TPS can provide exceptions to the one-year filing deadline for asylum applications.
+          </Text>
+        </View>
       </Modal>
 
+      {/* Parole Info Modal */}
       <Modal
         visible={showParoleInfo}
         onClose={() => setShowParoleInfo(false)}
-        title="Immigration Parole"
-        size="medium"
+        title="Parole Information"
       >
-        <Text style={styles.modalText}>
-          Parole allows certain individuals to temporarily enter or remain in the United States 
-          for urgent humanitarian reasons or significant public benefit.
-          {'\n\n'}
-          <Text style={styles.bold}>Common types of parole:</Text>
-          {'\n'}• Humanitarian Parole
-          {'\n'}• Cuban Family Reunification Parole (CFRP)
-          {'\n'}• Filipino World War II Veterans Parole (FWVP)
-          {'\n'}• Central American Minors (CAM) Parole
-          {'\n\n'}
-          Parole is temporary and does not provide a path to permanent residence by itself.
-        </Text>
+        <View style={styles.modalContent}>
+          <Text style={styles.modalText}>
+            <Text style={styles.bold}>What is parole?</Text>{'\n\n'}
+            Parole is permission to enter the United States for a specific purpose and limited time, granted on a case-by-case basis.{'\n\n'}
+            <Text style={styles.bold}>Types of parole:</Text>{'\n\n'}
+            <Text style={styles.bold}>Humanitarian Parole:</Text>{'\n'}
+            • Granted for urgent humanitarian reasons{'\n'}
+            • Medical emergencies, family reunification{'\n'}
+            • Can provide exceptions to asylum deadlines{'\n\n'}
+            <Text style={styles.bold}>Advance Parole:</Text>{'\n'}
+            • Permission to travel abroad and return{'\n'}
+            • Usually for pending applications{'\n'}
+            • Important for maintaining status{'\n\n'}
+            <Text style={styles.bold}>Why this matters:</Text>{'\n\n'}
+            Having parole can affect your asylum timeline and eligibility.
+          </Text>
+        </View>
       </Modal>
 
+      {/* Other Status Info Modal */}
       <Modal
-        visible={showWorkPermitInfo}
-        onClose={() => setShowWorkPermitInfo(false)}
-        title="Work Authorization for Asylum Seekers"
-        size="medium"
+        visible={showOtherStatusInfo}
+        onClose={() => setShowOtherStatusInfo(false)}
+        title="Other Immigration Status"
       >
-        <Text style={styles.modalText}>
-          Asylum seekers can apply for work authorization 150 days after filing their asylum application.
-          {'\n\n'}
-          <Text style={styles.bold}>Key points:</Text>
-          {'\n'}• File Form I-765 to apply for work authorization
-          {'\n'}• Must wait at least 150 days after filing I-589
-          {'\n'}• Work permits are typically valid for 2 years
-          {'\n'}• Can be renewed while case is pending
-          {'\n\n'}
-          Having work authorization allows you to work legally and obtain a Social Security number.
-        </Text>
+        <View style={styles.modalContent}>
+          <Text style={styles.modalText}>
+            <Text style={styles.bold}>What other status might you have?</Text>{'\n\n'}
+            There are many other types of immigration status or pending applications that could affect your asylum case.{'\n\n'}
+            <Text style={styles.bold}>Common examples:</Text>{'\n\n'}
+            • Pending green card applications{'\n'}
+            • U visa applications (crime victims){'\n'}
+            • VAWA applications (domestic violence){'\n'}
+            • Special Immigrant Juvenile status{'\n'}
+            • Deferred Action for Childhood Arrivals (DACA){'\n'}
+            • Pending family-based petitions{'\n\n'}
+            <Text style={styles.bold}>Why this matters:</Text>{'\n\n'}
+            Other immigration applications can affect your asylum timeline, eligibility, and what forms you need to file.
+          </Text>
+        </View>
       </Modal>
     </SafeAreaView>
   );
@@ -589,40 +515,37 @@ export const SpecialStatusScreen: React.FC<SpecialStatusScreenProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: Colors.surface,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
     paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
   },
   backButton: {
-    backgroundColor: '#E8F5E8',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
+    padding: 8,
   },
   backButtonText: {
-    ...Typography.button,
-    color: Colors.textPrimary,
-    marginLeft: 4,
+    ...Typography.body,
+    color: Colors.primary,
+    fontWeight: '500',
   },
   helpIcon: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: Colors.primaryDark,
+    backgroundColor: Colors.primaryLight,
     justifyContent: 'center',
     alignItems: 'center',
   },
   helpText: {
-    color: Colors.white,
     fontSize: 16,
-    fontWeight: 'bold',
+    color: Colors.primaryDark,
+    fontWeight: '600',
   },
   progressContainer: {
     paddingHorizontal: 24,
@@ -679,47 +602,10 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   infoButtonText: {
-    fontSize: 16,
+    fontSize: 18,
   },
   inputContainer: {
     marginBottom: 16,
-  },
-  alertContainer: {
-    marginTop: 16,
-  },
-  radioContainer: {
-    gap: 12,
-  },
-  radioOption: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingVertical: 8,
-  },
-  radioCircle: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: Colors.border,
-    marginRight: 12,
-    marginTop: 2,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  radioCircleSelected: {
-    borderColor: Colors.primary,
-  },
-  radioInner: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: Colors.primary,
-  },
-  radioText: {
-    ...Typography.body,
-    color: Colors.textPrimary,
-    flex: 1,
-    lineHeight: 22,
   },
   errorText: {
     ...Typography.caption,
@@ -736,6 +622,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primaryDark,
   },
   // Modal styles
+  modalContent: {
+    padding: 16,
+  },
   modalText: {
     ...Typography.body,
     color: Colors.textPrimary,
@@ -745,3 +634,5 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
+
+export default SpecialStatusScreen;

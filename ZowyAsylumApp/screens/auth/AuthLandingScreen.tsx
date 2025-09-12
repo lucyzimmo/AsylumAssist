@@ -10,6 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Colors } from '../../constants/Colors';
 import { Button } from '../../components/ui/Button';
+import { AuthService } from '../../services/authService';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import type { AuthStackParamList } from '../../types/navigation';
 
@@ -29,7 +30,10 @@ export const AuthLandingScreen: React.FC = () => {
     navigation.navigate('Login');
   };
 
-  const handleContinueAsGuest = () => {
+  const handleContinueAsGuest = async () => {
+    // Clear all guest data from previous sessions
+    await AuthService.startGuestSession();
+    
     const rootNavigation = navigation.getParent();
     if (rootNavigation) {
       rootNavigation.navigate('MainStack', { screen: 'Resources' });
@@ -68,15 +72,7 @@ export const AuthLandingScreen: React.FC = () => {
             style={styles.loginButton}
           />
 
-          <TouchableOpacity 
-            onPress={handleContinueAsGuest}
-            style={styles.guestButton}
-            accessible={true}
-            accessibilityRole="button"
-            accessibilityLabel="Continue as guest to browse resources"
-          >
-            <Text style={styles.guestButtonText}>Continue as guest</Text>
-          </TouchableOpacity>
+          
         </View>
 
         {/* Language Selector Placeholder */}

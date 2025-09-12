@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
 import { StackScreenProps } from '@react-navigation/stack';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../constants/Colors';
 import { Typography } from '../../constants/Typography';
 import { Button } from '../../components/ui/Button';
@@ -26,9 +27,12 @@ import { AuthStackParamList } from '../../types/navigation';
 
 interface AsylumStatusFormData {
   entryDate: Date | null;
-  hasFiledI589: 'yes' | 'no' | '';
+  hasFiledI589: 'yes' | 'no' | 'not-sure' | '';
   i589SubmissionDate?: Date | null;
-  filingLocation?: string;
+  filingLocation?: 'uscis' | 'immigration-court' | 'not-sure' | '';
+  nextHearingDate?: Date | null;
+  assignedCourt?: string;
+  eoirCaseStatus?: 'yes' | 'no' | 'not-sure' | '';
 }
 
 type AsylumStatusScreenProps = StackScreenProps<AuthStackParamList, 'AsylumStatus'>;
@@ -50,12 +54,17 @@ export const AsylumStatusScreen: React.FC<AsylumStatusScreenProps> = ({ navigati
       hasFiledI589: '',
       i589SubmissionDate: null,
       filingLocation: '',
+      nextHearingDate: null,
+      assignedCourt: '',
+      eoirCaseStatus: '',
     },
     mode: 'onChange',
   });
 
   const hasFiledI589 = watch('hasFiledI589');
   const entryDate = watch('entryDate');
+  const filingLocation = watch('filingLocation');
+  const eoirCaseStatus = watch('eoirCaseStatus');
 
   const calculateFilingDeadline = (entryDate: Date | null) => {
     if (!entryDate) return null;
@@ -115,7 +124,7 @@ export const AsylumStatusScreen: React.FC<AsylumStatusScreenProps> = ({ navigati
           accessibilityRole="button"
           accessibilityLabel="Go back"
         >
-          <Text style={styles.backButtonText}>← Exit</Text>
+          <Text style={styles.backButtonText}>← Back</Text>
         </TouchableOpacity>
         
         <TouchableOpacity
@@ -150,6 +159,15 @@ export const AsylumStatusScreen: React.FC<AsylumStatusScreenProps> = ({ navigati
             </Text>
           </View>
 
+          {/* Critical Legal Warning */}
+          <View style={styles.warningContainer}>
+            <Alert
+              variant="warning"
+              title="Important Legal Warning"
+              message="If you are NOT currently in removal proceedings with Immigration Court, applying for asylum could put you at risk of deportation if your case is denied. Consider consulting with an attorney before filing."
+            />
+          </View>
+
           {/* Form */}
           <View style={styles.form}>
             {/* Entry Date */}
@@ -164,7 +182,7 @@ export const AsylumStatusScreen: React.FC<AsylumStatusScreenProps> = ({ navigati
                   accessibilityRole="button"
                   accessibilityLabel="More information about entry date"
                 >
-                  <Text style={styles.infoButtonText}>?</Text>
+                  <Ionicons name="information-circle" size={20} color={Colors.info} />
                 </TouchableOpacity>
               </View>
               
@@ -220,7 +238,7 @@ export const AsylumStatusScreen: React.FC<AsylumStatusScreenProps> = ({ navigati
                   accessibilityRole="button"
                   accessibilityLabel="More information about Form I-589"
                 >
-                  <Text style={styles.infoButtonText}>?</Text>
+                  <Ionicons name="information-circle" size={20} color={Colors.info} />
                 </TouchableOpacity>
               </View>
 
@@ -252,9 +270,19 @@ export const AsylumStatusScreen: React.FC<AsylumStatusScreenProps> = ({ navigati
             {hasFiledI589 === 'yes' && (
               <>
                 <View style={styles.questionContainer}>
-                  <Text style={styles.questionTitle}>
-                    When did you submit your asylum application?
-                  </Text>
+                  <View style={styles.questionHeader}>
+                    <Text style={styles.questionTitle}>
+                      When did you submit your asylum application?
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => setShowSubmissionDateInfo(true)}
+                      style={styles.infoButton}
+                      accessibilityRole="button"
+                      accessibilityLabel="More information about submission date"
+                    >
+                      <Ionicons name="information-circle" size={20} color={Colors.info} />
+                    </TouchableOpacity>
+                  </View>
                   <Controller
                     control={control}
                     name="i589SubmissionDate"
@@ -281,9 +309,19 @@ export const AsylumStatusScreen: React.FC<AsylumStatusScreenProps> = ({ navigati
                 </View>
 
                 <View style={styles.questionContainer}>
-                  <Text style={styles.questionTitle}>
-                    Where did you file your asylum application?
-                  </Text>
+                  <View style={styles.questionHeader}>
+                    <Text style={styles.questionTitle}>
+                      Where did you file your asylum application?
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => setShowFilingLocationInfo(true)}
+                      style={styles.infoButton}
+                      accessibilityRole="button"
+                      accessibilityLabel="More information about filing location"
+                    >
+                      <Ionicons name="information-circle" size={20} color={Colors.info} />
+                    </TouchableOpacity>
+                  </View>
                   <Controller
                     control={control}
                     name="filingLocation"
@@ -305,56 +343,107 @@ export const AsylumStatusScreen: React.FC<AsylumStatusScreenProps> = ({ navigati
                       />
                     )}
                   />
-                  {errors.filingLocation && (
-                    <Text style={styles.errorText}>{errors.filingLocation.message}</Text>
-                  )}
                 </View>
               </>
             )}
           </View>
         </ScrollView>
-
-        {/* Continue Button */}
-        <View style={styles.buttonContainer}>
-          <Button
-            title="Continue"
-            onPress={handleSubmit(handleContinue)}
-            variant="primary"
-            fullWidth
-            style={styles.continueButton}
-          />
-        </View>
       </KeyboardAvoidingView>
 
+      {/* Bottom Button */}
+      <View style={styles.buttonContainer}>
+        <Button
+          title="Continue"
+          onPress={handleSubmit(handleContinue)}
+          disabled={!isValid}
+          style={styles.continueButton}
+        />
+      </View>
+
       {/* Information Modals */}
+      
+      {/* Entry Date Info Modal */}
       <Modal
         visible={showEntryDateInfo}
         onClose={() => setShowEntryDateInfo(false)}
-        title="Where to find your entry date"
-        size="medium"
+        title="Entry Date Information"
       >
-        <Text style={styles.modalText}>
-          This date determines your one-year filing deadline for asylum. If you don't 
-          know your exact entry date, find it on:
-          {'\n\n'}• Your I-94 Arrival/Departure Record
-          {'\n'}• Your passport stamp
-          {'\n'}• Legal documents from arrival
-          {'\n\n'}If you entered multiple times, use your most recent entry date.
-        </Text>
+        <View style={styles.modalContent}>
+          <Text style={styles.modalText}>
+            <Text style={styles.bold}>What is your entry date?</Text>{'\n\n'}
+            This is the date you last entered the United States, regardless of how you entered (legally or illegally).{'\n\n'}
+            <Text style={styles.bold}>Why is this important?</Text>{'\n\n'}
+            • You generally must file for asylum within one year of your last entry{'\n'}
+            • This deadline affects your eligibility for asylum{'\n'}
+            • Some exceptions may apply if you have TPS, parole, or other protected status{'\n\n'}
+            <Text style={styles.bold}>If you're not sure:</Text>{'\n\n'}
+            Use your best estimate. You can provide more details about your entry later.
+          </Text>
+        </View>
       </Modal>
 
+      {/* I-589 Info Modal */}
       <Modal
         visible={showI589Info}
         onClose={() => setShowI589Info(false)}
-        title="Form I-589"
-        size="medium"
+        title="Form I-589 Information"
       >
-        <Text style={styles.modalText}>
-          Form I-589 is the application for asylum. If you've filed this form, you 
-          have already begun the asylum process.
-          {'\n\n'}• <Text style={styles.bold}>Affirmative process:</Text> Filed with USCIS if you are not in removal proceedings
-          {'\n\n'}• <Text style={styles.bold}>Defensive process:</Text> Filed with the Immigration Court as a defense against removal
-        </Text>
+        <View style={styles.modalContent}>
+          <Text style={styles.modalText}>
+            <Text style={styles.bold}>What is Form I-589?</Text>{'\n\n'}
+            Form I-589 is the Application for Asylum and for Withholding of Removal. It's the official form you must file to request asylum in the United States.{'\n\n'}
+            <Text style={styles.bold}>Key points:</Text>{'\n\n'}
+            • This is the main asylum application form{'\n'}
+            • You can file it with USCIS (affirmative) or in Immigration Court (defensive){'\n'}
+            • Filing this form starts your asylum process{'\n'}
+            • You must file within one year of entry (with some exceptions){'\n\n'}
+            <Text style={styles.bold}>If you haven't filed yet:</Text>{'\n\n'}
+            Don't worry - we'll help you understand the process and what you need to do next.
+          </Text>
+        </View>
+      </Modal>
+
+      {/* Submission Date Info Modal */}
+      <Modal
+        visible={showSubmissionDateInfo}
+        onClose={() => setShowSubmissionDateInfo(false)}
+        title="Submission Date Information"
+      >
+        <View style={styles.modalContent}>
+          <Text style={styles.modalText}>
+            <Text style={styles.bold}>When did you submit your I-589?</Text>{'\n\n'}
+            This is the date you filed your asylum application with USCIS or Immigration Court.{'\n\n'}
+            <Text style={styles.bold}>Why this matters:</Text>{'\n\n'}
+            • Determines when you become eligible for work authorization{'\n'}
+            • Affects your timeline for next steps{'\n'}
+            • Helps track your case progress{'\n\n'}
+            <Text style={styles.bold}>If you're not sure:</Text>{'\n\n'}
+            Use your best estimate. You can check your receipt notice or ask your attorney for the exact date.
+          </Text>
+        </View>
+      </Modal>
+
+      {/* Filing Location Info Modal */}
+      <Modal
+        visible={showFilingLocationInfo}
+        onClose={() => setShowFilingLocationInfo(false)}
+        title="Filing Location Information"
+      >
+        <View style={styles.modalContent}>
+          <Text style={styles.modalText}>
+            <Text style={styles.bold}>Where did you file your application?</Text>{'\n\n'}
+            <Text style={styles.bold}>USCIS (Affirmative Process):</Text>{'\n'}
+            • You filed directly with U.S. Citizenship and Immigration Services{'\n'}
+            • Your case is processed by USCIS Asylum Office{'\n'}
+            • You'll have an interview with an asylum officer{'\n\n'}
+            <Text style={styles.bold}>Immigration Court (Defensive Process):</Text>{'\n'}
+            • You filed in Immigration Court during removal proceedings{'\n'}
+            • Your case is heard by an Immigration Judge{'\n'}
+            • You're in deportation proceedings{'\n\n'}
+            <Text style={styles.bold}>Not sure?</Text>{'\n\n'}
+            Select "Not sure" and we can help you figure it out based on other information.
+          </Text>
+        </View>
       </Modal>
     </SafeAreaView>
   );
@@ -363,40 +452,37 @@ export const AsylumStatusScreen: React.FC<AsylumStatusScreenProps> = ({ navigati
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: Colors.surface,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
     paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
   },
   backButton: {
-    backgroundColor: '#E8F5E8',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
+    padding: 8,
   },
   backButtonText: {
-    ...Typography.button,
-    color: Colors.textPrimary,
-    marginLeft: 4,
+    ...Typography.body,
+    color: Colors.primary,
+    fontWeight: '500',
   },
   helpIcon: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: Colors.primaryDark,
+    backgroundColor: Colors.primaryLight,
     justifyContent: 'center',
     alignItems: 'center',
   },
   helpText: {
-    color: Colors.white,
     fontSize: 16,
-    fontWeight: 'bold',
+    color: Colors.primaryDark,
+    fontWeight: '600',
   },
   progressContainer: {
     paddingHorizontal: 24,
@@ -453,13 +539,16 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   infoButtonText: {
-    fontSize: 16,
+    fontSize: 18,
   },
   inputContainer: {
     marginBottom: 16,
   },
   alertContainer: {
     marginTop: 8,
+  },
+  warningContainer: {
+    marginBottom: 24,
   },
   radioContainer: {
     gap: 12,
@@ -508,6 +597,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primaryDark,
   },
   // Modal styles
+  modalContent: {
+    padding: 16,
+  },
   modalText: {
     ...Typography.body,
     color: Colors.textPrimary,

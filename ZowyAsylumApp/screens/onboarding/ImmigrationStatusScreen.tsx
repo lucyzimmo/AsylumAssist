@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -23,6 +23,7 @@ import { Modal } from '../../components/ui/Modal';
 import { DateDropdown } from '../../components/forms/DateDropdown';
 import { Dropdown } from '../../components/ui/Dropdown';
 import { AuthStackParamList } from '../../types/navigation';
+import { getCourtOptions } from '../../constants/immigrationCourts';
 
 interface ImmigrationStatusFormData {
   hasCase: 'yes' | 'no' | '';
@@ -38,11 +39,13 @@ export const ImmigrationStatusScreen: React.FC<ImmigrationStatusScreenProps> = (
 }) => {
   const [showEOIRInfo, setShowEOIRInfo] = useState(false);
   const [showCourtHearingInfo, setShowCourtHearingInfo] = useState(false);
+  const [showAssignedCourtInfo, setShowAssignedCourtInfo] = useState(false);
 
   const {
     control,
     handleSubmit,
     watch,
+    trigger,
     formState: { errors, isValid },
   } = useForm<ImmigrationStatusFormData>({
     defaultValues: {
@@ -54,6 +57,16 @@ export const ImmigrationStatusScreen: React.FC<ImmigrationStatusScreenProps> = (
   });
 
   const hasCase = watch('hasCase');
+  const nextHearingDate = watch('nextHearingDate');
+  const assignedCourt = watch('assignedCourt');
+
+
+  // Trigger validation when hasCase changes
+  useEffect(() => {
+    if (hasCase) {
+      trigger(['nextHearingDate', 'assignedCourt']);
+    }
+  }, [hasCase, trigger]);
 
   const handleContinue = (data: ImmigrationStatusFormData) => {
     // Save form data to context/storage
@@ -86,7 +99,7 @@ export const ImmigrationStatusScreen: React.FC<ImmigrationStatusScreenProps> = (
           accessibilityRole="button"
           accessibilityLabel="Go back"
         >
-          <Text style={styles.backButtonText}>← Exit</Text>
+          <Text style={styles.backButtonText}>← Back</Text>
         </TouchableOpacity>
         
         <TouchableOpacity
@@ -115,39 +128,31 @@ export const ImmigrationStatusScreen: React.FC<ImmigrationStatusScreenProps> = (
         >
           {/* Title */}
           <View style={styles.titleSection}>
-            <Text style={styles.title}>Immigration Status and Court Proceedings</Text>
+            <Text style={styles.title}>Immigration Court Status</Text>
             <Text style={styles.subtitle}>
-              Let's check your current immigration status and any ongoing proceedings.
+              Tell us about your immigration court proceedings, if any.
             </Text>
           </View>
 
-          {/* EOIR Link */}
-          <View style={styles.linkSection}>
-            <Text style={styles.linkLabel}>Visit the EOIR website to check your case status using your A-number</Text>
-            <TouchableOpacity style={styles.linkButton}>
-              <Ionicons name="link-outline" size={16} color={Colors.primary} />
-              <Text style={styles.linkText}>EOIR Automated Case Information System</Text>
-            </TouchableOpacity>
-          </View>
 
           {/* Form */}
           <View style={styles.form}>
-            {/* EOIR Case Question */}
+            {/* EOIR Case Status */}
             <View style={styles.questionContainer}>
               <View style={styles.questionHeader}>
                 <Text style={styles.questionTitle}>
-                  Does the EOIR website show that you have a case?
+                  Do you have a case in Immigration Court (EOIR)?
                 </Text>
                 <TouchableOpacity
                   onPress={() => setShowEOIRInfo(true)}
                   style={styles.infoButton}
                   accessibilityRole="button"
-                  accessibilityLabel="More information about EOIR"
+                  accessibilityLabel="More information about EOIR cases"
                 >
-                  <Text style={styles.infoButtonText}>?</Text>
+                  <Ionicons name="information-circle" size={20} color={Colors.info} />
                 </TouchableOpacity>
               </View>
-              
+
               <Controller
                 control={control}
                 name="hasCase"
@@ -166,38 +171,19 @@ export const ImmigrationStatusScreen: React.FC<ImmigrationStatusScreenProps> = (
                   />
                 )}
               />
-
-              {/* Informational Alerts */}
-              {hasCase === 'yes' && (
-                <View style={styles.alertContainer}>
-                  <Alert
-                    variant="warning"
-                    title="You are in deportation proceedings"
-                    message="The government has moved to deport you. You may challenge deportation by filing an asylum application with the Immigration Court."
-                  />
-                </View>
-              )}
-
-              {hasCase === 'no' && (
-                <View style={styles.alertContainer}>
-                  <Alert
-                    variant="info"
-                    title="You are not currently in deportation proceedings"
-                    message="You can apply for asylum with USCIS through the affirmative process."
-                  />
-                </View>
+              
+              {errors.hasCase && (
+                <Text style={styles.errorText}>{errors.hasCase.message}</Text>
               )}
             </View>
 
-            {/* Conditional Fields for Court Cases */}
+            {/* Conditional Fields for EOIR Cases */}
             {hasCase === 'yes' && (
               <>
-
-                {/* Next Hearing Date */}
                 <View style={styles.questionContainer}>
                   <View style={styles.questionHeader}>
                     <Text style={styles.questionTitle}>
-                      What is the date of your next hearing?
+                      When is your next court hearing?
                     </Text>
                     <TouchableOpacity
                       onPress={() => setShowCourtHearingInfo(true)}
@@ -205,20 +191,14 @@ export const ImmigrationStatusScreen: React.FC<ImmigrationStatusScreenProps> = (
                       accessibilityRole="button"
                       accessibilityLabel="More information about court hearings"
                     >
-                      <Text style={styles.infoButtonText}>?</Text>
+                      <Ionicons name="information-circle" size={20} color={Colors.info} />
                     </TouchableOpacity>
                   </View>
-
                   <Controller
                     control={control}
                     name="nextHearingDate"
                     rules={{
-                      validate: (value) => {
-                        if (hasCase === 'yes' && !value) {
-                          return 'Next hearing date is required';
-                        }
-                        return true;
-                      },
+                      required: hasCase === 'yes' ? 'Next hearing date is required' : false,
                     }}
                     render={({ field: { onChange, value } }) => (
                       <DateDropdown
@@ -231,121 +211,155 @@ export const ImmigrationStatusScreen: React.FC<ImmigrationStatusScreenProps> = (
                           year: 'Year'
                         }}
                         minimumDate={new Date()}
+                        yearRange={{ start: 2024, end: 2030 }}
                         error={errors.nextHearingDate?.message}
                         containerStyle={styles.inputContainer}
                         required
                       />
                     )}
                   />
-
-                  <View style={styles.alertContainer}>
-                    <Alert
-                      variant="warning"
-                      title="You must attend all scheduled hearings"
-                      message="The Court may order your deportation if you fail to show up."
-                    />
-                  </View>
                 </View>
 
-                {/* Assigned Court */}
                 <View style={styles.questionContainer}>
-                  <Text style={styles.questionTitle}>
-                    Which immigration court is your case assigned to?
-                  </Text>
-                  
+                  <View style={styles.questionHeader}>
+                    <Text style={styles.questionTitle}>
+                      Which court is handling your case?
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => setShowAssignedCourtInfo(true)}
+                      style={styles.infoButton}
+                      accessibilityRole="button"
+                      accessibilityLabel="More information about assigned courts"
+                    >
+                      <Ionicons name="information-circle" size={20} color={Colors.info} />
+                    </TouchableOpacity>
+                  </View>
                   <Controller
                     control={control}
                     name="assignedCourt"
                     rules={{
-                      validate: (value) => {
-                        if (hasCase === 'yes' && !value) {
-                          return 'Court assignment is required';
-                        }
-                        return true;
-                      },
+                      required: hasCase === 'yes' ? 'Assigned court is required' : false,
                     }}
                     render={({ field: { onChange, value } }) => (
-                      <Dropdown
-                        placeholder="Select immigration court"
-                        options={[
-                          { label: 'New York Immigration Court', value: 'new-york' },
-                          { label: 'Los Angeles Immigration Court', value: 'los-angeles' },
-                          { label: 'Miami Immigration Court', value: 'miami' },
-                          { label: 'San Francisco Immigration Court', value: 'san-francisco' },
-                          { label: 'Chicago Immigration Court', value: 'chicago' },
-                          { label: 'Houston Immigration Court', value: 'houston' },
-                          { label: 'Boston Immigration Court', value: 'boston' },
-                          { label: 'Arlington Immigration Court', value: 'arlington' },
-                          { label: 'Not sure', value: 'not-sure' },
-                        ]}
-                        value={value}
-                        onSelect={onChange}
-                        error={errors.assignedCourt?.message}
-                        containerStyle={styles.inputContainer}
-                      />
+                                              <Dropdown
+                          label="Court Name"
+                          value={value || ''}
+                          onSelect={onChange}
+                          options={getCourtOptions()}
+                          placeholder="Select your assigned immigration court"
+                          error={errors.assignedCourt?.message}
+                          containerStyle={styles.inputContainer}
+                        />
                     )}
+                  />
+                </View>
+
+                {/* Critical Warning for Court Cases */}
+                <View style={styles.alertContainer}>
+                  <Alert
+                    variant="warning"
+                    title="Critical: Court Proceedings"
+                    message="You are in Immigration Court proceedings. You MUST attend all hearings. Failure to appear will result in an automatic deportation order. Legal representation is strongly recommended."
                   />
                 </View>
               </>
             )}
+
+            {/* Information for Non-Court Cases */}
+            {hasCase === 'no' && (
+              <View style={styles.alertContainer}>
+                <Alert
+                  variant="info"
+                  title="No Court Proceedings"
+                  message="You are not currently in Immigration Court proceedings. This means you can file for asylum through the affirmative process with USCIS if you haven't already."
+                />
+              </View>
+            )}
           </View>
         </ScrollView>
-
-        {/* Navigation Buttons */}
-        <View style={styles.buttonContainer}>
-          <Button
-            title="Go back"
-            onPress={handleGoBack}
-            variant="outline"
-            fullWidth
-            style={styles.backButtonStyle}
-          />
-          
-          <Button
-            title="Continue"
-            onPress={handleSubmit(handleContinue)}
-            variant="primary"
-            fullWidth
-            style={styles.continueButton}
-          />
-        </View>
       </KeyboardAvoidingView>
 
+      {/* Bottom Button */}
+      <View style={styles.buttonContainer}>
+        <Button
+          title="Continue"
+          onPress={handleSubmit(handleContinue)}
+          disabled={!isValid || (hasCase === 'yes' && (!nextHearingDate || !assignedCourt))}
+          style={styles.continueButton}
+        />
+      </View>
+
       {/* Information Modals */}
+      
+      {/* EOIR Info Modal */}
       <Modal
         visible={showEOIRInfo}
         onClose={() => setShowEOIRInfo(false)}
-        title="The EOIR"
-        size="medium"
+        title="EOIR Case Information"
       >
-        <Text style={styles.modalText}>
-          The Executive Office for Immigration Review (EOIR) handles immigration 
-          court proceedings. You can check your case status on their website 
-          using your A-number.
-          {'\n\n'}
-          <Text style={styles.bold}>How to check your case status:</Text>
-          {'\n\n'}1. Visit the EOIR website
-          {'\n'}2. Enter your A-number
-          {'\n'}3. Check for any scheduled hearings or case updates
-        </Text>
+        <View style={styles.modalContent}>
+          <Text style={styles.modalText}>
+            <Text style={styles.bold}>What is EOIR?</Text>{'\n\n'}
+            EOIR stands for Executive Office for Immigration Review. This is the system that handles Immigration Court cases.{'\n\n'}
+            <Text style={styles.bold}>Do you have a case if:</Text>{'\n\n'}
+            • You received a Notice to Appear (NTA) in Immigration Court{'\n'}
+            • You were placed in removal proceedings{'\n'}
+            • You have an A-number and court case number{'\n'}
+            • You've been to Immigration Court before{'\n\n'}
+            <Text style={styles.bold}>If you're not sure:</Text>{'\n\n'}
+            Check if you have any court documents, NTA, or ask your attorney. You can also check online at the EOIR portal.
+          </Text>
+        </View>
       </Modal>
 
-
+      {/* Court Hearing Info Modal */}
       <Modal
         visible={showCourtHearingInfo}
         onClose={() => setShowCourtHearingInfo(false)}
-        title="Court hearings"
-        size="medium"
+        title="Court Hearing Information"
       >
-        <Text style={styles.modalText}>
-          Attending your court hearings is mandatory. Missing a hearing could 
-          result in a removal order issued in your absence.
-          {'\n\n'}
-          <Text style={styles.bold}>Find your next hearing:</Text>
-          {'\n'}• Check the EOIR website
-          {'\n'}• Review court notices
-          {'\n'}• Contact your attorney
-        </Text>
+        <View style={styles.modalContent}>
+          <Text style={styles.modalText}>
+            <Text style={styles.bold}>When is your next hearing?</Text>{'\n\n'}
+            This is the date of your next scheduled appearance in Immigration Court.{'\n\n'}
+            <Text style={styles.bold}>Why this is critical:</Text>{'\n\n'}
+            • You MUST attend this hearing{'\n'}
+            • Failure to appear = automatic deportation order{'\n'}
+            • This date determines your timeline{'\n'}
+            • You need to prepare for this hearing{'\n\n'}
+            <Text style={styles.bold}>If you don't know the date:</Text>{'\n\n'}
+            Check your court documents, ask your attorney, or check the EOIR portal. Do not miss this hearing!
+          </Text>
+        </View>
+      </Modal>
+
+      {/* Assigned Court Info Modal */}
+      <Modal
+        visible={showAssignedCourtInfo}
+        onClose={() => setShowAssignedCourtInfo(false)}
+        title="Assigned Court Information"
+      >
+        <View style={styles.modalContent}>
+          <Text style={styles.modalText}>
+            <Text style={styles.bold}>Which court is handling your case?</Text>{'\n\n'}
+            This is the specific Immigration Court where your case is being heard.{'\n\n'}
+            <Text style={styles.bold}>How to find this:</Text>{'\n\n'}
+            • Check your Notice to Appear (NTA){'\n'}
+            • Look at court documents you received{'\n'}
+            • Ask your attorney{'\n'}
+            • Check the EOIR portal online{'\n\n'}
+            <Text style={styles.bold}>Common court names:</Text>{'\n\n'}
+            • [City] Immigration Court{'\n'}
+            • [State] Immigration Court{'\n'}
+            • [City] Federal Building{'\n\n'}
+            <Text style={styles.bold}>Why this matters:</Text>{'\n\n'}
+            You need to know which court to go to for your hearings and where to file documents.{'\n\n'}
+            <Text style={styles.bold}>Changing Venue:</Text>{'\n\n'}
+            If you need to change your court location, you must file a Motion to Change Venue with your current court. This is typically done for hardship reasons (medical, family, work).{'\n\n'}
+            <Text style={styles.bold}>If Your Hearing Has Passed:</Text>{'\n\n'}
+            If you missed a hearing, you may be able to file a Motion to Reopen or Motion to Reconsider within 30 days. Contact an attorney immediately as this is time-sensitive.
+          </Text>
+        </View>
       </Modal>
     </SafeAreaView>
   );
@@ -354,40 +368,37 @@ export const ImmigrationStatusScreen: React.FC<ImmigrationStatusScreenProps> = (
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: Colors.surface,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
     paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
   },
   backButton: {
-    backgroundColor: '#E8F5E8',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
+    padding: 8,
   },
   backButtonText: {
-    ...Typography.button,
-    color: Colors.textPrimary,
-    marginLeft: 4,
+    ...Typography.body,
+    color: Colors.primary,
+    fontWeight: '500',
   },
   helpIcon: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: Colors.primaryDark,
+    backgroundColor: Colors.primaryLight,
     justifyContent: 'center',
     alignItems: 'center',
   },
   helpText: {
-    color: Colors.white,
     fontSize: 16,
-    fontWeight: 'bold',
+    color: Colors.primaryDark,
+    fontWeight: '600',
   },
   progressContainer: {
     paddingHorizontal: 24,
@@ -421,30 +432,6 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     lineHeight: 22,
   },
-  linkSection: {
-    marginBottom: 32,
-  },
-  linkLabel: {
-    ...Typography.body,
-    color: Colors.textSecondary,
-    marginBottom: 12,
-    lineHeight: 20,
-  },
-  linkButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    backgroundColor: Colors.primaryLight,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: Colors.primary,
-  },
-  linkText: {
-    ...Typography.button,
-    color: Colors.primary,
-    marginLeft: 8,
-  },
   form: {
     flex: 1,
   },
@@ -464,55 +451,17 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 8,
   },
-  questionSubtitle: {
-    ...Typography.caption,
-    color: Colors.textSecondary,
-    marginBottom: 12,
-    lineHeight: 18,
-  },
   infoButton: {
     padding: 4,
   },
   infoButtonText: {
-    fontSize: 16,
+    fontSize: 18,
   },
   inputContainer: {
     marginBottom: 16,
   },
   alertContainer: {
-    marginTop: 16,
-  },
-  radioContainer: {
-    gap: 12,
-  },
-  radioOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  radioCircle: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: Colors.border,
-    marginRight: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  radioCircleSelected: {
-    borderColor: Colors.primary,
-  },
-  radioInner: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: Colors.primary,
-  },
-  radioText: {
-    ...Typography.body,
-    color: Colors.textPrimary,
-    flex: 1,
+    marginTop: 8,
   },
   errorText: {
     ...Typography.caption,
@@ -524,15 +473,14 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderTopWidth: 1,
     borderTopColor: Colors.border,
-    gap: 12,
-  },
-  backButtonStyle: {
-    marginBottom: 8,
   },
   continueButton: {
     backgroundColor: Colors.primaryDark,
   },
   // Modal styles
+  modalContent: {
+    padding: 16,
+  },
   modalText: {
     ...Typography.body,
     color: Colors.textPrimary,

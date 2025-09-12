@@ -16,6 +16,7 @@ import { Button } from '../../components/ui/Button';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import type { AuthStackParamList } from '../../types/navigation';
 import { Ionicons } from '@expo/vector-icons';
+import { AuthService } from '../../services/authService';
 
 type SignUpScreenNavigationProp = StackNavigationProp<
   AuthStackParamList,
@@ -23,7 +24,7 @@ type SignUpScreenNavigationProp = StackNavigationProp<
 >;
 
 interface SignUpForm {
-  email: string;
+  nickname: string;
   password: string;
   agreeToTerms: boolean;
   agreeToPrivacy: boolean;
@@ -38,20 +39,38 @@ export const SignUpScreen: React.FC = () => {
   const {
     control,
     handleSubmit,
+    setValue,
     formState: { errors, isValid },
   } = useForm<SignUpForm>({
     mode: 'onChange',
     defaultValues: {
-      email: '',
+      nickname: '',
       password: '',
       agreeToTerms: false,
       agreeToPrivacy: false,
     },
   });
 
-  const validateEmail = (email: string) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email) || 'Please enter a valid email address';
+  const validateNickname = (nickname: string) => {
+    if (nickname.length < 3) {
+      return 'Nickname must be at least 3 characters';
+    }
+    if (nickname.length > 20) {
+      return 'Nickname must be no more than 20 characters';
+    }
+    const nicknameRegex = /^[a-zA-Z0-9_-]+$/;
+    return nicknameRegex.test(nickname) || 'Nickname can only contain letters, numbers, _ and -';
+  };
+
+  const generateRandomNickname = () => {
+    const adjectives = ['Swift', 'Bright', 'Kind', 'Strong', 'Wise', 'Bold', 'Calm', 'Free', 'Hope', 'Safe'];
+    const nouns = ['Seeker', 'Helper', 'Guide', 'Friend', 'Walker', 'Star', 'Path', 'Bridge', 'Light', 'Haven'];
+    const randomNum = Math.floor(Math.random() * 1000);
+    
+    const adjective = adjectives[Math.floor(Math.random() * adjectives.length)];
+    const noun = nouns[Math.floor(Math.random() * nouns.length)];
+    
+    return `${adjective}${noun}${randomNum}`;
   };
 
   const validatePassword = (password: string) => {
@@ -69,11 +88,25 @@ export const SignUpScreen: React.FC = () => {
 
     setIsLoading(true);
     try {
-      // Simulate API call
+      // Clear any existing data to ensure fresh start for new account
+      await AuthService.clearNewAccountData();
+      
+      // Simulate API call - in real implementation this would create account with Supabase
       await new Promise((resolve) => setTimeout(resolve, 1000));
       
-      // Navigate to email verification
-      navigation.navigate('EmailVerification', { email: data.email });
+      Alert.alert(
+        'Account Created', 
+        `Welcome ${data.nickname}! Please complete your timeline questionnaire to get started.`,
+        [
+          {
+            text: 'Continue',
+            onPress: () => {
+              // Navigate to onboarding questionnaire - users must complete timeline setup
+              navigation.navigate('OnboardingStart');
+            }
+          }
+        ]
+      );
     } catch (error) {
       Alert.alert('Sign Up Failed', 'Something went wrong. Please try again.');
     } finally {
@@ -96,22 +129,36 @@ export const SignUpScreen: React.FC = () => {
         <View style={styles.form}>
           <Controller
             control={control}
-            name="email"
+            name="nickname"
             rules={{
-              required: 'Email is required',
-              validate: validateEmail,
+              required: 'Nickname is required',
+              validate: validateNickname,
             }}
             render={({ field: { onChange, onBlur, value } }) => (
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Email</Text>
+                <View style={styles.labelRow}>
+                  <Text style={styles.inputLabel}>Nickname</Text>
+                  <TouchableOpacity
+                    onPress={() => {
+                      const randomNickname = generateRandomNickname();
+                      setValue('nickname', randomNickname);
+                      onChange(randomNickname);
+                    }}
+                    style={styles.generateButton}
+                  >
+                    <Text style={styles.generateButtonText}>Generate</Text>
+                  </TouchableOpacity>
+                </View>
+                <Text style={styles.nicknameHint}>
+                  Choose a nickname that doesn't identify you personally
+                </Text>
                 <View style={styles.inputWrapper}>
                   <Input
-                    placeholder="Email"
+                    placeholder="Enter a nickname"
                     value={value}
                     onChangeText={onChange}
                     onBlur={onBlur}
-                    errorText={errors.email?.message}
-                    keyboardType="email-address"
+                    errorText={errors.nickname?.message}
                     autoCapitalize="none"
                     autoCorrect={false}
                     containerStyle={styles.customInputContainer}
@@ -224,12 +271,34 @@ const styles = StyleSheet.create({
   inputGroup: {
     marginBottom: 32,
   },
+  labelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
   inputLabel: {
     ...Typography.body,
     color: Colors.textPrimary,
     fontSize: 16,
     fontWeight: '600',
+  },
+  generateButton: {
+    backgroundColor: Colors.primaryLight,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  generateButtonText: {
+    color: Colors.primaryDark,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  nicknameHint: {
+    fontSize: 12,
+    color: Colors.textSecondary,
     marginBottom: 8,
+    fontStyle: 'italic',
   },
   inputWrapper: {
     // This will allow us to override the Input component styles

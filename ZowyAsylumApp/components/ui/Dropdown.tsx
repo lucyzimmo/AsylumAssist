@@ -44,6 +44,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
   const displayText = selectedOption ? selectedOption.label : placeholder;
 
   const handleSelect = (optionValue: string) => {
+    console.log('Dropdown selected:', optionValue);
     onSelect(optionValue);
     setIsOpen(false);
   };

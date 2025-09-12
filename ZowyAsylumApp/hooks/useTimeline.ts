@@ -1,13 +1,17 @@
 import { useState, useEffect, useCallback } from 'react';
-import { UserJourney, JourneyStep, TimelineAlert, TimelineFilter } from '../types/timeline';
+import { AsylumTimeline, AsylumPhase, TimelineAlert, TimelineFilter, TimelineEditData, TimelineStep } from '../types/timeline';
 import timelineService from '../services/timelineService';
 
 export interface UseTimelineReturn {
   // Data
-  timeline: UserJourney | null;
-  steps: JourneyStep[];
+  timeline: AsylumTimeline | null;
+  phases: AsylumPhase[];
   alerts: TimelineAlert[];
-  currentStep: JourneyStep | null;
+  currentPhase: AsylumPhase | null;
+  
+  // Bundle system data
+  steps: TimelineStep[];
+  activeBundles: string[];
   
   // State
   loading: boolean;
@@ -19,22 +23,42 @@ export interface UseTimelineReturn {
   setFilter: (filter: Partial<TimelineFilter>) => void;
   
   // Actions
-  initializeTimeline: (entryDate: string, hasAttorney?: boolean) => Promise<boolean>;
-  markStepComplete: (stepId: string, completed?: boolean) => Promise<boolean>;
-  updateStep: (stepId: string, updates: Partial<JourneyStep>) => Promise<boolean>;
+  initializeTimeline: (entryDate: string, hasAttorney?: boolean, questionnaireData?: any) => Promise<boolean>;
+  updateTimelineFromQuestionnaire: (questionnaireData: any) => Promise<boolean>;
+  updateKeyDates: (updates: TimelineEditData) => Promise<boolean>;
+  markPhaseComplete: (phaseId: string) => Promise<boolean>;
+  updatePhaseKeyActions: (phaseId: string, keyActions: Record<string, boolean>) => Promise<boolean>;
+  getPhaseKeyActions: (phaseId: string) => Record<string, boolean>;
   refreshTimeline: () => Promise<void>;
   enterEditMode: () => void;
   exitEditMode: () => void;
   resetTimeline: () => Promise<void>;
   
-  // Progress calculations
-  getOverallProgress: () => number;
-  getPhaseProgress: (phase: string) => number;
-  getNextActionableStep: () => JourneyStep | null;
+  // Step management (new bundle system)
+  markStepComplete: (stepId: string) => Promise<boolean>;
+  updateStepDueDate: (stepId: string, newDueDate: string) => Promise<boolean>;
+  getStepsByBundle: (bundleId: string) => TimelineStep[];
+  getOverdueSteps: () => TimelineStep[];
+  getUpcomingSteps: (daysAhead?: number) => TimelineStep[];
+  
+  // EOIR Integration
+  updateEOIRCaseInfo: (caseNumber: string, nextHearingDate?: string, assignedCourt?: string) => Promise<boolean>;
+  getEOIRAlerts: () => TimelineAlert[];
+  requiresImmediateLegalAttention: () => boolean;
+  getCourtCaseSummary: () => { hasCourtCase: boolean; caseNumber?: string; nextHearing?: string; assignedCourt?: string; daysUntilHearing?: number; requiresAttorney: boolean; } | null;
+  
+  // Status and progress  
+  getCurrentStatus: () => ReturnType<typeof timelineService.getCurrentStatus>;
+  getNextActionablePhase: () => AsylumPhase | null;
+  getNextSteps: () => {
+    urgent: Array<{ title: string; description: string; actionRequired: boolean }>;
+    important: Array<{ title: string; description: string; actionRequired: boolean }>;
+    general: Array<{ title: string; description: string; actionRequired: boolean }>;
+  };
 }
 
 export const useTimeline = (): UseTimelineReturn => {
-  const [timeline, setTimeline] = useState<UserJourney | null>(null);
+  const [timeline, setTimeline] = useState<AsylumTimeline | null>(null);
   const [alerts, setAlerts] = useState<TimelineAlert[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -69,11 +93,11 @@ export const useTimeline = (): UseTimelineReturn => {
     }
   };
 
-  const initializeTimeline = useCallback(async (entryDate: string, hasAttorney: boolean = false): Promise<boolean> => {
+  const initializeTimeline = useCallback(async (entryDate: string, hasAttorney: boolean = false, questionnaireData?: any): Promise<boolean> => {
     try {
       setLoading(true);
       setError(null);
-      const newTimeline = await timelineService.initializeTimeline(entryDate, hasAttorney);
+      const newTimeline = await timelineService.initializeTimeline(entryDate, hasAttorney, questionnaireData);
       setTimeline(newTimeline);
       return true;
     } catch (err) {
@@ -84,35 +108,125 @@ export const useTimeline = (): UseTimelineReturn => {
     }
   }, []);
 
-  const markStepComplete = useCallback(async (stepId: string, completed: boolean = true): Promise<boolean> => {
+  const updateTimelineFromQuestionnaire = useCallback(async (questionnaireData: any): Promise<boolean> => {
     try {
       setError(null);
-      const success = await timelineService.markStepComplete(stepId, completed);
+      const success = await timelineService.updateTimelineFromQuestionnaire(questionnaireData);
       if (success) {
         const updatedTimeline = timelineService.getTimeline();
         setTimeline(updatedTimeline);
       }
       return success;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update step');
+      setError(err instanceof Error ? err.message : 'Failed to update timeline from questionnaire');
       return false;
     }
   }, []);
 
-  const updateStep = useCallback(async (stepId: string, updates: Partial<JourneyStep>): Promise<boolean> => {
+  const updateKeyDates = useCallback(async (updates: TimelineEditData): Promise<boolean> => {
     try {
       setError(null);
-      const success = await timelineService.updateStep(stepId, updates);
+      const success = await timelineService.updateKeyDates(updates);
       if (success) {
         const updatedTimeline = timelineService.getTimeline();
         setTimeline(updatedTimeline);
       }
       return success;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update step');
+      setError(err instanceof Error ? err.message : 'Failed to update timeline');
       return false;
     }
   }, []);
+
+  const markPhaseComplete = useCallback(async (phaseId: string): Promise<boolean> => {
+    try {
+      setError(null);
+      const success = await timelineService.markPhaseComplete(phaseId);
+      if (success) {
+        // Force a fresh load from storage to ensure state consistency
+        const updatedTimeline = await timelineService.loadTimeline();
+        setTimeline(updatedTimeline);
+        
+        // Also update alerts immediately
+        if (updatedTimeline) {
+          const currentAlerts = timelineService.getTimelineAlerts();
+          setAlerts(currentAlerts);
+        }
+      }
+      return success;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to mark phase complete');
+      return false;
+    }
+  }, []);
+
+  const updatePhaseKeyActions = useCallback(async (phaseId: string, keyActions: Record<string, boolean>): Promise<boolean> => {
+    try {
+      setError(null);
+      const success = await timelineService.updatePhaseKeyActions(phaseId, keyActions);
+      if (success) {
+        const updatedTimeline = timelineService.getTimeline();
+        setTimeline(updatedTimeline);
+      }
+      return success;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update key actions');
+      return false;
+    }
+  }, []);
+
+  const getPhaseKeyActions = useCallback((phaseId: string): Record<string, boolean> => {
+    return timelineService.getPhaseKeyActions(phaseId);
+  }, [timeline]);
+
+  // Step management methods (new bundle system)
+  const markStepComplete = useCallback(async (stepId: string): Promise<boolean> => {
+    try {
+      setError(null);
+      const success = await timelineService.markStepComplete(stepId);
+      if (success) {
+        const updatedTimeline = await timelineService.loadTimeline();
+        setTimeline(updatedTimeline);
+        
+        // Also update alerts immediately
+        if (updatedTimeline) {
+          const currentAlerts = timelineService.getTimelineAlerts();
+          setAlerts(currentAlerts);
+        }
+      }
+      return success;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to mark step complete');
+      return false;
+    }
+  }, []);
+
+  const updateStepDueDate = useCallback(async (stepId: string, newDueDate: string): Promise<boolean> => {
+    try {
+      setError(null);
+      const success = await timelineService.updateStepDueDate(stepId, newDueDate);
+      if (success) {
+        const updatedTimeline = timelineService.getTimeline();
+        setTimeline(updatedTimeline);
+      }
+      return success;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update step due date');
+      return false;
+    }
+  }, []);
+
+  const getStepsByBundle = useCallback((bundleId: string): TimelineStep[] => {
+    return timelineService.getStepsByBundle(bundleId);
+  }, [timeline]);
+
+  const getOverdueSteps = useCallback((): TimelineStep[] => {
+    return timelineService.getOverdueSteps();
+  }, [timeline]);
+
+  const getUpcomingSteps = useCallback((daysAhead?: number): TimelineStep[] => {
+    return timelineService.getUpcomingSteps(daysAhead);
+  }, [timeline]);
 
   const refreshTimeline = useCallback(async (): Promise<void> => {
     await loadTimeline();
@@ -141,41 +255,84 @@ export const useTimeline = (): UseTimelineReturn => {
   }, []);
 
   // Computed values
+  const phases = timeline?.phases || [];
   const steps = timeline?.steps || [];
+  const activeBundles = timeline?.activeBundles || [];
   
-  const filteredSteps = steps.filter(step => {
-    if (!filter.showCompleted && step.completed) return false;
-    if (filter.phase && !step.id.includes(filter.phase)) return false;
-    if (filter.urgencyLevel && step.urgencyLevel !== filter.urgencyLevel) return false;
+  const filteredPhases = phases.filter(phase => {
+    if (!filter.showCompleted && phase.status === 'completed') return false;
+    if (filter.phase && phase.id !== filter.phase) return false;
+    if (filter.bundle && phase.id !== filter.bundle) return false;
     return true;
   });
 
-  const currentStep = steps.find(step => !step.completed && !step.isLocked) || steps[0] || null;
+  // Filter steps based on current filter settings
+  const filteredSteps = steps.filter(step => {
+    if (!filter.showCompleted && step.status === 'completed') return false;
+    if (filter.bundle && step.bundleId !== filter.bundle) return false;
+    if (filter.priority && step.priority !== filter.priority) return false;
+    return true;
+  });
 
-  const getOverallProgress = useCallback((): number => {
-    return timeline?.overallProgress || 0;
-  }, [timeline]);
+  const currentPhase = phases.find(phase => phase.status === 'current') || null;
 
-  const getPhaseProgress = useCallback((phase: string): number => {
-    if (!timeline) return 0;
-    
-    const phaseSteps = steps.filter(step => step.id.includes(phase));
-    if (phaseSteps.length === 0) return 0;
-    
-    const completedPhaseSteps = phaseSteps.filter(step => step.completed);
-    return Math.round((completedPhaseSteps.length / phaseSteps.length) * 100);
-  }, [timeline, steps]);
+  const getCurrentStatus = useCallback(() => {
+    return timelineService.getCurrentStatus();
+  }, []);
 
-  const getNextActionableStep = useCallback((): JourneyStep | null => {
-    return steps.find(step => !step.completed && !step.isLocked) || null;
-  }, [steps]);
+  const getNextActionablePhase = useCallback((): AsylumPhase | null => {
+    return phases.find(phase => phase.status === 'current' || phase.status === 'upcoming') || null;
+  }, [phases]);
+
+  // EOIR Integration functions
+  const updateEOIRCaseInfo = useCallback(async (caseNumber: string, nextHearingDate?: string, assignedCourt?: string): Promise<boolean> => {
+    try {
+      setError(null);
+      const success = await timelineService.updateEOIRCaseInfo(caseNumber, nextHearingDate, assignedCourt);
+      if (success) {
+        const updatedTimeline = await timelineService.loadTimeline();
+        setTimeline(updatedTimeline);
+        
+        // Update alerts immediately
+        if (updatedTimeline) {
+          const currentAlerts = timelineService.getTimelineAlerts();
+          const eoirAlerts = timelineService.getEOIRAlerts();
+          setAlerts([...currentAlerts, ...eoirAlerts]);
+        }
+      }
+      return success;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update EOIR case info');
+      return false;
+    }
+  }, []);
+
+  const getEOIRAlerts = useCallback((): TimelineAlert[] => {
+    return timelineService.getEOIRAlerts();
+  }, []);
+
+  const requiresImmediateLegalAttention = useCallback((): boolean => {
+    return timelineService.requiresImmediateLegalAttention();
+  }, []);
+
+  const getCourtCaseSummary = useCallback(() => {
+    return timelineService.getCourtCaseSummary();
+  }, []);
+
+  const getNextSteps = useCallback(() => {
+    return timelineService.getNextSteps();
+  }, []);
 
   return {
     // Data
     timeline,
-    steps, // Return all steps, not filtered ones for the dashboard
+    phases, // Return all phases, not filtered ones for the dashboard
     alerts,
-    currentStep,
+    currentPhase,
+    
+    // Bundle system data
+    steps,
+    activeBundles,
     
     // State
     loading,
@@ -188,16 +345,32 @@ export const useTimeline = (): UseTimelineReturn => {
     
     // Actions
     initializeTimeline,
-    markStepComplete,
-    updateStep,
+    updateTimelineFromQuestionnaire,
+    updateKeyDates,
+    markPhaseComplete,
+    updatePhaseKeyActions,
+    getPhaseKeyActions,
     refreshTimeline,
     enterEditMode,
     exitEditMode,
     resetTimeline,
     
-    // Progress calculations
-    getOverallProgress,
-    getPhaseProgress,
-    getNextActionableStep,
+    // Step management (new bundle system)
+    markStepComplete,
+    updateStepDueDate,
+    getStepsByBundle,
+    getOverdueSteps,
+    getUpcomingSteps,
+    
+    // Status and progress
+    getCurrentStatus,
+    getNextActionablePhase,
+    getNextSteps,
+    
+    // EOIR Integration
+    updateEOIRCaseInfo,
+    getEOIRAlerts,
+    requiresImmediateLegalAttention,
+    getCourtCaseSummary,
   };
 };

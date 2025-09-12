@@ -178,47 +178,67 @@ const ResourcesScreen: React.FC<ResourcesScreenProps> = ({ navigation }) => {
     </ScrollView>
   );
 
+  const legalResourcesList = [
+    {
+      title: 'Legal Aid Organizations Directory',
+      description: 'Find pro bono and low-cost legal services nationwide',
+      url: 'https://www.immigrationadvocates.org/nonprofit/legaldirectory/'
+    },
+    {
+      title: 'ACLU Immigrants\' Rights',
+      description: 'Legal advocacy and know your rights information',
+      url: 'https://www.aclu.org/issues/immigrants-rights'
+    },
+    {
+      title: 'National Immigration Law Center',
+      description: 'Resources and legal information for immigrants',
+      url: 'https://www.nilc.org/'
+    },
+    {
+      title: 'American Immigration Lawyers Association',
+      description: 'Find qualified immigration attorneys',
+      url: 'https://www.aila.org/immigration-lawyer-search'
+    },
+    {
+      title: 'Volunteer Lawyers for Justice',
+      description: 'Pro bono legal services in multiple cities',
+      url: 'https://www.vlj.org/'
+    }
+  ];
+
   const renderLegalResources = () => (
     <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-      <View style={styles.searchSection}>
-        <Text style={styles.searchLabel}>Search by...</Text>
-        <TouchableOpacity style={styles.searchTypeButton}>
-          <Text style={styles.searchTypeText}>Location</Text>
-          <Ionicons name="chevron-down" size={16} color={Colors.white} />
-        </TouchableOpacity>
-      </View>
-      
-      <View style={styles.searchBar}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="State, city, zip code...."
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
-        <Ionicons name="search" size={20} color={Colors.textSecondary} />
-      </View>
-
       <View style={styles.infoCard}>
         <View style={styles.infoIcon}>
-          <Text style={styles.infoIconText}>i</Text>
+          <Text style={styles.infoIconText}>ℹ️</Text>
         </View>
         <View style={styles.infoContent}>
-          <View style={styles.infoHeader}>
-            <Text style={styles.infoTitle}>Looking for legal aid?</Text>
-            <TouchableOpacity>
-              <Ionicons name="close" size={20} color={Colors.textPrimary} />
-            </TouchableOpacity>
-          </View>
+          <Text style={styles.infoTitle}>Legal Assistance Resources</Text>
           <Text style={styles.infoText}>
-            You will likely need to meet your lawyer in person, so it's best to search for organisations near you.
+            These organizations provide legal assistance and representation for asylum seekers. Many offer pro bono (free) services.
           </Text>
-          <View style={styles.infoCheckbox}>
-            <TouchableOpacity style={styles.checkbox}>
-              <View style={styles.checkboxInner} />
-            </TouchableOpacity>
-            <Text style={styles.checkboxText}>Don't show this message again</Text>
-          </View>
         </View>
+      </View>
+
+      {legalResourcesList.map((resource, index) => (
+        <TouchableOpacity
+          key={index}
+          style={styles.resourceItem}
+          onPress={() => handleOpenUrl(resource.url)}
+        >
+          <View style={styles.resourceContent}>
+            <Text style={styles.resourceTitle}>{resource.title}</Text>
+            <Text style={styles.resourceDescription}>{resource.description}</Text>
+          </View>
+          <Ionicons name="open-outline" size={20} color={Colors.textSecondary} />
+        </TouchableOpacity>
+      ))}
+
+      <View style={styles.helpSection}>
+        <Text style={styles.helpTitle}>Need more help finding legal assistance?</Text>
+        <Text style={styles.helpText}>
+          Contact your local bar association or immigrant services organization for referrals to qualified immigration attorneys in your area.
+        </Text>
       </View>
     </ScrollView>
   );
@@ -839,6 +859,54 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 20,
     paddingHorizontal: 20,
+  },
+
+  // Legal Resources Styles
+  resourceItem: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  resourceContent: {
+    flex: 1,
+    marginRight: 12,
+  },
+  resourceTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+    marginBottom: 4,
+  },
+  resourceDescription: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    lineHeight: 20,
+  },
+  helpSection: {
+    backgroundColor: Colors.primaryLight,
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 16,
+    marginBottom: 24,
+  },
+  helpTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.primaryDark,
+    marginBottom: 8,
+  },
+  helpText: {
+    fontSize: 14,
+    color: Colors.textPrimary,
+    lineHeight: 20,
   },
 });
 

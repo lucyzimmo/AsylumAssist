@@ -1,545 +1,576 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
-  Text,
-  StyleSheet,
   ScrollView,
+  StyleSheet,
+  Text,
   TouchableOpacity,
   Alert,
   Linking,
-  TextInput,
-  Switch,
-  Modal,
-  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
-import * as Print from 'expo-print';
-import * as Sharing from 'expo-sharing';
+import { HomeStackScreenProps } from '../../types/navigation';
 import { Colors } from '../../constants/Colors';
+import { Typography } from '../../constants/Typography';
+import { Button } from '../../components/ui/Button';
 import { useTimeline } from '../../hooks/useTimeline';
-import { JourneyStep } from '../../types/timeline';
+import { AsylumPhase } from '../../types/timeline';
+import { AuthService } from '../../services/authService';
 
-interface DashboardScreenProps {
-  navigation: any;
+interface UserOnboardingData {
+  entryDate?: string;
+  hasFiledI589?: 'yes' | 'no' | 'not-sure';
+  i589SubmissionDate?: string;
+  filingLocation?: 'uscis' | 'immigration-court' | 'not-sure';
+  nextHearingDate?: string;
+  assignedCourt?: string;
+  eoirCaseStatus?: 'yes' | 'no' | 'not-sure';
+  hasTPS?: 'yes' | 'no';
+  tpsCountry?: string;
+  tpsExpirationDate?: string;
+  hasParole?: 'yes' | 'no';
+  paroleType?: string;
+  paroleExpirationDate?: string;
+  hasOtherStatus?: 'yes' | 'no';
+  otherStatusDescription?: string;
 }
 
-const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
+interface TimelineItem {
+  id: string;
+  type: 'court-hearing' | 'filing-deadline' | 'work-authorization' | 'task' | 'info';
+  category: 'Court Dates & Hearings' | 'Filing Deadlines' | 'Work Authorization Actions' | 'Supportive Notes';
+  title: string;
+  description: string;
+  date?: string;
+  priority: 'critical' | 'important' | 'info';
+  actionText?: string;
+  actionUrl?: string;
+  completed?: boolean;
+  subItems?: TimelineSubItem[];
+}
+
+interface TimelineSubItem {
+  id: string;
+  title: string;
+  description: string;
+  completed?: boolean;
+}
+
+export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () => {
+  const navigation = useNavigation<HomeStackScreenProps<'Dashboard'>['navigation']>();
   const {
     timeline,
-    steps,
+    phases,
     alerts,
-    currentStep,
+    currentPhase,
     loading,
-    error,
-    editMode,
-    markStepComplete,
-    updateStep,
-    enterEditMode,
-    exitEditMode,
-    getOverallProgress,
-    getNextActionableStep
+    markPhaseComplete,
+    getCurrentStatus,
+    getNextSteps,
   } = useTimeline();
-
-  const [showCompletedSteps, setShowCompletedSteps] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [editingStep, setEditingStep] = useState<JourneyStep | null>(null);
-  const [editingStepNotes, setEditingStepNotes] = useState('');
-  const [editingStepDeadline, setEditingStepDeadline] = useState('');
-  const [selectedStepIndex, setSelectedStepIndex] = useState(0);
-
-  // Get the primary alert to display
-  const primaryAlert = alerts.length > 0 ? alerts[0] : null;
   
-  // Get the currently selected step
-  const selectedStep = steps[selectedStepIndex] || currentStep;
+  const [showCompletedSteps, setShowCompletedSteps] = useState(false);
+  const [userData, setUserData] = useState<UserOnboardingData | null>(null);
+  const [timelineItems, setTimelineItems] = useState<TimelineItem[]>([]);
+  const [nextDeadline, setNextDeadline] = useState<TimelineItem | null>(null);
+  const [dataLoading, setDataLoading] = useState(true);
 
-  const handleAddToCalendar = () => {
-    if (!selectedStep || !selectedStep.deadline) return;
-    
-    const eventTitle = `${selectedStep.title} Deadline`;
-    const eventDate = new Date(selectedStep.deadline);
-    
-    // Create calendar URL for iOS/Android
-    const startDate = eventDate.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
-    const endDate = new Date(eventDate.getTime() + 60 * 60 * 1000).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
-    
-    const calendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(eventTitle)}&dates=${startDate}/${endDate}&details=${encodeURIComponent(selectedStep.description || '')}`;
-    
-    Linking.openURL(calendarUrl).catch(() => {
-      Alert.alert('Calendar Error', 'Unable to open calendar. Please add this event manually.');
+  // Load user data on component mount
+  useEffect(() => {
+    loadUserData();
+  }, []);
+
+  const loadUserData = async () => {
+    try {
+      const storedData = await AsyncStorage.getItem('userOnboardingData');
+      console.log('Stored data:', storedData);
+      if (storedData) {
+        const parsedData = JSON.parse(storedData);
+        console.log('Parsed data:', parsedData);
+        setUserData(parsedData);
+        const timeline = generateTimelineItems(parsedData);
+        console.log('Generated timeline:', timeline);
+        setTimelineItems(timeline);
+        
+        // Find next deadline
+        const nextItem = timeline.find(item => 
+          item.date && new Date(item.date) > new Date() && 
+          (item.priority === 'critical' || item.priority === 'important')
+        );
+        setNextDeadline(nextItem || null);
+      } else {
+        console.log('No stored data found');
+      }
+    } catch (error) {
+      console.error('Error loading user data:', error);
+    } finally {
+      setDataLoading(false);
+    }
+  };
+
+  const generateTimelineItems = (data: UserOnboardingData): TimelineItem[] => {
+    const items: TimelineItem[] = [];
+    const today = new Date();
+
+    // 1. Court Dates & Hearings
+    if (data.nextHearingDate) {
+      const hearingDate = new Date(data.nextHearingDate);
+      items.push({
+        id: 'next-hearing',
+        type: 'court-hearing',
+        category: 'Court Dates & Hearings',
+        title: 'Immigration Court Hearing',
+        description: `Appear at ${data.assignedCourt || 'your assigned court'}. Failure to appear may result in removal order.`,
+        date: hearingDate.toISOString(),
+        priority: 'critical',
+        subItems: [
+          {
+            id: 'prepare-evidence',
+            title: 'Gather Supporting Evidence',
+            description: 'Collect documents, country condition reports, witness affidavits, and personal testimony'
+          },
+          {
+            id: 'find-attorney-urgent',
+            title: 'Secure Legal Representation',
+            description: 'Find an immigration attorney immediately if you don\'t have one'
+          }
+        ]
+      });
+    }
+
+    // 2. Filing Deadlines
+    if (data.entryDate) {
+      const entryDate = new Date(data.entryDate);
+      const oneYearDeadline = new Date(entryDate);
+      oneYearDeadline.setFullYear(oneYearDeadline.getFullYear() + 1);
+      
+      const isLateFiling = today > oneYearDeadline;
+      
+      if (!isLateFiling && data.hasFiledI589 !== 'yes') {
+        items.push({
+          id: 'one-year-deadline',
+          type: 'filing-deadline',
+          category: 'Filing Deadlines',
+          title: 'I-589 Filing Deadline',
+          description: 'File your asylum application within one year of arrival. Missing this deadline severely limits your options.',
+          date: oneYearDeadline.toISOString(),
+          priority: 'critical',
+          subItems: [
+            {
+              id: 'gather-evidence',
+              title: 'Gather Supporting Evidence',
+              description: 'Personal statement, country conditions, medical records, psychological evaluations'
+            },
+            {
+              id: 'filing-fee',
+              title: 'Prepare Filing Fee',
+              description: '$100 filing fee required (as of July 22, 2025) - fee waiver available if eligible'
+            },
+            {
+              id: 'find-attorney',
+              title: 'Find Legal Representation',
+              description: 'Consider hiring an immigration attorney - pro bono options available'
+            }
+          ]
+        });
+      } else if (isLateFiling) {
+        const hasException = data.hasTPS === 'yes' || data.hasParole === 'yes';
+        items.push({
+          id: 'late-filing-options',
+          type: 'filing-deadline',
+          category: 'Filing Deadlines',
+          title: hasException ? 'Exception May Apply' : 'Consider Withholding of Removal',
+          description: hasException 
+            ? 'Your TPS/Parole status may provide an exception to the one-year deadline'
+            : 'One-year deadline passed. You may still apply for Withholding of Removal or CAT protection.',
+          priority: 'critical'
+        });
+      }
+    }
+
+    // 3. Work Authorization Actions
+    if (data.hasFiledI589 === 'yes' && data.i589SubmissionDate) {
+      const submissionDate = new Date(data.i589SubmissionDate);
+      const eadEligibilityDate = new Date(submissionDate);
+      eadEligibilityDate.setDate(eadEligibilityDate.getDate() + 150);
+      
+      items.push({
+        id: 'ead-eligibility',
+        type: 'work-authorization',
+        category: 'Work Authorization Actions',
+        title: 'Work Permit Application (I-765)',
+        description: 'Apply for Employment Authorization Document 150 days after filing I-589',
+        date: eadEligibilityDate.toISOString(),
+        priority: 'important',
+        actionText: 'Apply for EAD',
+        subItems: [
+          {
+            id: 'ead-photos',
+            title: 'Get Passport Photos',
+            description: '2 passport-style photos required for I-765 application'
+          },
+          {
+            id: 'ead-fee',
+            title: 'No Filing Fee',
+            description: 'I-765 is free for asylum applicants - do not pay if asked'
+          }
+        ]
+      });
+
+      const biometricsDate = new Date(submissionDate);
+      biometricsDate.setDate(biometricsDate.getDate() + 30);
+      
+      if (today < biometricsDate) {
+        items.push({
+          id: 'biometrics-appointment',
+          type: 'work-authorization',
+          category: 'Work Authorization Actions',
+          title: 'Biometrics Appointment',
+          description: 'Attend your biometrics appointment (typically 2-6 weeks after filing)',
+          date: biometricsDate.toISOString(),
+          priority: 'critical'
+        });
+      }
+    }
+
+    // 4. Special Status Deadlines
+    if (data.hasTPS === 'yes' && data.tpsExpirationDate) {
+      const tpsExpiry = new Date(data.tpsExpirationDate);
+      items.push({
+        id: 'tps-expiration',
+        type: 'filing-deadline',
+        category: 'Filing Deadlines',
+        title: 'TPS Status Expiration',
+        description: 'File asylum application before TPS expires to maintain exception eligibility',
+        date: tpsExpiry.toISOString(),
+        priority: 'important'
+      });
+    }
+
+    if (data.hasParole === 'yes' && data.paroleExpirationDate) {
+      const paroleExpiry = new Date(data.paroleExpirationDate);
+      items.push({
+        id: 'parole-expiration',
+        type: 'filing-deadline',
+        category: 'Filing Deadlines',
+        title: 'Parole Status Expiration',
+        description: 'File asylum application before parole expires to maintain exception eligibility',
+        date: paroleExpiry.toISOString(),
+        priority: 'important'
+      });
+    }
+
+    // 5. Supportive Notes
+    if (!data.entryDate) {
+      items.push({
+        id: 'find-entry-date',
+        type: 'task',
+        category: 'Supportive Notes',
+        title: 'Find Your Entry Date',
+        description: 'Use I-94 lookup to determine your arrival date for deadline calculations',
+        priority: 'important',
+        actionText: 'Check I-94',
+        actionUrl: 'https://i94.cbp.dhs.gov/I94/#/home'
+      });
+    }
+
+    if (data.filingLocation === 'immigration-court' && !data.assignedCourt) {
+      items.push({
+        id: 'find-court',
+        type: 'info',
+        category: 'Supportive Notes',
+        title: 'Identify Your Immigration Court',
+        description: 'Contact EOIR or check case documents to find your assigned court',
+        priority: 'info',
+        actionText: 'Check EOIR',
+        actionUrl: 'https://acis.eoir.justice.gov/en/'
+      });
+    }
+
+    // Sort timeline items chronologically with priority weighting
+    return items.sort((a, b) => {
+      // Critical items first
+      if (a.priority === 'critical' && b.priority !== 'critical') return -1;
+      if (b.priority === 'critical' && a.priority !== 'critical') return 1;
+      
+      // Then by date
+      if (a.date && b.date) {
+        return new Date(a.date).getTime() - new Date(b.date).getTime();
+      }
+      if (a.date && !b.date) return -1;
+      if (!a.date && b.date) return 1;
+      
+      // Finally by priority
+      const priorityOrder = { critical: 0, important: 1, info: 2 };
+      return priorityOrder[a.priority] - priorityOrder[b.priority];
     });
   };
 
-  const handleMarkAsDone = async () => {
-    const stepToComplete = steps[selectedStepIndex];
-    if (!stepToComplete) return;
-    
-    const success = await markStepComplete(stepToComplete.id, true);
-    if (!success) {
-      Alert.alert('Error', 'Failed to update step. Please try again.');
-      return;
-    }
-    
-    // Show success feedback
-    Alert.alert(
-      'Step Completed!', 
-      `"${stepToComplete.title}" has been marked as done.`,
-      [{ text: 'OK' }]
-    );
-    
-    // Auto-advance to next incomplete step
-    const nextIncompleteIndex = steps.findIndex((step, index) => 
-      index > selectedStepIndex && !step.completed
-    );
-    
-    if (nextIncompleteIndex !== -1) {
-      setSelectedStepIndex(nextIncompleteIndex);
-    }
-  };
-
-  const handleStepNavigation = (index: number) => {
-    if (index >= 0 && index < steps.length) {
-      setSelectedStepIndex(index);
-    }
-  };
-
-  const handleDownloadTimeline = async () => {
-    try {
-      const currentDate = new Date().toLocaleDateString();
-      const progress = getOverallProgress();
-      
-      const completedSteps = steps.filter(step => step.completed);
-      const pendingSteps = steps.filter(step => !step.completed);
-      
-      const htmlContent = `
-        <html>
-          <head>
-            <style>
-              body { font-family: Arial, sans-serif; margin: 40px; color: #333; }
-              h1 { color: #2E6B47; border-bottom: 2px solid #2E6B47; padding-bottom: 10px; }
-              h2 { color: #2E6B47; margin-top: 30px; }
-              .progress { background: #E8F5E8; padding: 15px; border-radius: 8px; margin: 20px 0; }
-              .step { margin: 15px 0; padding: 10px; border-left: 3px solid #2E6B47; }
-              .completed { background-color: #f8fff8; }
-              .pending { background-color: #fff8f0; border-left-color: #FFA726; }
-              .step-title { font-weight: bold; margin-bottom: 5px; }
-              .step-date { color: #666; font-size: 14px; }
-              .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #ccc; font-size: 12px; color: #666; }
-            </style>
-          </head>
-          <body>
-            <h1>Your Asylum Journey Timeline</h1>
-            <p><strong>Generated:</strong> ${currentDate}</p>
-            
-            <div class="progress">
-              <h3>Progress Summary</h3>
-              <p><strong>${progress}% Complete</strong></p>
-              <p>${completedSteps.length} of ${steps.length} steps completed</p>
-            </div>
-
-            ${completedSteps.length > 0 ? `
-              <h2>Completed Steps</h2>
-              ${completedSteps.map(step => `
-                <div class="step completed">
-                  <div class="step-title">✓ ${step.title}</div>
-                  ${step.deadline ? `<div class="step-date">Deadline: ${new Date(step.deadline).toLocaleDateString()}</div>` : ''}
-                  ${step.completedDate ? `<div class="step-date">Completed: ${new Date(step.completedDate).toLocaleDateString()}</div>` : ''}
-                </div>
-              `).join('')}
-            ` : ''}
-
-            ${pendingSteps.length > 0 ? `
-              <h2>Upcoming Steps</h2>
-              ${pendingSteps.map(step => `
-                <div class="step pending">
-                  <div class="step-title">${step.title}</div>
-                  ${step.deadline ? `<div class="step-date">Deadline: ${new Date(step.deadline).toLocaleDateString()}</div>` : ''}
-                  ${step.description ? `<div style="margin-top: 8px; color: #555;">${step.description}</div>` : ''}
-                </div>
-              `).join('')}
-            ` : ''}
-
-            <div class="footer">
-              <p>Generated by Zowy - Your asylum journey companion</p>
-              <p>This document contains your personal timeline and should be kept confidential.</p>
-            </div>
-          </body>
-        </html>
-      `;
-
-      const { uri } = await Print.printToFileAsync({ html: htmlContent });
-      
-      if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(uri, {
-          mimeType: 'application/pdf',
-          dialogTitle: 'Share your timeline',
-        });
-      } else {
-        Alert.alert('PDF Created', 'Your timeline has been saved successfully.');
+  const handleCardAction = async (item: TimelineItem) => {
+    if (item.actionUrl) {
+      try {
+        await Linking.openURL(item.actionUrl);
+      } catch (error) {
+        Alert.alert('Error', 'Could not open the link. Please try again.');
       }
-    } catch (error) {
-      Alert.alert('Error', 'Failed to generate PDF. Please try again.');
     }
   };
 
-  const handleEditTimeline = () => {
-    if (editMode) {
-      exitEditMode();
-    } else {
-      enterEditMode();
-    }
-  };
-
-
-  const handleSaveStepEdit = async () => {
-    if (!editingStep) return;
-
-    const updates: Partial<JourneyStep> = {
-      notes: editingStepNotes,
-      deadline: editingStepDeadline || undefined,
+  const renderTimelineItem = (item: TimelineItem, index: number) => {
+    const getPriorityColor = () => {
+      switch (item.priority) {
+        case 'critical':
+          return '#DC2626'; // Red
+        case 'important':
+          return '#D97706'; // Orange
+        case 'info':
+          return '#2563EB'; // Blue
+        default:
+          return Colors.textPrimary;
+      }
     };
 
-    const success = await updateStep(editingStep.id, updates);
-    if (success) {
-      setShowEditModal(false);
-      setEditingStep(null);
-      Alert.alert('Success', 'Step updated successfully!');
-    } else {
-      Alert.alert('Error', 'Failed to update step. Please try again.');
-    }
+    const getTypeIcon = () => {
+      switch (item.type) {
+        case 'court-hearing':
+          return 'hammer-outline'; // Gavel
+        case 'filing-deadline':
+          return 'time-outline'; // Clock
+        case 'work-authorization':
+          return 'briefcase-outline'; // Work
+        case 'task':
+          return 'checkmark-circle-outline'; // Checklist
+        case 'info':
+          return 'information-circle-outline'; // Info
+        default:
+          return 'calendar-outline';
+      }
+    };
+
+    const formatDate = (dateString: string) => {
+      const date = new Date(dateString);
+      const day = date.getDate().toString().padStart(2, '0');
+      const month = date.toLocaleDateString('en-US', { month: 'short' });
+      const year = date.getFullYear();
+      return { day, month, year };
+    };
+
+    const isOverdue = item.date && new Date(item.date) < new Date();
+    const daysUntil = item.date ? Math.ceil((new Date(item.date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : null;
+
+    return (
+      <View key={item.id} style={styles.timelineItem}>
+        {/* Date Column */}
+        <View style={styles.dateColumn}>
+          {item.date ? (
+            <>
+              <Text style={[styles.dateDay, { color: getPriorityColor() }]}>
+                {formatDate(item.date).day}
+              </Text>
+              <Text style={[styles.dateMonth, { color: getPriorityColor() }]}>
+                {formatDate(item.date).month.toUpperCase()}
+              </Text>
+              <Text style={styles.dateYear}>{formatDate(item.date).year}</Text>
+              {daysUntil !== null && daysUntil >= 0 && (
+                <Text style={[styles.daysUntil, { color: getPriorityColor() }]}>
+                  {daysUntil === 0 ? 'TODAY' : `${daysUntil}d`}
+                </Text>
+              )}
+              {isOverdue && (
+                <Text style={[styles.overdue, { color: getPriorityColor() }]}>
+                  OVERDUE
+                </Text>
+              )}
+            </>
+          ) : (
+            <View style={[styles.noDateIcon, { backgroundColor: getPriorityColor() }]}>
+              <Ionicons name={getTypeIcon()} size={16} color={Colors.white} />
+            </View>
+          )}
+        </View>
+
+        {/* Timeline Connector */}
+        <View style={styles.timelineConnector}>
+          <View style={[styles.timelineNode, { backgroundColor: getPriorityColor() }]}>
+            <Ionicons name={getTypeIcon()} size={16} color={Colors.white} />
+          </View>
+          {index < timelineItems.length - 1 && (
+            <View style={[styles.timelineLine, { backgroundColor: Colors.border }]} />
+          )}
+        </View>
+
+        {/* Content Column */}
+        <View style={styles.contentColumn}>
+          <View style={styles.itemHeader}>
+            <Text style={styles.itemCategory}>{item.category}</Text>
+            <View style={[styles.priorityBadge, { backgroundColor: getPriorityColor() }]}>
+              <Text style={styles.priorityText}>
+                {item.priority === 'critical' ? 'CRITICAL' : item.priority.toUpperCase()}
+              </Text>
+            </View>
+          </View>
+          
+          <Text style={[styles.itemTitle, { color: getPriorityColor() }]}>
+            {item.title}
+          </Text>
+          
+          <Text style={styles.itemDescription}>
+            {item.description}
+          </Text>
+
+          {/* Action Button */}
+          {item.actionText && item.actionUrl && (
+            <TouchableOpacity
+              style={[styles.actionButton, { backgroundColor: getPriorityColor() }]}
+              onPress={() => handleCardAction(item)}
+            >
+              <Text style={styles.actionButtonText}>{item.actionText}</Text>
+              <Ionicons name="arrow-forward" size={14} color={Colors.white} />
+            </TouchableOpacity>
+          )}
+
+          {/* Sub-items */}
+          {item.subItems && item.subItems.length > 0 && (
+            <View style={styles.subItemsContainer}>
+              <Text style={styles.subItemsHeader}>Supporting Actions:</Text>
+              {item.subItems.map((subItem) => (
+                <View key={subItem.id} style={styles.subItem}>
+                  <Ionicons name="checkmark-circle-outline" size={16} color={Colors.textSecondary} />
+                  <View style={styles.subItemContent}>
+                    <Text style={styles.subItemTitle}>{subItem.title}</Text>
+                    <Text style={styles.subItemDescription}>{subItem.description}</Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
+      </View>
+    );
   };
 
-  const handleStartJourney = () => {
-    // Navigate to the journey questionnaire
-    const rootNavigation = navigation.getParent?.() || navigation;
-    rootNavigation.navigate('AuthStack', { screen: 'AsylumStatus' });
-  };
-
-  const handleShowCompletedSteps = () => {
-    setShowCompletedSteps(!showCompletedSteps);
-  };
-
-  const handleHelpPress = () => {
+  const handleLogout = async () => {
     Alert.alert(
-      'Help & Support',
-      'Need assistance with your asylum journey?',
+      'Logout',
+      'Are you sure you want to logout? You will need to sign in again to access your timeline.',
       [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Contact Support', 
-          onPress: () => {
-            // TODO: Navigate to support/help screen when created
-            Alert.alert('Support', 'Support contact information will be available soon.');
-          }
+        {
+          text: 'Cancel',
+          style: 'cancel',
         },
-        { 
-          text: 'View FAQ', 
-          onPress: () => {
-            // TODO: Navigate to FAQ screen when created
-            Alert.alert('FAQ', 'Frequently asked questions will be available soon.');
-          }
-        }
+        {
+          text: 'Logout',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await AuthService.signOut();
+              // Navigate back to auth stack
+              navigation.getParent()?.navigate('AuthStack');
+            } catch (error) {
+              console.error('Logout error:', error);
+              Alert.alert('Error', 'Failed to logout. Please try again.');
+            }
+          },
+        },
       ]
     );
   };
 
-  // Loading state
-  if (loading) {
+  if (loading || dataLoading) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#2E6B47" />
           <Text style={styles.loadingText}>Loading your timeline...</Text>
         </View>
       </SafeAreaView>
     );
   }
 
-  // Error state
-  if (error) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorTitle}>Something went wrong</Text>
-          <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity 
-            style={styles.retryButton}
-            onPress={handleStartJourney}
-          >
-            <Text style={styles.retryButtonText}>Start Journey</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  // Empty state when user hasn't completed onboarding
-  if (!timeline) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Your Asylum Journey</Text>
-          <TouchableOpacity 
-            style={styles.helpButton}
-            onPress={handleHelpPress}
-          >
-            <View style={styles.helpIcon}>
-              <Text style={styles.questionMark}>?</Text>
-            </View>
-          </TouchableOpacity>
-        </View>
-
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          {/* Empty Timeline Container */}
-          <View style={styles.emptyTimelineCard}>
-            <View style={styles.emptyTimelineContent}>
-              <View style={styles.emptyTimelineDot} />
-              <View style={styles.emptyTimelineLine} />
-            </View>
-          </View>
-
-          {/* Call to Action */}
-          <View style={styles.ctaSection}>
-            <Text style={styles.ctaTitle}>Complete journey questionnaire to see your timeline</Text>
-            <Text style={styles.ctaSubtitle}>
-              Answer a few questions about your asylum status to create your personalized timeline.
-            </Text>
-            <TouchableOpacity 
-              style={styles.startQuestionnaireButton}
-              onPress={handleStartJourney}
-            >
-              <Text style={styles.startQuestionnaireText}>Start questionnaire</Text>
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
-      </SafeAreaView>
-    );
-  }
-
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header matching Home.png */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Your Asylum Journey</Text>
-        <TouchableOpacity 
-          style={styles.helpButton}
-          onPress={handleHelpPress}
-        >
-          <View style={styles.helpIcon}>
-            <Text style={styles.questionMark}>?</Text>
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Your Asylum Journey</Text>
+          <View style={styles.headerButtons}>
+            <TouchableOpacity style={styles.helpButton}>
+              <Ionicons name="help-circle" size={20} color={Colors.white} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.logoutButton}
+              onPress={handleLogout}
+              accessibilityRole="button"
+              accessibilityLabel="Logout"
+            >
+              <Text style={styles.logoutButtonText}>Logout</Text>
+            </TouchableOpacity>
           </View>
-        </TouchableOpacity>
-      </View>
+        </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Dynamic Alert Banner */}
-        {primaryAlert && (
-          <TouchableOpacity style={[
-            styles.alertBanner,
-            primaryAlert.type === 'warning' ? styles.warningBanner :
-            primaryAlert.type === 'critical' ? styles.criticalBanner : styles.infoBanner
-          ]}>
-            <View style={styles.alertIcon}>
-              <Ionicons 
-                name={primaryAlert.type === 'critical' || primaryAlert.type === 'warning' ? "warning" : "information-circle"} 
-                size={20} 
-                color="#FFFFFF" 
+        {/* Your Next Deadline */}
+        {nextDeadline && (
+          <View style={styles.nextDeadlineContainer}>
+            <Text style={styles.nextDeadlineHeader}>Your Next Deadline</Text>
+            <View style={styles.nextDeadlineCard}>
+              <View style={styles.nextDeadlineDate}>
+                <Text style={styles.nextDeadlineDay}>
+                  {new Date(nextDeadline.date!).getDate().toString().padStart(2, '0')}
+                </Text>
+                <Text style={styles.nextDeadlineMonth}>
+                  {new Date(nextDeadline.date!).toLocaleDateString('en-US', { month: 'short' }).toUpperCase()}
+                </Text>
+              </View>
+              <View style={styles.nextDeadlineContent}>
+                <Text style={styles.nextDeadlineTitle}>{nextDeadline.title}</Text>
+                <Text style={styles.nextDeadlineDescription}>{nextDeadline.description}</Text>
+                <Text style={styles.nextDeadlineDays}>
+                  {Math.ceil((new Date(nextDeadline.date!).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} days remaining
+                </Text>
+              </View>
+            </View>
+          </View>
+        )}
+
+        {/* Timeline */}
+        <View style={styles.timelineContainer}>
+          <Text style={styles.timelineHeader}>Your Asylum Timeline</Text>
+          {console.log('Rendering timeline with items:', timelineItems.length)}
+          {timelineItems.length > 0 ? (
+            timelineItems.map((item, index) => renderTimelineItem(item, index))
+          ) : (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyStateText}>
+                No timeline data available. Please complete the questionnaire to generate your personalized timeline.
+              </Text>
+              <Button
+                title="Complete Questionnaire"
+                onPress={() => navigation.navigate('AuthStack', { screen: 'OnboardingStart' })}
+                style={styles.emptyStateButton}
               />
             </View>
-            <View style={styles.alertContent}>
-              <Text style={styles.alertTitle}>{primaryAlert.title}</Text>
-              <Text style={styles.alertText}>{primaryAlert.message}</Text>
-            </View>
-          </TouchableOpacity>
-        )}
+          )}
+        </View>
 
-        {/* Current Step Card */}
-        {selectedStep && (
-          <View style={styles.stepCard}>
-            {/* Step Header with Progress */}
-            <View style={styles.stepCardHeader}>
-              <View style={styles.stepTimeline}>
-                <View style={[styles.timelineDot, selectedStep.completed ? styles.completedDot : styles.activeDot]} />
-                <View style={styles.timelineLine} />
-              </View>
-              <View style={styles.stepHeaderContent}>
-                <Text style={styles.stepName}>{selectedStep.title}</Text>
-                <Text style={styles.stepProgress}>{Math.round(selectedStep.progress || 0)}% complete</Text>
-              </View>
-            </View>
-
-            {/* Step Content */}
-            <View style={styles.stepCardContent}>
-              {/* Show Completed Steps Toggle */}
-              <TouchableOpacity 
-                style={styles.showCompletedToggle}
-                onPress={handleShowCompletedSteps}
-              >
-                <Text style={styles.showCompletedText}>
-                  {showCompletedSteps ? 'Hide completed steps' : 'Show completed steps'}
-                </Text>
-              </TouchableOpacity>
-
-              {/* Completed Steps List */}
-              {showCompletedSteps && (
-                <View style={styles.completedStepsSection}>
-                  {steps.filter(s => s.completed).length > 0 ? (
-                    steps.filter(s => s.completed).map((step) => (
-                      <View key={step.id} style={styles.completedStepRow}>
-                        <Ionicons name="checkmark-circle" size={16} color={Colors.primary} />
-                        <Text style={styles.completedStepText}>{step.title}</Text>
-                      </View>
-                    ))
-                  ) : (
-                    <Text style={styles.noCompletedText}>No completed steps yet</Text>
-                  )}
-                </View>
-              )}
-
-              {/* Next Step */}
-              <View style={styles.nextStepSection}>
-                <Text style={styles.nextStepLabel}>Next step:</Text>
-                <Text style={styles.nextStepDescription}>
-                  {selectedStep.description || selectedStep.nextActions?.[0] || 'Continue with your asylum process'}
-                </Text>
-              </View>
-
-              {/* Action Buttons */}
-              <View style={styles.stepActions}>
-                <TouchableOpacity 
-                  style={styles.addToCalendarLink}
-                  onPress={handleAddToCalendar}
-                >
-                  <Text style={styles.linkText}>Add to calendar</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity 
-                  style={styles.viewResourcesButton}
-                  onPress={() => navigation.navigate('Resources')}
-                >
-                  <Text style={styles.viewResourcesText}>View resources</Text>
-                </TouchableOpacity>
-
-                {!selectedStep.completed && (
-                  <TouchableOpacity 
-                    style={styles.markAsDoneButton}
-                    onPress={handleMarkAsDone}
-                  >
-                    <Text style={styles.markAsDoneText}>Mark as done</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            </View>
-          </View>
-        )}
-
-        {/* Progress Indicators */}
-        <View style={styles.progressIndicators}>
-          {steps.slice(0, 5).map((step, index) => (
-            <TouchableOpacity 
-              key={step.id} 
-              style={[
-                styles.progressDot,
-                step.completed ? styles.completedProgressDot : 
-                index === selectedStepIndex ? styles.activeProgressDot : 
-                styles.inactiveProgressDot
-              ]} 
-              onPress={() => handleStepNavigation(index)}
+        {/* Export Timeline Button */}
+        {timelineItems.length > 0 && (
+          <View style={styles.exportSection}>
+            <Button
+              title="Save My Timeline"
+              onPress={() => {
+                Alert.alert('Export Options', 'Choose export format:', [
+                  { text: 'Cancel', style: 'cancel' },
+                  { text: 'Add to Calendar', onPress: () => Alert.alert('Calendar', 'Calendar export coming soon') },
+                  { text: 'Export to PDF', onPress: () => Alert.alert('PDF', 'PDF export coming soon') }
+                ]);
+              }}
+              style={styles.exportButton}
             />
-          ))}
-        </View>
-
-        {/* Edit Timeline Link */}
-        <TouchableOpacity 
-          style={styles.editTimelineLink}
-          onPress={editMode ? exitEditMode : enterEditMode}
-        >
-          <Text style={styles.editTimelineText}>
-            {editMode ? 'Save changes' : 'Edit timeline'}
-          </Text>
-        </TouchableOpacity>
-
-        {/* Download Button */}
-        <TouchableOpacity 
-          style={styles.downloadTimelineButton}
-          onPress={handleDownloadTimeline}
-        >
-          <Text style={styles.downloadTimelineText}>Download full timeline</Text>
-        </TouchableOpacity>
-      </ScrollView>
-
-      {/* Edit Step Modal */}
-      <Modal
-        visible={showEditModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowEditModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Edit Step</Text>
-              <TouchableOpacity
-                style={styles.closeButton}
-                onPress={() => setShowEditModal(false)}
-              >
-                <Ionicons name="close" size={24} color="#666666" />
-              </TouchableOpacity>
-            </View>
-
-            {editingStep && (
-              <>
-                <Text style={styles.modalStepTitle}>{editingStep.title}</Text>
-                
-                <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Deadline (YYYY-MM-DD)</Text>
-                  <TextInput
-                    style={styles.textInput}
-                    value={editingStepDeadline}
-                    onChangeText={setEditingStepDeadline}
-                    placeholder="Enter deadline date"
-                    placeholderTextColor="#999999"
-                  />
-                </View>
-
-                <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Notes</Text>
-                  <TextInput
-                    style={[styles.textInput, styles.multilineInput]}
-                    value={editingStepNotes}
-                    onChangeText={setEditingStepNotes}
-                    placeholder="Add personal notes..."
-                    placeholderTextColor="#999999"
-                    multiline
-                    numberOfLines={4}
-                  />
-                </View>
-
-                <View style={styles.switchContainer}>
-                  <Text style={styles.switchLabel}>Mark as completed</Text>
-                  <Switch
-                    value={editingStep.completed}
-                    onValueChange={async (value) => {
-                      await markStepComplete(editingStep.id, value);
-                      setEditingStep({...editingStep, completed: value});
-                    }}
-                    trackColor={{ false: '#E0E0E0', true: '#2E6B47' }}
-                    thumbColor={editingStep.completed ? '#FFFFFF' : '#FFFFFF'}
-                  />
-                </View>
-
-                <TouchableOpacity
-                  style={styles.saveButton}
-                  onPress={handleSaveStepEdit}
-                >
-                  <Text style={styles.saveButtonText}>Save Changes</Text>
-                </TouchableOpacity>
-              </>
-            )}
           </View>
-        </View>
-      </Modal>
+        )}
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -547,608 +578,391 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#F8FAFC',
   },
-
-  // Header
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#000000',
-  },
-  helpButton: {
-    padding: 4,
-  },
-  helpIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#2E6B47',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  questionMark: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-
-  // Content
-  content: {
-    flex: 1,
-    paddingHorizontal: 16,
-    paddingTop: 16,
-  },
-
-  // Empty state styles
-  emptyTimelineCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    borderWidth: 2,
-    borderColor: '#E8F5E8',
-    padding: 40,
-    marginBottom: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 200,
-  },
-  emptyTimelineContent: {
-    alignItems: 'center',
-  },
-  emptyTimelineDot: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: Colors.primary,
-    marginBottom: 8,
-  },
-  emptyTimelineLine: {
-    width: 2,
-    height: 60,
-    backgroundColor: Colors.primary,
-  },
-  ctaSection: {
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    marginBottom: 32,
-  },
-  ctaTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#000000',
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  ctaSubtitle: {
-    fontSize: 16,
-    color: '#333333',
-    lineHeight: 24,
-    textAlign: 'center',
-    marginBottom: 32,
-  },
-  startQuestionnaireButton: {
-    backgroundColor: Colors.primaryDark,
-    borderRadius: 25,
-    paddingVertical: 16,
-    paddingHorizontal: 32,
-    alignItems: 'center',
-    minWidth: 250,
-  },
-  startQuestionnaireText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-
-  // Alert Banner styles
-  alertBanner: {
-    flexDirection: 'row',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    alignItems: 'flex-start',
-  },
-  infoBanner: {
-    backgroundColor: '#E3F2FD', // Light blue
-  },
-  warningBanner: {
-    backgroundColor: '#FFF3E0', // Light orange
-  },
-  alertIcon: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-    marginTop: 2,
-  },
-  infoIconStyle: {
-    backgroundColor: '#2196F3', // Blue
-  },
-  warningIcon: {
-    backgroundColor: '#FF9800', // Orange
-  },
-  alertIconText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  alertContent: {
+  scrollView: {
     flex: 1,
   },
-  alertTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#000000',
-    marginBottom: 4,
-  },
-  alertText: {
-    fontSize: 14,
-    color: '#333333',
-    lineHeight: 20,
-  },
-
-  // Timeline Card
-  timelineCard: {
-    backgroundColor: '#E8F5E8', // Light green
-    borderRadius: 16,
-    overflow: 'hidden',
-    marginBottom: 24,
-  },
-  progressHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    paddingBottom: 12,
-  },
-  progressDot: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: Colors.primary,
-    marginRight: 12,
-  },
-  progressInfo: {
-    flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  timelineTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#000000',
-  },
-  progressPercent: {
-    fontSize: 16,
-    color: '#666666',
-    fontWeight: '500',
-  },
-
-  // Card Content
-  cardContent: {
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 16,
-    marginBottom: 16,
-    borderRadius: 12,
-    padding: 16,
-  },
-  markAsDoneButton: {
-    backgroundColor: Colors.primaryDark,
-    borderRadius: 25,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    alignItems: 'center',
-    marginTop: 12,
-  },
-  markAsDoneText: {
-    fontSize: 16,
-    color: '#FFFFFF',
-    fontWeight: '600',
-  },
-  editTimelineLink: {
-    position: 'absolute',
-    bottom: 16,
-    right: 16,
-  },
-  editTimelineText: {
-    fontSize: 14,
-    color: '#666666',
-    textDecorationLine: 'underline',
-  },
-
-  // Navigation Dots
-  navigationDots: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginVertical: 16,
-    gap: 8,
-  },
-  navigationDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: '#CCCCCC',
-  },
-  navigationDotActive: {
-    backgroundColor: '#333333',
-  },
-
-  // Download Timeline Button
-  downloadTimelineButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: '#333333',
-    borderRadius: 25,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  downloadTimelineText: {
-    fontSize: 16,
-    color: '#333333',
-    fontWeight: '500',
-  },
-
-  // Loading/Error States
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
   loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: '#666666',
+    ...Typography.body,
+    color: Colors.textSecondary,
   },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-  },
-  errorTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333333',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  errorText: {
-    fontSize: 16,
-    color: '#666666',
-    textAlign: 'center',
-    marginBottom: 24,
-  },
-  retryButton: {
-    backgroundColor: '#2E6B47',
-    borderRadius: 25,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-  },
-  retryButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-
-  // Critical Alert Banner
-  criticalBanner: {
-    backgroundColor: '#FFEBEE', // Light red
-  },
-  criticalIcon: {
-    backgroundColor: '#F44336', // Red
-  },
-
-  // Next Actions
-  nextActionsContainer: {
-    marginTop: 12,
-  },
-  nextActionsLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333333',
-    marginBottom: 8,
-  },
-  nextActionText: {
-    fontSize: 14,
-    color: '#666666',
-    marginBottom: 4,
-    paddingLeft: 8,
-  },
-
-  // Edit Step Button
-  editStepButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: '#2E6B47',
-    borderRadius: 25,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    alignItems: 'center',
-    marginTop: 12,
-  },
-  editStepText: {
-    fontSize: 16,
-    color: '#2E6B47',
-    fontWeight: '500',
-  },
-
-  // Modal
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 24,
-    paddingBottom: 40,
-    maxHeight: '80%',
-  },
-  modalHeader: {
+  header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 20,
+    backgroundColor: Colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
   },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333333',
+  headerTitle: {
+    ...Typography.h2,
+    color: Colors.textPrimary,
+    fontWeight: '700',
+    fontSize: 28,
   },
-  closeButton: {
-    padding: 4,
-  },
-
-  // Step Title in Modal (renamed to modalStepTitle)
-  modalStepTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333333',
-    marginBottom: 20,
-  },
-
-  // Form Inputs
-  inputGroup: {
-    marginBottom: 20,
-  },
-  inputLabel: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#333333',
-    marginBottom: 8,
-  },
-  textInput: {
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: '#333333',
-    backgroundColor: '#FFFFFF',
-  },
-  multilineInput: {
-    height: 100,
-    textAlignVertical: 'top',
-  },
-
-  // Switch Container
-  switchContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-    paddingVertical: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#E0E0E0',
-  },
-  switchLabel: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#333333',
-  },
-
-  // Save Button
-  saveButton: {
-    backgroundColor: '#2E6B47',
-    borderRadius: 8,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  saveButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-
-  // Timeline Card Styles
-  stepCard: {
-    backgroundColor: '#E8F5E8',
-    borderRadius: 12,
-    marginBottom: 20,
-    marginHorizontal: 16,
-    overflow: 'hidden',
-  },
-  stepCardHeader: {
-    backgroundColor: '#E8F5E8',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+  headerButtons: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  stepTimeline: {
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  timelineDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginBottom: 8,
-  },
-  activeDot: {
-    backgroundColor: '#4CAF50',
-  },
-  completedDot: {
-    backgroundColor: '#4CAF50',
-  },
-  timelineLine: {
-    width: 2,
-    height: 40,
-    backgroundColor: '#4CAF50',
-  },
-  stepHeaderContent: {
-    flex: 1,
-  },
-  stepName: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333333',
-    marginBottom: 4,
-  },
-  stepProgress: {
-    fontSize: 16,
-    color: '#333333',
-  },
-  stepCardContent: {
-    backgroundColor: '#FFFFFF',
-    padding: 16,
-  },
-  showCompletedToggle: {
-    marginBottom: 16,
-  },
-  showCompletedText: {
-    fontSize: 14,
-    color: '#666666',
-  },
-  completedStepsSection: {
-    marginBottom: 16,
-  },
-  completedStepRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  completedStepText: {
-    fontSize: 14,
-    color: '#333333',
-    marginLeft: 8,
-  },
-  noCompletedText: {
-    fontSize: 14,
-    color: '#999999',
-    fontStyle: 'italic',
-  },
-  nextStepSection: {
-    marginBottom: 20,
-  },
-  nextStepLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333333',
-    marginBottom: 8,
-  },
-  nextStepDescription: {
-    fontSize: 16,
-    color: '#333333',
-    lineHeight: 24,
-  },
-  stepActions: {
     gap: 12,
   },
-  addToCalendarLink: {
-    alignSelf: 'center',
-    paddingVertical: 8,
-  },
-  linkText: {
-    fontSize: 16,
-    color: '#333333',
-    textDecorationLine: 'underline',
-  },
-  viewResourcesButton: {
-    borderWidth: 2,
-    borderColor: '#333333',
-    borderRadius: 25,
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  viewResourcesText: {
-    fontSize: 16,
-    color: '#333333',
-    fontWeight: '500',
-  },
-  markAsDoneButton: {
-    backgroundColor: '#2E6B47',
-    borderRadius: 25,
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  markAsDoneText: {
-    fontSize: 16,
-    color: '#FFFFFF',
-    fontWeight: '600',
-  },
-  progressIndicators: {
-    flexDirection: 'row',
+  helpButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20,
-    gap: 8,
+    shadowColor: Colors.primary,
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  progressDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-  },
-  activeProgressDot: {
-    backgroundColor: '#2E6B47',
-  },
-  completedProgressDot: {
-    backgroundColor: '#4CAF50',
-  },
-  inactiveProgressDot: {
-    backgroundColor: '#CCCCCC',
-  },
-  editTimelineLink: {
-    alignSelf: 'flex-end',
+  logoutButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    marginBottom: 20,
+    backgroundColor: Colors.error,
+    borderRadius: 8,
+    shadowColor: Colors.error,
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  editTimelineText: {
+  logoutButtonText: {
+    ...Typography.button,
+    color: Colors.white,
     fontSize: 14,
-    color: '#333333',
-    textDecorationLine: 'underline',
+    fontWeight: '600',
   },
-  downloadTimelineButton: {
-    borderWidth: 2,
-    borderColor: '#333333',
-    borderRadius: 25,
-    paddingVertical: 12,
+
+  // Your Next Deadline Styles
+  nextDeadlineContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 10,
+  },
+  nextDeadlineHeader: {
+    ...Typography.h3,
+    color: Colors.textPrimary,
+    fontWeight: '700',
+    fontSize: 20,
+    marginBottom: 12,
+  },
+  nextDeadlineCard: {
+    backgroundColor: '#FEF2F2',
+    borderRadius: 16,
+    borderLeftWidth: 6,
+    borderLeftColor: '#DC2626',
+    padding: 20,
+    flexDirection: 'row',
     alignItems: 'center',
-    marginHorizontal: 16,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  nextDeadlineDate: {
+    alignItems: 'center',
+    marginRight: 20,
+    paddingVertical: 8,
+  },
+  nextDeadlineDay: {
+    fontSize: 32,
+    fontWeight: '800',
+    color: '#DC2626',
+    lineHeight: 38,
+  },
+  nextDeadlineMonth: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#DC2626',
+    letterSpacing: 1,
+  },
+  nextDeadlineContent: {
+    flex: 1,
+  },
+  nextDeadlineTitle: {
+    ...Typography.h4,
+    color: '#991B1B',
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  nextDeadlineDescription: {
+    ...Typography.body,
+    color: '#7F1D1D',
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 8,
+  },
+  nextDeadlineDays: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#DC2626',
+  },
+
+  // Timeline Styles
+  timelineContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 10,
+  },
+  timelineHeader: {
+    ...Typography.h3,
+    color: Colors.textPrimary,
+    fontWeight: '700',
+    fontSize: 20,
     marginBottom: 20,
   },
-  downloadTimelineText: {
-    fontSize: 16,
-    color: '#333333',
+  timelineItem: {
+    flexDirection: 'row',
+    marginBottom: 24,
+    backgroundColor: Colors.white,
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+
+  // Date Column
+  dateColumn: {
+    alignItems: 'center',
+    minWidth: 70,
+    marginRight: 16,
+  },
+  dateDay: {
+    fontSize: 24,
+    fontWeight: '800',
+    lineHeight: 28,
+  },
+  dateMonth: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 1,
+    marginBottom: 2,
+  },
+  dateYear: {
+    fontSize: 12,
     fontWeight: '500',
+    color: Colors.textSecondary,
+    marginBottom: 4,
+  },
+  daysUntil: {
+    fontSize: 10,
+    fontWeight: '700',
+    backgroundColor: 'rgba(0,0,0,0.05)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    textAlign: 'center',
+  },
+  overdue: {
+    fontSize: 10,
+    fontWeight: '700',
+    backgroundColor: '#FEE2E2',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    textAlign: 'center',
+  },
+  noDateIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  // Timeline Connector
+  timelineConnector: {
+    alignItems: 'center',
+    marginRight: 16,
+    position: 'relative',
+  },
+  timelineNode: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 2,
+  },
+  timelineLine: {
+    position: 'absolute',
+    width: 2,
+    height: 40,
+    top: 32,
+    zIndex: 1,
+  },
+
+  // Content Column
+  contentColumn: {
+    flex: 1,
+  },
+  itemHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  itemCategory: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  priorityBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  priorityText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: Colors.white,
+    letterSpacing: 0.5,
+  },
+  itemTitle: {
+    ...Typography.h4,
+    fontWeight: '700',
+    fontSize: 18,
+    lineHeight: 24,
+    marginBottom: 8,
+  },
+  itemDescription: {
+    ...Typography.body,
+    color: Colors.textSecondary,
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 16,
+  },
+
+  // Action Button
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+    marginBottom: 16,
+  },
+  actionButtonText: {
+    ...Typography.button,
+    color: Colors.white,
+    fontSize: 14,
+    fontWeight: '600',
+    marginRight: 6,
+  },
+
+  // Sub Items
+  subItemsContainer: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 8,
+  },
+  subItemsHeader: {
+    ...Typography.h5,
+    color: Colors.textPrimary,
+    fontWeight: '600',
+    fontSize: 14,
+    marginBottom: 12,
+  },
+  subItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  subItemContent: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  subItemTitle: {
+    ...Typography.h5,
+    color: Colors.textPrimary,
+    fontWeight: '600',
+    fontSize: 14,
+    lineHeight: 18,
+    marginBottom: 4,
+  },
+  subItemDescription: {
+    ...Typography.body,
+    color: Colors.textSecondary,
+    fontSize: 12,
+    lineHeight: 16,
+  },
+
+  // Empty State
+  emptyState: {
+    backgroundColor: Colors.white,
+    borderRadius: 16,
+    padding: 24,
+    alignItems: 'center',
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  emptyStateText: {
+    ...Typography.body,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: 20,
+    lineHeight: 22,
+  },
+  emptyStateButton: {
+    minWidth: 200,
+  },
+
+  // Export Section
+  exportSection: {
+    paddingHorizontal: 20,
+    paddingBottom: 30,
+    paddingTop: 10,
+  },
+  exportButton: {
+    backgroundColor: Colors.primary,
+    borderRadius: 12,
+    paddingVertical: 16,
+    shadowColor: Colors.primary,
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 4,
   },
 });
 
