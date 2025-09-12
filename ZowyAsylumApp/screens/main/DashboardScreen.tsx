@@ -77,6 +77,7 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
   const [timelineItems, setTimelineItems] = useState<TimelineItem[]>([]);
   const [nextDeadline, setNextDeadline] = useState<TimelineItem | null>(null);
   const [dataLoading, setDataLoading] = useState(true);
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
   // Load user data on component mount
   useEffect(() => {
@@ -319,6 +320,16 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
     }
   };
 
+  const toggleItemExpansion = (itemId: string) => {
+    const newExpanded = new Set(expandedItems);
+    if (newExpanded.has(itemId)) {
+      newExpanded.delete(itemId);
+    } else {
+      newExpanded.add(itemId);
+    }
+    setExpandedItems(newExpanded);
+  };
+
   const renderTimelineItem = (item: TimelineItem, index: number) => {
     const getPriorityColor = () => {
       switch (item.priority) {
@@ -405,9 +416,11 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
         {/* Content Column */}
         <View style={styles.contentColumn}>
           <View style={styles.itemHeader}>
-            <Text style={styles.itemCategory}>{item.category}</Text>
+            <Text style={styles.itemCategory} numberOfLines={1} ellipsizeMode="tail">
+              {item.category}
+            </Text>
             <View style={[styles.priorityBadge, { backgroundColor: getPriorityColor() }]}>
-              <Text style={styles.priorityText}>
+              <Text style={styles.priorityText} numberOfLines={1}>
                 {item.priority === 'critical' ? 'CRITICAL' : item.priority.toUpperCase()}
               </Text>
             </View>
@@ -435,16 +448,33 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
           {/* Sub-items */}
           {item.subItems && item.subItems.length > 0 && (
             <View style={styles.subItemsContainer}>
-              <Text style={styles.subItemsHeader}>Supporting Actions:</Text>
-              {item.subItems.map((subItem) => (
-                <View key={subItem.id} style={styles.subItem}>
-                  <Ionicons name="checkmark-circle-outline" size={16} color={Colors.textSecondary} />
-                  <View style={styles.subItemContent}>
-                    <Text style={styles.subItemTitle}>{subItem.title}</Text>
-                    <Text style={styles.subItemDescription}>{subItem.description}</Text>
+              <TouchableOpacity 
+                style={styles.subItemsHeader}
+                onPress={() => toggleItemExpansion(item.id)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.subItemsHeaderText}>
+                  {expandedItems.has(item.id) ? 'Supporting Actions' : `Supporting Actions`}
+                </Text>
+                <Ionicons 
+                  name={expandedItems.has(item.id) ? 'chevron-up' : 'chevron-down'} 
+                  size={16} 
+                  color={Colors.primary} 
+                />
+              </TouchableOpacity>
+              
+              {expandedItems.has(item.id) && (
+                // Show all items when expanded
+                item.subItems.map((subItem) => (
+                  <View key={subItem.id} style={styles.subItem}>
+                    <Ionicons name="checkmark-circle-outline" size={16} color={Colors.textSecondary} />
+                    <View style={styles.subItemContent}>
+                      <Text style={styles.subItemTitle}>{subItem.title}</Text>
+                      <Text style={styles.subItemDescription}>{subItem.description}</Text>
+                    </View>
                   </View>
-                </View>
-              ))}
+                ))
+              )}
             </View>
           )}
         </View>
@@ -494,10 +524,12 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Your Asylum Journey</Text>
-          <View style={styles.headerButtons}>
+          <View style={styles.headerLeft}>
+            <Text style={styles.headerTitle}>Your Asylum Journey</Text>
+          </View>
+          <View style={styles.headerRight}>
             <TouchableOpacity style={styles.helpButton}>
-              <Ionicons name="help-circle" size={20} color={Colors.white} />
+              <Ionicons name="help-circle" size={18} color={Colors.white} />
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.logoutButton}
@@ -596,28 +628,34 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 20,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 16,
     backgroundColor: Colors.white,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
+  },
+  headerLeft: {
+    flex: 1,
+    marginRight: 16,
   },
   headerTitle: {
     ...Typography.h2,
     color: Colors.textPrimary,
     fontWeight: '700',
-    fontSize: 28,
+    fontSize: 22,
+    flexShrink: 1,
   },
-  headerButtons: {
+  headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 8,
+    flexShrink: 0,
   },
   helpButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: Colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
@@ -631,10 +669,12 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   logoutButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     backgroundColor: Colors.error,
-    borderRadius: 8,
+    borderRadius: 6,
+    minWidth: 60,
+    alignItems: 'center',
     shadowColor: Colors.error,
     shadowOffset: {
       width: 0,
@@ -647,15 +687,25 @@ const styles = StyleSheet.create({
   logoutButtonText: {
     ...Typography.button,
     color: Colors.white,
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '600',
   },
 
   // Your Next Deadline Styles
   nextDeadlineContainer: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 10,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 8,
+    backgroundColor: Colors.white,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+    zIndex: 10,
   },
   nextDeadlineHeader: {
     ...Typography.h3,
@@ -722,8 +772,9 @@ const styles = StyleSheet.create({
 
   // Timeline Styles
   timelineContainer: {
-    paddingHorizontal: 20,
-    paddingTop: 10,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 16,
   },
   timelineHeader: {
     ...Typography.h3,
@@ -734,10 +785,10 @@ const styles = StyleSheet.create({
   },
   timelineItem: {
     flexDirection: 'row',
-    marginBottom: 24,
+    marginBottom: 20,
     backgroundColor: Colors.white,
     borderRadius: 16,
-    padding: 16,
+    padding: 18,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -822,36 +873,46 @@ const styles = StyleSheet.create({
   // Content Column
   contentColumn: {
     flex: 1,
+    paddingLeft: 4,
   },
   itemHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
+    alignItems: 'flex-start',
+    marginBottom: 10,
+    minHeight: 24,
   },
   itemCategory: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
     color: Colors.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
+    flex: 1,
+    marginRight: 12,
+    marginTop: 2,
   },
   priorityBadge: {
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,
+    alignSelf: 'flex-start',
+    flexShrink: 0,
+    minWidth: 60,
+    alignItems: 'center',
   },
   priorityText: {
-    fontSize: 10,
-    fontWeight: '700',
+    fontSize: 8,
+    fontWeight: '800',
     color: Colors.white,
     letterSpacing: 0.5,
+    textAlign: 'center',
   },
   itemTitle: {
     ...Typography.h4,
     fontWeight: '700',
-    fontSize: 18,
-    lineHeight: 24,
+    fontSize: 17,
+    lineHeight: 22,
     marginBottom: 8,
   },
   itemDescription: {
@@ -859,7 +920,7 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     fontSize: 14,
     lineHeight: 20,
-    marginBottom: 16,
+    marginBottom: 14,
   },
 
   // Action Button
@@ -888,11 +949,32 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   subItemsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+    marginBottom: 8,
+  },
+  subItemsHeaderText: {
     ...Typography.h5,
     color: Colors.textPrimary,
     fontWeight: '600',
     fontSize: 14,
-    marginBottom: 12,
+    flex: 1,
+  },
+  showMoreButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: 'rgba(37, 99, 235, 0.1)',
+    borderRadius: 8,
+    marginTop: 8,
+    alignSelf: 'flex-start',
+  },
+  showMoreText: {
+    ...Typography.button,
+    color: Colors.primary,
+    fontSize: 12,
+    fontWeight: '600',
   },
   subItem: {
     flexDirection: 'row',
@@ -947,9 +1029,9 @@ const styles = StyleSheet.create({
 
   // Export Section
   exportSection: {
-    paddingHorizontal: 20,
-    paddingBottom: 30,
-    paddingTop: 10,
+    paddingHorizontal: 16,
+    paddingBottom: 24,
+    paddingTop: 16,
   },
   exportButton: {
     backgroundColor: Colors.primary,
