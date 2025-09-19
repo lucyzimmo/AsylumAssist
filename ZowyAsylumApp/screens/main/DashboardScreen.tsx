@@ -336,21 +336,33 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
   const generateCalendarEvents = () => {
     const events = timelineItems
       .filter(item => item.date)
-      .map(item => {
+      .map((item, index) => {
         const date = new Date(item.date!);
         const formattedDate = date.toISOString().split('T')[0].replace(/-/g, '');
         
-        // Create ICS format event
+        // Generate unique UID for each event
+        const uid = `asylum-${item.id}-${Date.now()}@zowy-app.com`;
+        
+        // Create proper ICS description with escaped characters
+        const description = item.description.replace(/\n/g, '\\n').replace(/,/g, '\\,').replace(/;/g, '\\;');
+        const subItemsText = item.subItems ? 
+          '\\n\\nSupporting Actions:\\n' + item.subItems.map(sub => `• ${sub.title.replace(/,/g, '\\,').replace(/;/g, '\\;')}`).join('\\n') : '';
+        
+        // Create ICS format event with proper formatting
         const eventString = [
           'BEGIN:VEVENT',
-          `DTSTART:${formattedDate}T090000Z`,
-          `DTEND:${formattedDate}T100000Z`,
-          `SUMMARY:${item.title}`,
-          `DESCRIPTION:${item.description}${item.subItems ? '\\n\\nSupporting Actions:\\n' + item.subItems.map(sub => `• ${sub.title}`).join('\\n') : ''}`,
+          `UID:${uid}`,
+          `DTSTART;VALUE=DATE:${formattedDate}`,
+          `DTEND;VALUE=DATE:${formattedDate}`,
+          `SUMMARY:${item.title.replace(/,/g, '\\,').replace(/;/g, '\\;')}`,
+          `DESCRIPTION:${description}${subItemsText}`,
           `CATEGORIES:${item.category}`,
+          `PRIORITY:${item.priority === 'critical' ? '1' : item.priority === 'important' ? '5' : '9'}`,
           `STATUS:TENTATIVE`,
+          `CREATED:${new Date().toISOString().replace(/[-:]/g, '').split('.')[0]}Z`,
+          `LAST-MODIFIED:${new Date().toISOString().replace(/[-:]/g, '').split('.')[0]}Z`,
           'END:VEVENT'
-        ].join('\n');
+        ].join('\r\n');
         
         return eventString;
       });
@@ -360,16 +372,41 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
       'VERSION:2.0',
       'PRODID:-//Zowy Asylum App//Timeline Events//EN',
       'CALSCALE:GREGORIAN',
+      'METHOD:PUBLISH',
       ...events,
       'END:VCALENDAR'
-    ].join('\n');
+    ].join('\r\n');
 
     return icsContent;
   };
 
   const handleCalendarExport = async () => {
     try {
-      // Instead of generating ICS files, provide a user-friendly list of dates
+      const icsContent = generateCalendarEvents();
+      const fileName = 'asylum-timeline.ics';
+      const fileUri = FileSystem.documentDirectory + fileName;
+      
+      // Write ICS file to device storage
+      await FileSystem.writeAsStringAsync(fileUri, icsContent, {
+        encoding: FileSystem.EncodingType.UTF8,
+      });
+      
+      // Share the actual ICS file
+      await Sharing.shareAsync(fileUri, {
+        mimeType: 'text/calendar',
+        dialogTitle: 'Add Asylum Timeline to Calendar',
+        UTI: 'public.calendar-event',
+      });
+      
+      Alert.alert(
+        'Calendar File Created',
+        'Your asylum timeline has been exported as a calendar file. Choose your calendar app to import all events.',
+        [{ text: 'OK' }]
+      );
+    } catch (error) {
+      console.error('Calendar export error:', error);
+      
+      // Fallback to text sharing if file export fails
       const datesList = timelineItems
         .filter(item => item.date)
         .sort((a, b) => new Date(a.date!).getTime() - new Date(b.date!).getTime())
@@ -390,20 +427,8 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
       });
 
       Alert.alert(
-        'Calendar Dates Shared',
-        'Your important dates have been shared. You can copy them and manually add to your calendar app for the most reliable reminders.',
-        [{ text: 'OK' }]
-      );
-    } catch (error) {
-      console.error('Calendar export error:', error);
-      Alert.alert(
-        'Share Failed', 
-        'Unable to share calendar dates. Here are your important dates:\n\n' + 
-        timelineItems
-          .filter(item => item.date)
-          .map(item => `• ${item.title}: ${new Date(item.date!).toLocaleDateString()}`)
-          .join('\n') + 
-          '\n\nPlease manually add these to your calendar.',
+        'Calendar Export',
+        'Calendar file export failed, but your dates have been shared as text. You can copy them and manually add to your calendar app.',
         [{ text: 'OK' }]
       );
     }
@@ -727,7 +752,6 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
         {/* Timeline */}
         <View style={styles.timelineContainer}>
           <Text style={styles.timelineHeader}>Your Asylum Timeline</Text>
-          {console.log('Rendering timeline with items:', timelineItems.length)}
           {timelineItems.length > 0 ? (
             timelineItems.map((item, index) => renderTimelineItem(item, index))
           ) : (

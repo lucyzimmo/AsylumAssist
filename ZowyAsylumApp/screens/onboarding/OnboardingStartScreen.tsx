@@ -4,6 +4,7 @@ import {
   Text,
   StyleSheet,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StackScreenProps } from '@react-navigation/stack';
 import { Colors } from '../../constants/Colors';
@@ -41,8 +42,17 @@ const OnboardingStartScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.titleSection}>
             <Text style={styles.title}>Create your timeline</Text>
             <Text style={styles.subtitle}>
-              We'll ask a few questions to build your personalized asylum journey timeline
+              We'll ask a few questions to build your personalized asylum journey timeline.
             </Text>
+          </View>
+
+          <View style={styles.iconSection}>
+            <Ionicons 
+              name="time-outline" 
+              size={100} 
+              color={Colors.primary}
+              style={{ marginBottom: 0 , marginTop: 0, marginLeft: 0, marginRight: 0}} 
+            />
           </View>
 
           <View style={styles.infoSection}>
@@ -85,7 +95,7 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 24,
     paddingTop: 20,
-    paddingBottom: 24,
+    paddingBottom: 0,
     backgroundColor: Colors.white,
   },
   headerTitle: {
@@ -100,13 +110,17 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 24,
-    paddingTop: 32,
+    paddingTop: 10,
     paddingBottom: 32,
     justifyContent: 'space-between',
   },
   titleSection: {
     alignItems: 'center',
-    marginBottom: 40,
+    marginBottom: 16,
+  },
+  iconSection: {
+    alignItems: 'center',
+    marginBottom: 16,
   },
   title: {
     fontSize: 24,
@@ -123,9 +137,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   infoSection: {
-    flex: 1,
-    justifyContent: 'center',
-    paddingVertical: 40,
+    alignItems: 'center',
+    marginBottom: 24,
     paddingHorizontal: 24,
   },
   infoText: {
@@ -133,7 +146,8 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     textAlign: 'center',
     lineHeight: 24,
-    marginBottom: 24,
+    marginBottom: 20,
+    marginTop: 0,
   },
   privacyText: {
     fontSize: 14,
