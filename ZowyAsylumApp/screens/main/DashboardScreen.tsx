@@ -174,7 +174,7 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
               body: `${item.title} is in ${days} day${days > 1 ? 's' : ''}`,
               data: { itemId: item.id },
             },
-            trigger: null,
+            trigger: { seconds: Math.max(60, Math.floor((reminderDate.getTime() - now.getTime()) / 1000)) },
           });
         }
       }
