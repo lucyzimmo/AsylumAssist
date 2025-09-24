@@ -24,7 +24,15 @@
     },
     "web": {},
     "plugins": [
-      "expo-font"
+      "expo-font",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#7CB342",
+          "sounds": ["./assets/notification.wav"]
+        }
+      ]
     ]
   }
 }

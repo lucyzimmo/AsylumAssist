@@ -8,6 +8,9 @@ import {
   Alert,
   Linking,
   Share,
+  Modal,
+  TextInput,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -15,6 +18,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import * as Notifications from 'expo-notifications';
 import { HomeStackScreenProps } from '../../types/navigation';
 import { Colors } from '../../constants/Colors';
 import { Typography } from '../../constants/Typography';
@@ -53,6 +58,8 @@ interface TimelineItem {
   actionUrl?: string;
   completed?: boolean;
   subItems?: TimelineSubItem[];
+  isEditable?: boolean;
+  notificationId?: string;
 }
 
 interface TimelineSubItem {
@@ -81,11 +88,39 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
   const [nextDeadline, setNextDeadline] = useState<TimelineItem | null>(null);
   const [dataLoading, setDataLoading] = useState(true);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+  const [editingItem, setEditingItem] = useState<TimelineItem | null>(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [editedDate, setEditedDate] = useState<Date>(new Date());
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [editedTitle, setEditedTitle] = useState('');
+  const [editedDescription, setEditedDescription] = useState('');
+  const [showCompletedItems, setShowCompletedItems] = useState(false);
 
-  // Load user data on component mount
+  // Load user data and setup notifications on component mount
   useEffect(() => {
+    setupNotifications();
     loadUserData();
   }, []);
+
+  const setupNotifications = async () => {
+    // Request permissions
+    const { status } = await Notifications.requestPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission denied', 'Please enable notifications to receive deadline reminders.');
+      return;
+    }
+
+    // Configure notification handler
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: false,
+        shouldShowBanner: true,
+        shouldShowList: true,
+      }),
+    });
+  };
 
   const loadUserData = async () => {
     try {
@@ -98,6 +133,9 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
         const timeline = generateTimelineItems(parsedData);
         console.log('Generated timeline:', timeline);
         setTimelineItems(timeline);
+
+        // Schedule notifications for critical and important items
+        await scheduleTimelineNotifications(timeline);
         
         // Find next deadline
         const nextItem = timeline.find(item => 
@@ -112,6 +150,117 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
       console.error('Error loading user data:', error);
     } finally {
       setDataLoading(false);
+    }
+  };
+
+  const scheduleNotification = async (item: TimelineItem) => {
+    if (!item.date) return;
+
+    try {
+      const itemDate = new Date(item.date);
+      const now = new Date();
+
+      // Schedule for 1 week before, 3 days before, and 1 day before
+      const reminderDays = [7, 3, 1];
+
+      for (const days of reminderDays) {
+        const reminderDate = new Date(itemDate);
+        reminderDate.setDate(reminderDate.getDate() - days);
+
+        if (reminderDate > now) {
+          await Notifications.scheduleNotificationAsync({
+            content: {
+              title: `Asylum Deadline Reminder`,
+              body: `${item.title} is in ${days} day${days > 1 ? 's' : ''}`,
+              data: { itemId: item.id },
+            },
+            trigger: null,
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error scheduling notification:', error);
+    }
+  };
+
+  const scheduleTimelineNotifications = async (timeline: TimelineItem[]) => {
+    for (const item of timeline) {
+      if (item.date && (item.priority === 'critical' || item.priority === 'important')) {
+        await scheduleNotification(item);
+      }
+    }
+  };
+
+  const cancelNotifications = async (itemId: string) => {
+    try {
+      const scheduledNotifications = await Notifications.getAllScheduledNotificationsAsync();
+      const itemNotifications = scheduledNotifications.filter(
+        notification => notification.content.data?.itemId === itemId
+      );
+
+      for (const notification of itemNotifications) {
+        await Notifications.cancelScheduledNotificationAsync(notification.identifier);
+      }
+    } catch (error) {
+      console.error('Error canceling notifications:', error);
+    }
+  };
+
+  const handleEditItem = (item: TimelineItem) => {
+    if (!item.isEditable) return;
+
+    setEditingItem(item);
+    setEditedTitle(item.title);
+    setEditedDescription(item.description);
+    if (item.date) {
+      setEditedDate(new Date(item.date));
+    }
+    setEditModalVisible(true);
+  };
+
+  const handleToggleComplete = async (itemId: string) => {
+    const updatedItems = timelineItems.map(item =>
+      item.id === itemId ? { ...item, completed: !item.completed } : item
+    );
+    setTimelineItems(updatedItems);
+    await saveTimelineToStorage(updatedItems);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingItem) return;
+
+    // Cancel old notifications
+    await cancelNotifications(editingItem.id);
+
+    const updatedItems = timelineItems.map(item =>
+      item.id === editingItem.id
+        ? {
+            ...item,
+            title: editedTitle,
+            description: editedDescription,
+            date: editedDate.toISOString()
+          }
+        : item
+    );
+
+    setTimelineItems(updatedItems);
+    await saveTimelineToStorage(updatedItems);
+
+    // Schedule new notifications
+    const updatedItem = updatedItems.find(item => item.id === editingItem.id);
+    if (updatedItem) {
+      await scheduleNotification(updatedItem);
+    }
+
+    setEditModalVisible(false);
+    setEditingItem(null);
+  };
+
+  const saveTimelineToStorage = async (timeline: TimelineItem[]) => {
+    try {
+      await AsyncStorage.setItem('userTimeline', JSON.stringify(timeline));
+    } catch (error) {
+      console.error('Error saving timeline:', error);
     }
   };
 
@@ -130,6 +279,7 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
         description: `Appear at ${data.assignedCourt || 'your assigned court'}. Failure to appear may result in removal order.`,
         date: hearingDate.toISOString(),
         priority: 'critical',
+        isEditable: true,
         subItems: [
           {
             id: 'prepare-evidence',
@@ -162,6 +312,7 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
           description: 'File your asylum application within one year of arrival. Missing this deadline severely limits your options.',
           date: oneYearDeadline.toISOString(),
           priority: 'critical',
+          isEditable: true,
           subItems: [
             {
               id: 'gather-evidence',
@@ -209,6 +360,7 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
         description: 'Apply for Employment Authorization Document 150 days after filing I-589',
         date: eadEligibilityDate.toISOString(),
         priority: 'important',
+        isEditable: true,
         actionText: 'Apply for EAD',
         subItems: [
           {
@@ -235,7 +387,8 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
           title: 'Biometrics Appointment',
           description: 'Attend your biometrics appointment (typically 2-6 weeks after filing)',
           date: biometricsDate.toISOString(),
-          priority: 'critical'
+          priority: 'critical',
+          isEditable: true
         });
       }
     }
@@ -250,7 +403,8 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
         title: 'TPS Status Expiration',
         description: 'File asylum application before TPS expires to maintain exception eligibility',
         date: tpsExpiry.toISOString(),
-        priority: 'important'
+        priority: 'important',
+        isEditable: true
       });
     }
 
@@ -263,7 +417,8 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
         title: 'Parole Status Expiration',
         description: 'File asylum application before parole expires to maintain exception eligibility',
         date: paroleExpiry.toISOString(),
-        priority: 'important'
+        priority: 'important',
+        isEditable: true
       });
     }
 
@@ -513,7 +668,7 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
     }
   };
 
-  const renderTimelineItem = (item: TimelineItem, index: number) => {
+  const renderTimelineItem = (item: TimelineItem, index: number, isCompleted: boolean = false) => {
     const getPriorityColor = () => {
       switch (item.priority) {
         case 'critical':
@@ -556,56 +711,63 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
     const daysUntil = item.date ? Math.ceil((new Date(item.date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : null;
 
     return (
-      <View key={item.id} style={styles.timelineItem}>
-        {/* Date Column */}
-        <View style={styles.dateColumn}>
-          {item.date ? (
-            <>
-              <Text style={[styles.dateDay, { color: getPriorityColor() }]}>
-                {formatDate(item.date).day}
+      <View key={item.id} style={[styles.timelineItem, !item.date && styles.timelineItemNoDate]}>
+        {/* Date Column - Only show if item has date */}
+        {item.date && (
+          <View style={styles.dateColumn}>
+            <Text style={[styles.dateDay, { color: getPriorityColor() }]}>
+              {formatDate(item.date).day}
+            </Text>
+            <Text style={[styles.dateMonth, { color: getPriorityColor() }]}>
+              {formatDate(item.date).month.toUpperCase()}
+            </Text>
+            <Text style={styles.dateYear}>{formatDate(item.date).year}</Text>
+            {daysUntil !== null && daysUntil >= 0 && (
+              <Text style={[styles.daysUntil, { color: getPriorityColor() }]}>
+                {daysUntil === 0 ? 'TODAY' : `${daysUntil}d`}
               </Text>
-              <Text style={[styles.dateMonth, { color: getPriorityColor() }]}>
-                {formatDate(item.date).month.toUpperCase()}
+            )}
+            {isOverdue && (
+              <Text style={[styles.overdue, { color: getPriorityColor() }]}>
+                OVERDUE
               </Text>
-              <Text style={styles.dateYear}>{formatDate(item.date).year}</Text>
-              {daysUntil !== null && daysUntil >= 0 && (
-                <Text style={[styles.daysUntil, { color: getPriorityColor() }]}>
-                  {daysUntil === 0 ? 'TODAY' : `${daysUntil}d`}
-                </Text>
-              )}
-              {isOverdue && (
-                <Text style={[styles.overdue, { color: getPriorityColor() }]}>
-                  OVERDUE
-                </Text>
-              )}
-            </>
-          ) : (
-            <View style={[styles.noDateIcon, { backgroundColor: getPriorityColor() }]}>
+            )}
+          </View>
+        )}
+
+        {/* Timeline Connector - Only show if item has date */}
+        {item.date && (
+          <View style={styles.timelineConnector}>
+            <View style={[styles.timelineNode, { backgroundColor: getPriorityColor() }]}>
               <Ionicons name={getTypeIcon()} size={16} color={Colors.white} />
             </View>
-          )}
-        </View>
-
-        {/* Timeline Connector */}
-        <View style={styles.timelineConnector}>
-          <View style={[styles.timelineNode, { backgroundColor: getPriorityColor() }]}>
-            <Ionicons name={getTypeIcon()} size={16} color={Colors.white} />
+            {index < timelineItems.length - 1 && (
+              <View style={[styles.timelineLine, { backgroundColor: Colors.border }]} />
+            )}
           </View>
-          {index < timelineItems.length - 1 && (
-            <View style={[styles.timelineLine, { backgroundColor: Colors.border }]} />
-          )}
-        </View>
+        )}
+
+        {/* Icon for items without date */}
+        {!item.date && (
+          <View style={[styles.noDateIcon, { backgroundColor: getPriorityColor() }]}>
+            <Ionicons name={getTypeIcon()} size={20} color={Colors.white} />
+          </View>
+        )}
 
         {/* Content Column */}
-        <View style={styles.contentColumn}>
+        <View style={[styles.contentColumn, !item.date && styles.contentColumnNoDate]}>
           <View style={styles.itemHeader}>
-            <Text style={styles.itemCategory} numberOfLines={1} ellipsizeMode="tail">
-              {item.category}
-            </Text>
-            <View style={[styles.priorityBadge, { backgroundColor: getPriorityColor() }]}>
-              <Text style={styles.priorityText} numberOfLines={1}>
-                {item.priority === 'critical' ? 'CRITICAL' : item.priority.toUpperCase()}
-              </Text>
+            <View style={styles.itemHeaderLeft}>
+              <View style={styles.categoryAndBadge}>
+                <Text style={styles.itemCategory} numberOfLines={1} ellipsizeMode="tail">
+                  {item.category}
+                </Text>
+                <View style={[styles.priorityBadge, { backgroundColor: getPriorityColor() }]}>
+                  <Text style={styles.priorityText} numberOfLines={1}>
+                    {item.priority === 'critical' ? 'CRITICAL' : item.priority.toUpperCase()}
+                  </Text>
+                </View>
+              </View>
             </View>
           </View>
           
@@ -613,9 +775,34 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
             {item.title}
           </Text>
           
-          <Text style={styles.itemDescription}>
+          <Text style={[styles.itemDescription, item.completed && { textDecorationLine: 'line-through', opacity: 0.6 }]}>
             {item.description}
           </Text>
+
+          {/* Control Buttons */}
+          <View style={styles.itemControls}>
+            {/* Completion Toggle */}
+            <TouchableOpacity
+              style={[styles.compactButton, item.completed && styles.compactButtonCompleted]}
+              onPress={() => handleToggleComplete(item.id)}
+            >
+              <Ionicons
+                name={item.completed ? "checkmark-circle" : "checkmark-circle-outline"}
+                size={20}
+                color={item.completed ? Colors.success : Colors.textSecondary}
+              />
+            </TouchableOpacity>
+
+            {/* Edit Button */}
+            {item.isEditable && (
+              <TouchableOpacity
+                style={styles.compactButton}
+                onPress={() => handleEditItem(item)}
+              >
+                <Ionicons name="pencil" size={16} color={Colors.primary} />
+              </TouchableOpacity>
+            )}
+          </View>
 
           {/* Action Button */}
           {item.actionText && item.actionUrl && (
@@ -753,7 +940,45 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
         <View style={styles.timelineContainer}>
           <Text style={styles.timelineHeader}>Your Asylum Timeline</Text>
           {timelineItems.length > 0 ? (
-            timelineItems.map((item, index) => renderTimelineItem(item, index))
+            <>
+              {/* Active Items */}
+              {timelineItems.filter(item => !item.completed).map((item, index) => renderTimelineItem(item, index))}
+              
+              {/* Completed Items Section */}
+              {timelineItems.filter(item => item.completed).length > 0 && (
+                <View style={styles.completedSection}>
+                  <TouchableOpacity 
+                    style={styles.completedHeader}
+                    onPress={() => setShowCompletedItems(!showCompletedItems)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.completedHeaderText}>
+                      Completed Items ({timelineItems.filter(item => item.completed).length})
+                    </Text>
+                    <Ionicons 
+                      name={showCompletedItems ? 'chevron-up' : 'chevron-down'} 
+                      size={20} 
+                      color={Colors.textSecondary} 
+                    />
+                  </TouchableOpacity>
+                  
+                  {showCompletedItems && (
+                    <View style={styles.completedItemsContainer}>
+                      {timelineItems
+                        .filter(item => item.completed)
+                        .sort((a, b) => {
+                          // Sort by completion date (most recent first) or by original date
+                          if (a.date && b.date) {
+                            return new Date(b.date).getTime() - new Date(a.date).getTime();
+                          }
+                          return 0;
+                        })
+                        .map((item, index) => renderTimelineItem(item, index, true))}
+                    </View>
+                  )}
+                </View>
+              )}
+            </>
           ) : (
             <View style={styles.emptyState}>
               <Text style={styles.emptyStateText}>
@@ -767,6 +992,89 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
             </View>
           )}
         </View>
+
+        {/* Edit Modal */}
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={editModalVisible}
+          onRequestClose={() => setEditModalVisible(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Edit Timeline Item</Text>
+                <TouchableOpacity
+                  style={styles.modalCloseButton}
+                  onPress={() => setEditModalVisible(false)}
+                >
+                  <Ionicons name="close" size={24} color={Colors.textSecondary} />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView style={styles.modalBody}>
+                <Text style={styles.fieldLabel}>Title</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={editedTitle}
+                  onChangeText={setEditedTitle}
+                  placeholder="Enter title"
+                  multiline
+                />
+
+                <Text style={styles.fieldLabel}>Description</Text>
+                <TextInput
+                  style={[styles.textInput, styles.descriptionInput]}
+                  value={editedDescription}
+                  onChangeText={setEditedDescription}
+                  placeholder="Enter description"
+                  multiline
+                  numberOfLines={4}
+                />
+
+                <Text style={styles.fieldLabel}>Date</Text>
+                <TouchableOpacity
+                  style={styles.dateButton}
+                  onPress={() => setShowDatePicker(true)}
+                >
+                  <Ionicons name="calendar" size={20} color={Colors.primary} />
+                  <Text style={styles.dateButtonText}>
+                    {editedDate.toLocaleDateString()}
+                  </Text>
+                </TouchableOpacity>
+
+                {showDatePicker && (
+                  <DateTimePicker
+                    value={editedDate}
+                    mode="date"
+                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                    onChange={(event, selectedDate) => {
+                      setShowDatePicker(false);
+                      if (selectedDate) {
+                        setEditedDate(selectedDate);
+                      }
+                    }}
+                  />
+                )}
+              </ScrollView>
+
+              <View style={styles.modalFooter}>
+                <TouchableOpacity
+                  style={styles.modalCancelButton}
+                  onPress={() => setEditModalVisible(false)}
+                >
+                  <Text style={styles.modalCancelText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.modalSaveButton}
+                  onPress={handleSaveEdit}
+                >
+                  <Text style={styles.modalSaveText}>Save Changes</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
 
         {/* Export Timeline Button */}
         {timelineItems.length > 0 && (
@@ -988,6 +1296,9 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
   },
+  timelineItemNoDate: {
+    paddingLeft: 20,
+  },
 
   // Date Column
   dateColumn: {
@@ -1031,11 +1342,27 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   noDateIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
+    marginRight: 16,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  noDateText: {
+    fontSize: 20,
+  },
+  noDatePlaceholder: {
+    width: 32,
+    height: 32,
   },
 
   // Timeline Connector
@@ -1065,12 +1392,19 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingLeft: 4,
   },
+  contentColumnNoDate: {
+    paddingLeft: 16,
+  },
   itemHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
     marginBottom: 10,
-    minHeight: 24,
+  },
+  itemHeaderLeft: {
+    marginBottom: 8,
+  },
+  categoryAndBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
   },
   itemCategory: {
     fontSize: 11,
@@ -1078,8 +1412,7 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    flex: 1,
-    marginRight: 12,
+    marginRight: 8,
     marginTop: 2,
   },
   priorityBadge: {
@@ -1110,7 +1443,7 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     fontSize: 14,
     lineHeight: 20,
-    marginBottom: 14,
+    marginBottom: 8,
   },
 
   // Action Button
@@ -1121,7 +1454,8 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 8,
     alignSelf: 'flex-start',
-    marginBottom: 16,
+    marginTop: 8,
+    marginBottom: 8,
   },
   actionButtonText: {
     ...Typography.button,
@@ -1136,7 +1470,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8FAFC',
     borderRadius: 12,
     padding: 16,
-    marginTop: 8,
+    marginTop: 4,
   },
   subItemsHeader: {
     flexDirection: 'row',
@@ -1217,6 +1551,37 @@ const styles = StyleSheet.create({
     minWidth: 200,
   },
 
+  // Completed Section
+  completedSection: {
+    marginTop: 24,
+    backgroundColor: Colors.white,
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  completedHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  completedHeaderText: {
+    ...Typography.h5,
+    color: Colors.textPrimary,
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  completedItemsContainer: {
+    marginTop: 12,
+  },
+
   // Export Section
   exportSection: {
     paddingHorizontal: 16,
@@ -1235,6 +1600,159 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 12,
     elevation: 4,
+  },
+
+  // Compact Controls
+  itemControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  compactButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: Colors.background,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  compactButtonCompleted: {
+    backgroundColor: Colors.successLight,
+    borderColor: Colors.success,
+  },
+
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: Colors.overlay,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: Colors.white,
+    borderRadius: 16,
+    margin: 20,
+    maxHeight: '80%',
+    width: '90%',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  modalTitle: {
+    ...Typography.h3,
+    color: Colors.textPrimary,
+    fontWeight: '700',
+    fontSize: 18,
+  },
+  modalCloseButton: {
+    padding: 4,
+  },
+  modalBody: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    maxHeight: 400,
+  },
+  fieldLabel: {
+    ...Typography.h5,
+    color: Colors.textPrimary,
+    fontWeight: '600',
+    fontSize: 16,
+    marginBottom: 8,
+    marginTop: 16,
+  },
+  textInput: {
+    backgroundColor: Colors.background,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: Colors.textPrimary,
+    textAlignVertical: 'top',
+  },
+  descriptionInput: {
+    minHeight: 80,
+  },
+  dateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.background,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  dateButtonText: {
+    fontSize: 16,
+    color: Colors.textPrimary,
+    marginLeft: 8,
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+  },
+  modalCancelButton: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.background,
+    flex: 1,
+    marginRight: 8,
+  },
+  modalCancelText: {
+    ...Typography.button,
+    color: Colors.textSecondary,
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  modalSaveButton: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+    backgroundColor: Colors.primary,
+    flex: 1,
+    marginLeft: 8,
+  },
+  modalSaveText: {
+    ...Typography.button,
+    color: Colors.white,
+    fontSize: 16,
+    textAlign: 'center',
   },
 });
 
