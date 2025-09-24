@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  Modal,
   ActivityIndicator,
   Linking,
 } from 'react-native';
@@ -22,9 +21,8 @@ interface ResourcesScreenProps {
 }
 
 const ResourcesScreen: React.FC<ResourcesScreenProps> = ({ navigation }) => {
-  const [currentTab, setCurrentTab] = useState<'main' | 'legal' | 'online' | 'process'>('main');
+  const [currentTab, setCurrentTab] = useState<'main' | 'legal' | 'online' | 'process' | 'nyc'>('main');
   const [expandedSections, setExpandedSections] = useState<string[]>([]);
-  const [showDocumentModal, setShowDocumentModal] = useState(false);
   
   // Use the resources hook
   const {
@@ -52,7 +50,7 @@ const ResourcesScreen: React.FC<ResourcesScreenProps> = ({ navigation }) => {
     },
     {
       id: 'legal-resources',
-      title: 'Legal resources', 
+      title: 'Legal resources',
       subtitle: 'Find legal aid organizations near you',
       icon: 'scale-outline',
       onPress: () => setCurrentTab('legal'),
@@ -65,11 +63,11 @@ const ResourcesScreen: React.FC<ResourcesScreenProps> = ({ navigation }) => {
       onPress: () => setCurrentTab('online'),
     },
     {
-      id: 'document-descriptions',
-      title: 'Document descriptions',
-      subtitle: 'Understanding your immigration documents',
-      icon: 'document-text-outline',
-      onPress: () => setShowDocumentModal(true),
+      id: 'nyc-resources',
+      title: 'NYC resources',
+      subtitle: 'Local resources for New York City residents',
+      icon: 'location-outline',
+      onPress: () => setCurrentTab('nyc'),
     },
   ];
 
@@ -132,9 +130,9 @@ const ResourcesScreen: React.FC<ResourcesScreenProps> = ({ navigation }) => {
   const getIconBackgroundColor = (itemId: string) => {
     switch (itemId) {
       case 'asylum-process': return '#E8F5E8';
-      case 'document-descriptions': return '#E8F5E8';
       case 'legal-resources': return '#E8F5E8';
       case 'online-resources': return '#E8F5E8';
+      case 'nyc-resources': return '#E8F5E8';
       default: return '#E8F5E8';
     }
   };
@@ -142,9 +140,9 @@ const ResourcesScreen: React.FC<ResourcesScreenProps> = ({ navigation }) => {
   const getIconColor = (itemId: string) => {
     switch (itemId) {
       case 'asylum-process': return '#2E6B47';
-      case 'document-descriptions': return '#2E6B47';
       case 'legal-resources': return '#2E6B47';
       case 'online-resources': return '#2E6B47';
+      case 'nyc-resources': return '#2E6B47';
       default: return '#2E6B47';
     }
   };
@@ -177,6 +175,83 @@ const ResourcesScreen: React.FC<ResourcesScreenProps> = ({ navigation }) => {
       </TouchableOpacity>
     </ScrollView>
   );
+
+  const nycResourcesList = [
+    {
+      category: 'Education',
+      description: 'All children have a constitutional right to public education, regardless of immigration status. In New York State, this means that any person between the ages of 4 and 21 without a high school diploma can enroll in their local public schools.',
+      resources: [
+        {
+          title: 'NY State Enrollment Procedures for Immigrant Students',
+          description: 'Official guidance on enrolling immigrant students in NY public schools',
+          url: 'https://www.nysed.gov/student-support-services/enrollment-procedures-immigrant-students'
+        },
+        {
+          title: 'NYC Family Welcome Centers',
+          description: 'New York City residents can enroll through NYC Family Welcome Centers',
+          url: 'https://www.schools.nyc.gov/enrollment/enrollment-help/family-welcome-centers'
+        },
+        {
+          title: 'Child Health Insurance Program',
+          description: 'Children have a right to enroll in the Child Health Insurance Program, regardless of immigration status',
+          url: 'https://www.health.ny.gov/health_care/child_health_plus/how_do_i_apply.htm'
+        }
+      ]
+    },
+    {
+      category: 'Healthcare',
+      description: 'Even completely undocumented immigrants have a right to some level of healthcare in New York.',
+      resources: [
+        {
+          title: 'NY State Emergency Medicaid',
+          description: 'Emergency medicaid covers acute symptoms requiring immediate medical attention',
+          url: 'https://www.health.ny.gov/health_care/medicaid/emergency_medical_condition_faq.htm'
+        },
+        {
+          title: 'NYC Care',
+          description: 'Broader healthcare coverage for undocumented residents of New York City',
+          url: 'https://www.nyccare.nyc/enroll/'
+        },
+        {
+          title: 'NY State Medicaid',
+          description: 'Coverage for immigrants over 65, pregnant immigrants, and those who have applied for certain status including asylum or TPS',
+          url: 'https://www.health.ny.gov/health_care/medicaid/how_do_i_apply.htm'
+        }
+      ]
+    },
+    {
+      category: 'Shelter',
+      description: 'New York City is legally required to provide shelter to unhoused persons, including immigrants.',
+      resources: [
+        {
+          title: 'Callahan v. Carey Legal Background',
+          description: 'Legal settlement requiring NYC to provide shelter to unhoused persons',
+          url: 'https://en.wikipedia.org/wiki/Callahan_v._Carey'
+        },
+        {
+          title: 'NYC Shelter Intake Centers',
+          description: 'Information on accessing city shelter through intake centers',
+          url: 'https://www.nyc.gov/site/dhs/shelter/singleadults-applying.page'
+        }
+      ]
+    },
+    {
+      category: 'Identification & Licensing',
+      description: 'New York State and City provide identification options regardless of immigration status.',
+      resources: [
+        {
+          title: 'NY State Driver\'s License (Green Light Law)',
+          description: 'Apply for a driver\'s license or non-driver ID regardless of immigration status',
+          url: 'https://dmv.ny.gov/driver-license/driver-licenses-and-the-green-light-law'
+        },
+        {
+          title: 'IDNYC',
+          description: 'New York City municipal ID card available to all NYC residents',
+          url: 'https://www.nyc.gov/site/idnyc/index.page'
+        }
+      ]
+    }
+  ];
 
   const legalResourcesList = [
     {
@@ -363,11 +438,91 @@ const ResourcesScreen: React.FC<ResourcesScreenProps> = ({ navigation }) => {
     </ScrollView>
   );
 
+  const renderNYCResources = () => (
+    <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <View style={styles.infoCard}>
+        <View style={styles.infoIcon}>
+          <Text style={styles.infoIconText}>🗽</Text>
+        </View>
+        <View style={styles.infoContent}>
+          <Text style={styles.infoTitle}>NYC Pilot Program Resources</Text>
+          <Text style={styles.infoText}>
+            These resources are specifically for immigrants living in New York City and New York State.
+            All services are available regardless of immigration status.
+          </Text>
+        </View>
+      </View>
+
+      {nycResourcesList.map((category, categoryIndex) => {
+        const isExpanded = expandedSections.includes(category.category);
+        return (
+          <View key={categoryIndex} style={styles.nycCategoryCard}>
+            <TouchableOpacity
+              style={styles.nycCategoryHeader}
+              onPress={() => handleToggleExpanded(category.category)}
+            >
+              <View style={styles.nycCategoryInfo}>
+                <Text style={styles.nycCategoryTitle}>{category.category}</Text>
+                <Text style={styles.nycCategoryDescription} numberOfLines={isExpanded ? 0 : 2}>
+                  {category.description}
+                </Text>
+              </View>
+              <Ionicons
+                name={isExpanded ? "chevron-up" : "chevron-down"}
+                size={20}
+                color={Colors.textSecondary}
+              />
+            </TouchableOpacity>
+
+            {isExpanded && (
+              <View style={styles.nycResourcesList}>
+                {category.resources.map((resource, resourceIndex) => (
+                  <TouchableOpacity
+                    key={resourceIndex}
+                    style={styles.nycResourceItem}
+                    onPress={() => handleOpenUrl(resource.url)}
+                  >
+                    <View style={styles.resourceContent}>
+                      <Text style={styles.nycResourceTitle}>{resource.title}</Text>
+                      <Text style={styles.nycResourceDescription}>{resource.description}</Text>
+                    </View>
+                    <Ionicons name="open-outline" size={20} color={Colors.textSecondary} />
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </View>
+        );
+      })}
+
+      <View style={styles.shelterNoticeCard}>
+        <View style={styles.shelterNoticeHeader}>
+          <Ionicons name="warning-outline" size={20} color="#D97706" />
+          <Text style={styles.shelterNoticeTitle}>Shelter Length Limitations</Text>
+        </View>
+        <Text style={styles.shelterNoticeText}>
+          The Adams administration has placed limitations on shelter length for certain immigrants who:
+        </Text>
+        <View style={styles.shelterCriteria}>
+          <Text style={styles.shelterCriteriaItem}>• Arrived after March 15, 2022</Text>
+          <Text style={styles.shelterCriteriaItem}>• Are over 18 years old</Text>
+          <Text style={styles.shelterCriteriaItem}>• Don't belong to a household with someone under 21</Text>
+        </View>
+        <Text style={styles.shelterNoticeText}>
+          Extensions are available by demonstrating extenuating circumstances such as:
+          emergency medical needs, good faith resettlement efforts (asylum applications, English classes,
+          job training), or obtaining IDs.
+        </Text>
+      </View>
+    </ScrollView>
+  );
+
   const getHeaderTitle = () => {
     switch (currentTab) {
       case 'legal': return 'Legal resources';
       case 'online': return 'Online resources';
       case 'process': return 'Asylum process';
+      case 'nyc': return 'NYC resources';
       default: return 'Resources';
     }
   };
@@ -395,26 +550,7 @@ const ResourcesScreen: React.FC<ResourcesScreenProps> = ({ navigation }) => {
       {currentTab === 'legal' && renderLegalResources()}
       {currentTab === 'online' && renderOnlineResources()}
       {currentTab === 'process' && renderAsylumProcess()}
-
-      <Modal
-        visible={showDocumentModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowDocumentModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Document Descriptions</Text>
-            <Text style={styles.modalText}>Document descriptions feature coming soon!</Text>
-            <TouchableOpacity
-              style={styles.modalButton}
-              onPress={() => setShowDocumentModal(false)}
-            >
-              <Text style={styles.modalButtonText}>OK</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+      {currentTab === 'nyc' && renderNYCResources()}
     </SafeAreaView>
   );
 };
@@ -907,6 +1043,96 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.textPrimary,
     lineHeight: 20,
+  },
+
+  // NYC Resources Styles
+  nycCategoryCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  nycCategoryHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    padding: 16,
+  },
+  nycCategoryInfo: {
+    flex: 1,
+    marginRight: 12,
+  },
+  nycCategoryTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#000000',
+    marginBottom: 8,
+  },
+  nycCategoryDescription: {
+    fontSize: 14,
+    color: '#666666',
+    lineHeight: 20,
+  },
+  nycResourcesList: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+  },
+  nycResourceItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8F9FA',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 8,
+  },
+  nycResourceTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000000',
+    marginBottom: 4,
+  },
+  nycResourceDescription: {
+    fontSize: 14,
+    color: '#666666',
+    lineHeight: 18,
+  },
+  shelterNoticeCard: {
+    backgroundColor: '#FFF7ED',
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 16,
+    marginBottom: 24,
+    borderLeftWidth: 4,
+    borderLeftColor: '#D97706',
+  },
+  shelterNoticeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  shelterNoticeTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#D97706',
+    marginLeft: 8,
+  },
+  shelterNoticeText: {
+    fontSize: 14,
+    color: '#92400E',
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  shelterCriteria: {
+    marginBottom: 12,
+  },
+  shelterCriteriaItem: {
+    fontSize: 14,
+    color: '#92400E',
+    lineHeight: 20,
+    marginBottom: 4,
   },
 });
 

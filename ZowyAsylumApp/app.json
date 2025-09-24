@@ -32,6 +32,12 @@
           "color": "#7CB342",
           "sounds": ["./assets/notification.wav"]
         }
+      ],
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "The app needs access to your calendar to add important asylum deadlines and court dates."
+        }
       ]
     ]
   }
