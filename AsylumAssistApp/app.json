@@ -1,0 +1,44 @@
+{
+  "expo": {
+    "name": "AsylumAssist",
+    "slug": "asylum-assist-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#7CB342"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.asylumassist.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#7CB342"
+      },
+      "package": "com.asylumassist.app"
+    },
+    "web": {},
+    "plugins": [
+      "expo-font",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#7CB342",
+          "sounds": ["./assets/notification.wav"]
+        }
+      ],
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "The app needs access to your calendar to add important asylum deadlines and court dates."
+        }
+      ]
+    ]
+  }
+}
