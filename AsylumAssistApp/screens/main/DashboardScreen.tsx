@@ -815,10 +815,6 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
             )}
 
 
-            {/* Debug: Show if item has date */}
-            {!item.date && (
-              <Text style={{ fontSize: 10, color: 'red', marginTop: 4 }}>No date - calendar button hidden</Text>
-            )}
           </View>
 
           {/* Sub-items */}

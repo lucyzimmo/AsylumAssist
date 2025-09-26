@@ -88,7 +88,6 @@ export const SplashScreen: React.FC = () => {
           { opacity: fadeAnim }
         ]}
       >
-        <Text style={styles.footerText}>Your asylum journey companion</Text>
       </Animated.View>
     </SafeAreaView>
   );
@@ -108,7 +107,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   logo: {
-    fontSize: 72,
+    fontSize: 60,
     fontWeight: 'bold',
     color: '#2E6B47',
     marginBottom: 16,
