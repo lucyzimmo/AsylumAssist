@@ -6,11 +6,15 @@ import {
   TouchableOpacity,
   Dimensions,
   ScrollView,
+  I18nManager,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import { Colors } from '../constants/Colors';
 import { Button } from '../components/ui/Button';
+import { LanguageSwitcher } from '../components/ui/LanguageSwitcher';
+import { isRTL } from '../i18n';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import type { AuthStackParamList } from '../types/navigation';
 
@@ -23,6 +27,8 @@ type WelcomeScreenNavigationProp = StackNavigationProp<
 
 export const WelcomeScreen: React.FC = () => {
   const navigation = useNavigation<WelcomeScreenNavigationProp>();
+  const { t, i18n } = useTranslation();
+  const isRTLLayout = isRTL(i18n.language);
 
   const handleSignUp = () => {
     navigation.navigate('SignUp');
@@ -41,40 +47,45 @@ export const WelcomeScreen: React.FC = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView 
+    <SafeAreaView style={[styles.container, isRTLLayout && styles.rtlContainer]}>
+      {/* Language Switcher */}
+      <View style={[styles.languageSwitcherContainer, isRTLLayout && styles.rtlLanguageSwitcher]}>
+        <LanguageSwitcher />
+      </View>
+
+      <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.content}>
+        <View style={[styles.content, isRTLLayout && styles.rtlContent]}>
           {/* Title Section */}
           <View style={styles.titleSection}>
-            <Text style={styles.title}>Welcome to AsylumAssist</Text>
-            <Text style={styles.subtitle}>
-              Your digital companion for navigating the asylum process in the United States
+            <Text style={[styles.title, isRTLLayout && styles.rtlText]}>{t('welcome.title')}</Text>
+            <Text style={[styles.subtitle, isRTLLayout && styles.rtlText]}>
+              {t('welcome.subtitle')}
             </Text>
           </View>
 
           {/* Feature List */}
           <View style={styles.featuresSection}>
-            <View style={styles.featureItem}>
-              <Text style={styles.featureTitle}>Timeline Management</Text>
-              <Text style={styles.featureDescription}>
-                Track important deadlines and court dates
+            <View style={[styles.featureItem, isRTLLayout && styles.rtlFeatureItem]}>
+              <Text style={[styles.featureTitle, isRTLLayout && styles.rtlText]}>{t('welcome.features.timeline.title')}</Text>
+              <Text style={[styles.featureDescription, isRTLLayout && styles.rtlText]}>
+                {t('welcome.features.timeline.description')}
               </Text>
             </View>
 
-            <View style={styles.featureItem}>
-              <Text style={styles.featureTitle}>Form Assistance</Text>
-              <Text style={styles.featureDescription}>
-                Get help filling out I-589 and other forms
+            <View style={[styles.featureItem, isRTLLayout && styles.rtlFeatureItem]}>
+              <Text style={[styles.featureTitle, isRTLLayout && styles.rtlText]}>{t('welcome.features.forms.title')}</Text>
+              <Text style={[styles.featureDescription, isRTLLayout && styles.rtlText]}>
+                {t('welcome.features.forms.description')}
               </Text>
             </View>
 
-            <View style={styles.featureItem}>
-              <Text style={styles.featureTitle}>Legal Resources</Text>
-              <Text style={styles.featureDescription}>
-                Find legal aid organizations and support
+            <View style={[styles.featureItem, isRTLLayout && styles.rtlFeatureItem]}>
+              <Text style={[styles.featureTitle, isRTLLayout && styles.rtlText]}>{t('welcome.features.resources.title')}</Text>
+              <Text style={[styles.featureDescription, isRTLLayout && styles.rtlText]}>
+                {t('welcome.features.resources.description')}
               </Text>
             </View>
           </View>
@@ -87,23 +98,23 @@ export const WelcomeScreen: React.FC = () => {
             accessibilityRole="button"
             accessibilityLabel="Log in to existing account"
           >
-            <Text style={styles.loginText}>
-              Already have an account? <Text style={styles.loginLinkText}>Log in</Text>
+            <Text style={[styles.loginText, isRTLLayout && styles.rtlText]}>
+              {t('welcome.loginPrompt')} <Text style={styles.loginLinkText}>{t('welcome.loginLink')}</Text>
             </Text>
           </TouchableOpacity>
 
           {/* Action Buttons */}
           <View style={styles.buttonSection}>
             <Button
-              title="Get Started"
+              title={t('welcome.getStarted')}
               onPress={handleSignUp}
               variant="primary"
               fullWidth
               style={styles.getStartedButton}
             />
-            
+
             <Button
-              title="I'll do this later"
+              title={t('welcome.doLater')}
               onPress={handleViewResources}
               variant="outline"
               fullWidth
@@ -191,6 +202,33 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 
+  // Language Switcher
+  languageSwitcherContainer: {
+    position: 'absolute',
+    top: 60,
+    right: 20,
+    zIndex: 1000,
+  },
+  rtlLanguageSwitcher: {
+    right: undefined,
+    left: 20,
+  },
+
+  // RTL Support
+  rtlContainer: {
+    direction: 'rtl',
+  },
+  rtlContent: {
+    direction: 'rtl',
+  },
+  rtlText: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  rtlFeatureItem: {
+    alignItems: 'flex-end',
+  },
+
   // Button Section
   buttonSection: {
     gap: 16,
@@ -209,5 +247,11 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
 });
+
+// Apply RTL layout changes
+if (I18nManager.isRTL) {
+  I18nManager.allowRTL(true);
+  I18nManager.forceRTL(true);
+}
 
 export default WelcomeScreen;

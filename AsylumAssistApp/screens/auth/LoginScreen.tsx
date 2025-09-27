@@ -5,14 +5,18 @@ import {
   Text,
   TouchableOpacity,
   Alert,
+  I18nManager,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useForm, Controller } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 import { Colors } from '../../constants/Colors';
 import { Typography } from '../../constants/Typography';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
+import { LanguageSwitcher } from '../../components/ui/LanguageSwitcher';
+import { isRTL } from '../../i18n';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import type { AuthStackParamList } from '../../types/navigation';
 import { AuthService, TEST_USERNAME, TEST_USER_PASSWORD } from '../../services/authService';
@@ -30,6 +34,8 @@ interface LoginForm {
 
 export const LoginScreen: React.FC = () => {
   const navigation = useNavigation<LoginScreenNavigationProp>();
+  const { t, i18n } = useTranslation();
+  const isRTLLayout = isRTL(i18n.language);
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -47,7 +53,7 @@ export const LoginScreen: React.FC = () => {
 
   const validateUsername = (username: string) => {
     const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
-    return usernameRegex.test(username) || 'Username must be 3-20 characters (letters, numbers, underscore only)';
+    return usernameRegex.test(username) || t('auth.login.usernameValidation');
   };
 
   const handleLogin = async (data: LoginForm) => {
@@ -55,13 +61,13 @@ export const LoginScreen: React.FC = () => {
     try {
       const result = await AuthService.signIn(data.username, data.password);
       if (!result.success) {
-        Alert.alert('Login failed', result.error || 'Invalid username or password');
+        Alert.alert(t('auth.login.loginFailed'), result.error || t('auth.login.loginError'));
         return;
       }
       // Navigate to main app on success
       navigation.getParent()?.navigate('MainStack');
     } catch (error) {
-      Alert.alert('Login failed', 'Something went wrong. Please try again.');
+      Alert.alert(t('auth.login.loginFailed'), t('auth.login.loginGenericError'));
     } finally {
       setIsLoading(false);
     }
@@ -72,22 +78,27 @@ export const LoginScreen: React.FC = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        <Text style={styles.title}>Log in</Text>
+    <SafeAreaView style={[styles.container, isRTLLayout && styles.rtlContainer]}>
+      {/* Language Switcher - Hidden for login screen */}
+      {/* <View style={[styles.languageSwitcherContainer, isRTLLayout && styles.rtlLanguageSwitcher]}>
+        <LanguageSwitcher />
+      </View> */}
+
+      <View style={[styles.content, isRTLLayout && styles.rtlContent]}>
+        <Text style={[styles.title, isRTLLayout && styles.rtlText]}>{t('auth.login.title')}</Text>
 
         <View style={styles.form}>
           <Controller
             control={control}
             name="username"
             rules={{
-              required: 'Username is required',
+              required: t('auth.login.usernameRequired'),
               validate: validateUsername,
             }}
             render={({ field: { onChange, onBlur, value } }) => (
               <Input
-                label="Username"
-                placeholder="Enter your username"
+                label={t('auth.login.username')}
+                placeholder={t('auth.login.usernamePlaceholder')}
                 value={value}
                 onChangeText={onChange}
                 onBlur={onBlur}
@@ -103,14 +114,14 @@ export const LoginScreen: React.FC = () => {
             control={control}
             name="password"
             rules={{
-              required: 'Password is required',
-              minLength: { value: 8, message: 'Password must be at least 8 characters' },
+              required: t('auth.login.passwordRequired'),
+              minLength: { value: 8, message: t('auth.login.passwordMinLength') },
             }}
             render={({ field: { onChange, onBlur, value } }) => (
               <View>
                 <Input
-                  label="Password"
-                  placeholder="Enter your password"
+                  label={t('auth.login.password')}
+                  placeholder={t('auth.login.passwordPlaceholder')}
                   value={value}
                   onChangeText={onChange}
                   onBlur={onBlur}
@@ -129,8 +140,8 @@ export const LoginScreen: React.FC = () => {
                     size={18}
                     color={Colors.textSecondary}
                   />
-                  <Text style={styles.showPasswordText}>
-                    {showPassword ? 'Hide password' : 'Show password'}
+                  <Text style={[styles.showPasswordText, isRTLLayout && styles.rtlText]}>
+                    {showPassword ? t('auth.login.hidePassword') : t('auth.login.showPassword')}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -140,7 +151,7 @@ export const LoginScreen: React.FC = () => {
 
         <View style={styles.actions}>
           <Button
-            title="Log in"
+            title={t('auth.login.loginButton')}
             onPress={handleSubmit(handleLogin)}
             disabled={!isValid}
             loading={isLoading}
@@ -187,7 +198,37 @@ const styles = StyleSheet.create({
   actions: {
     paddingTop: 32,
   },
+
+  // Language Switcher
+  languageSwitcherContainer: {
+    position: 'absolute',
+    top: 60,
+    right: 20,
+    zIndex: 1000,
+  },
+  rtlLanguageSwitcher: {
+    right: undefined,
+    left: 20,
+  },
+
+  // RTL Support
+  rtlContainer: {
+    direction: 'rtl',
+  },
+  rtlContent: {
+    direction: 'rtl',
+  },
+  rtlText: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
 });
+
+// Apply RTL layout changes
+if (I18nManager.isRTL) {
+  I18nManager.allowRTL(true);
+  I18nManager.forceRTL(true);
+}
 
 export default LoginScreen;
 

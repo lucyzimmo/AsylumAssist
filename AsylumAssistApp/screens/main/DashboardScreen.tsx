@@ -10,6 +10,7 @@ import {
   Modal,
   TextInput,
   Platform,
+  I18nManager,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -18,10 +19,13 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Calendar from 'expo-calendar';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Notifications from 'expo-notifications';
+import { useTranslation } from 'react-i18next';
+import { isRTL } from '../../i18n';
 import { HomeStackScreenProps } from '../../types/navigation';
 import { Colors } from '../../constants/Colors';
 import { Typography } from '../../constants/Typography';
 import { Button } from '../../components/ui/Button';
+import { LanguageSwitcher } from '../../components/ui/LanguageSwitcher';
 import { useTimeline } from '../../hooks/useTimeline';
 import { AsylumPhase } from '../../types/timeline';
 import { AuthService } from '../../services/authService';
@@ -72,6 +76,8 @@ interface TimelineSubItem {
 
 export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () => {
   const navigation = useNavigation<HomeStackScreenProps<'Dashboard'>['navigation']>();
+  const { t, i18n } = useTranslation();
+  const isRTLLayout = isRTL(i18n.language);
   const {
     timeline,
     phases,
@@ -132,11 +138,11 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
 
       if (status !== 'granted') {
         Alert.alert(
-          'Notifications Disabled',
-          'To receive important deadline reminders, please enable notifications in your device settings.',
+          t('notifications.disabled'),
+          t('notifications.disabledMessage'),
           [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Open Settings', onPress: () => Linking.openURL('app-settings:') }
+            { text: t('calendar.cancel'), style: 'cancel' },
+            { text: t('calendar.openSettings'), onPress: () => Linking.openURL('app-settings:') }
           ]
         );
         return;
@@ -218,8 +224,11 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
           if (secondsUntilReminder > 0) {
             const notificationId = await Notifications.scheduleNotificationAsync({
               content: {
-                title: `🚨 Asylum Deadline Alert`,
-                body: `${item.title} is in ${days} day${days !== 1 ? 's' : ''}. Don't miss this critical deadline!`,
+                title: t('notifications.deadlineAlert'),
+                body: t('notifications.deadlineAlertMessage', {
+                  title: item.title,
+                  count: days
+                }),
                 data: {
                   itemId: item.id,
                   reminderDays: days,
@@ -244,7 +253,7 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
       console.log(`Scheduled ${scheduledCount} notifications for: ${item.title}`);
     } catch (error) {
       console.error('Error scheduling notification:', error);
-      Alert.alert('Notification Error', 'Could not schedule reminder notifications. Please check your notification settings.');
+      Alert.alert(t('notifications.error'), t('notifications.errorMessage'));
     }
   };
 
@@ -340,21 +349,21 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
         id: 'next-hearing',
         type: 'court-hearing',
         category: 'Court Dates & Hearings',
-        title: 'Immigration Court Hearing',
+        title: t('timeline.items.courtHearing.title'),
         description: (() => {
           if (data.assignedCourt) {
             const court = getCourtByCode(data.assignedCourt);
             if (court) {
-              return `Appear at ${court.name} (${court.city}, ${court.state}). Failure to appear may result in removal order.`;
+              return t('timeline.items.courtHearing.description', { court: court.name, location: `${court.city}, ${court.state}` });
             }
-            return `Appear at ${data.assignedCourt}. Failure to appear may result in removal order.`;
+            return t('timeline.items.courtHearing.description', { court: data.assignedCourt, location: '' });
           }
-          return 'Appear at your assigned court. Failure to appear may result in removal order.';
+          return t('timeline.items.courtHearing.descriptionGeneric');
         })(),
         date: hearingDate.toISOString(),
         priority: 'critical',
         isEditable: true,
-        actionText: 'Get Directions',
+        actionText: t('dashboard.getDirections'),
         actionUrl: (() => {
           if (data.assignedCourt) {
             const court = getCourtByCode(data.assignedCourt);
@@ -368,13 +377,13 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
         subItems: [
           {
             id: 'prepare-evidence',
-            title: 'Gather Supporting Evidence',
-            description: 'Collect documents, country condition reports, witness affidavits, and personal testimony'
+            title: t('timeline.subItems.gatherEvidence'),
+            description: t('timeline.subItems.gatherEvidenceDesc')
           },
           {
             id: 'find-attorney-urgent',
-            title: 'Secure Legal Representation',
-            description: 'Find an immigration attorney immediately if you don\'t have one'
+            title: t('timeline.subItems.findAttorneyUrgent'),
+            description: t('timeline.subItems.findAttorneyUrgentDesc')
           }
         ]
       });
@@ -393,26 +402,26 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
           id: 'one-year-deadline',
           type: 'filing-deadline',
           category: 'Filing Deadlines',
-          title: 'I-589 Filing Deadline',
-          description: 'File your asylum application within one year of arrival. Missing this deadline severely limits your options.',
+          title: t('timeline.items.i589Deadline.title'),
+          description: t('timeline.items.i589Deadline.description'),
           date: oneYearDeadline.toISOString(),
           priority: 'critical',
           isEditable: true,
           subItems: [
             {
               id: 'gather-evidence',
-              title: 'Gather Supporting Evidence',
-              description: 'Personal statement, country conditions, medical records, psychological evaluations'
+              title: t('timeline.subItems.gatherEvidence'),
+              description: t('timeline.subItems.gatherEvidenceDesc')
             },
             {
               id: 'filing-fee',
-              title: 'Prepare Filing Fee',
-              description: '$100 filing fee required (as of July 22, 2025) - fee waiver available if eligible'
+              title: t('timeline.subItems.filingFee'),
+              description: t('timeline.subItems.filingFeeDesc')
             },
             {
               id: 'find-attorney',
-              title: 'Find Legal Representation',
-              description: 'Consider hiring an immigration attorney - pro bono options available'
+              title: t('timeline.subItems.findAttorney'),
+              description: t('timeline.subItems.findAttorneyDesc')
             }
           ]
         });
@@ -422,10 +431,10 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
           id: 'late-filing-options',
           type: 'filing-deadline',
           category: 'Filing Deadlines',
-          title: hasException ? 'Exception May Apply' : 'Consider Withholding of Removal',
-          description: hasException 
-            ? 'Your TPS/Parole status may provide an exception to the one-year deadline'
-            : 'One-year deadline passed. You may still apply for Withholding of Removal or CAT protection.',
+          title: hasException ? t('timeline.items.lateFilingOptions.title') : t('timeline.items.lateFilingOptions.titleNoException'),
+          description: hasException
+            ? t('timeline.items.lateFilingOptions.description')
+            : t('timeline.items.lateFilingOptions.descriptionNoException'),
           priority: 'critical'
         });
       }
@@ -441,28 +450,28 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
         id: 'ead-eligibility',
         type: 'work-authorization',
         category: 'Work Authorization Actions',
-        title: 'Work Permit Eligibility (I-765)',
-        description: 'You may be eligible to apply for Employment Authorization Document 150 days after filing I-589. Call USCIS to confirm your eligibility status.',
+        title: t('timeline.items.workPermit.title'),
+        description: t('timeline.items.workPermit.description'),
         date: eadEligibilityDate.toISOString(),
         priority: 'important',
         isEditable: true,
-        actionText: 'Call USCIS',
+        actionText: t('dashboard.callUSCIS'),
         actionUrl: 'tel:1-800-375-5283',
         subItems: [
           {
             id: 'ead-confirm',
-            title: 'Confirm Eligibility',
-            description: 'Call USCIS at 1-800-375-5283 to verify you can apply for work authorization'
+            title: t('timeline.subItems.confirmEligibility'),
+            description: t('timeline.subItems.confirmEligibilityDesc')
           },
           {
             id: 'ead-photos',
-            title: 'Get Passport Photos',
-            description: '2 passport-style photos required for I-765 application'
+            title: t('timeline.subItems.getPhotos'),
+            description: t('timeline.subItems.getPhotosDesc')
           },
           {
             id: 'ead-fee',
-            title: 'No Filing Fee',
-            description: 'I-765 is free for asylum applicants - do not pay if asked'
+            title: t('timeline.subItems.noFee'),
+            description: t('timeline.subItems.noFeeDesc')
           }
         ]
       });
@@ -475,8 +484,8 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
           id: 'biometrics-appointment',
           type: 'work-authorization',
           category: 'Work Authorization Actions',
-          title: 'Biometrics Appointment',
-          description: 'Attend your biometrics appointment (typically 2-6 weeks after filing)',
+          title: t('timeline.items.biometrics.title'),
+          description: t('timeline.items.biometrics.description'),
           date: biometricsDate.toISOString(),
           priority: 'critical',
           isEditable: true
@@ -491,8 +500,8 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
         id: 'tps-expiration',
         type: 'filing-deadline',
         category: 'Filing Deadlines',
-        title: 'TPS Status Expiration',
-        description: 'File asylum application before TPS expires to maintain exception eligibility',
+        title: t('timeline.items.tpsExpiration.title'),
+        description: t('timeline.items.tpsExpiration.description'),
         date: tpsExpiry.toISOString(),
         priority: 'important',
         isEditable: true
@@ -505,8 +514,8 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
         id: 'parole-expiration',
         type: 'filing-deadline',
         category: 'Filing Deadlines',
-        title: 'Parole Status Expiration',
-        description: 'File asylum application before parole expires to maintain exception eligibility',
+        title: t('timeline.items.paroleExpiration.title'),
+        description: t('timeline.items.paroleExpiration.description'),
         date: paroleExpiry.toISOString(),
         priority: 'important',
         isEditable: true
@@ -519,10 +528,10 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
         id: 'find-entry-date',
         type: 'task',
         category: 'Supportive Notes',
-        title: 'Find Your Entry Date',
-        description: 'Use I-94 lookup to determine your arrival date for deadline calculations',
+        title: t('timeline.items.findEntryDate.title'),
+        description: t('timeline.items.findEntryDate.description'),
         priority: 'important',
-        actionText: 'Check I-94',
+        actionText: t('timeline.actionTexts.checkI94'),
         actionUrl: 'https://i94.cbp.dhs.gov/I94/#/home'
       });
     }
@@ -532,10 +541,10 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
         id: 'find-court',
         type: 'info',
         category: 'Supportive Notes',
-        title: 'Identify Your Immigration Court',
-        description: 'Contact EOIR or check case documents to find your assigned court',
+        title: t('timeline.items.findCourt.title'),
+        description: t('timeline.items.findCourt.description'),
         priority: 'info',
-        actionText: 'Check EOIR',
+        actionText: t('timeline.actionTexts.checkEOIR'),
         actionUrl: 'https://acis.eoir.justice.gov/en/'
       });
     }
@@ -588,11 +597,11 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
       const { status } = await Calendar.requestCalendarPermissionsAsync();
       if (status !== 'granted') {
         Alert.alert(
-          'Calendar Permission Required',
-          'To add events to your calendar, please enable calendar access in your device settings.',
+          t('calendar.permissionRequired'),
+          t('calendar.permissionMessage'),
           [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Open Settings', onPress: () => Linking.openURL('app-settings:') }
+            { text: t('calendar.cancel'), style: 'cancel' },
+            { text: t('calendar.openSettings'), onPress: () => Linking.openURL('app-settings:') }
           ]
         );
         return;
@@ -602,7 +611,7 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
       const defaultCalendar = calendars.find(cal => cal.source?.name === 'Default') || calendars[0];
 
       if (!defaultCalendar) {
-        Alert.alert('Error', 'No calendar found on your device.');
+        Alert.alert(t('calendar.error'), t('calendar.noCalendar'));
         return;
       }
 
@@ -627,10 +636,10 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
         location: item.actionUrl?.includes('maps.google.com') ? 'Immigration Court' : undefined,
       });
 
-      Alert.alert('✅ Event Added', `"${item.title}" has been added to your calendar with reminders.`);
+      Alert.alert(t('calendar.eventAdded'), t('calendar.eventAddedMessage', { title: item.title }));
     } catch (error) {
       console.error('Calendar integration error:', error);
-      Alert.alert('Error', 'Failed to add event to calendar. Please try again.');
+      Alert.alert(t('calendar.error'), t('calendar.errorMessage'));
     }
   };
 
@@ -640,11 +649,11 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
       const { status } = await Calendar.requestCalendarPermissionsAsync();
       if (status !== 'granted') {
         Alert.alert(
-          'Calendar Permission Required',
-          'To add events to your calendar, please enable calendar access in your device settings.',
+          t('calendar.permissionRequired'),
+          t('calendar.permissionMessage'),
           [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Open Settings', onPress: () => Linking.openURL('app-settings:') }
+            { text: t('calendar.cancel'), style: 'cancel' },
+            { text: t('calendar.openSettings'), onPress: () => Linking.openURL('app-settings:') }
           ]
         );
         return;
@@ -655,7 +664,7 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
       const defaultCalendar = calendars.find(cal => cal.source?.name === 'Default') || calendars[0];
 
       if (!defaultCalendar) {
-        Alert.alert('Error', 'No calendar found on your device.');
+        Alert.alert(t('calendar.error'), t('calendar.noCalendar'));
         return;
       }
 
@@ -695,13 +704,13 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
       }
 
       Alert.alert(
-        '✅ Events Added',
-        `Successfully added ${successCount} out of ${eventsWithDates.length} events to your calendar with automatic reminders.`,
-        [{ text: 'OK' }]
+        t('calendar.eventsAdded'),
+        t('calendar.eventsAddedMessage', { count: successCount, total: eventsWithDates.length }),
+        [{ text: t('common.ok') }]
       );
     } catch (error) {
       console.error('Bulk calendar integration error:', error);
-      Alert.alert('Error', 'Failed to add events to calendar. Please try again.');
+      Alert.alert(t('calendar.error'), t('calendar.errorMessage'));
     }
   };
 
@@ -772,12 +781,12 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
         <View style={styles.cardContainer}>
           {/* Top section: Title, date, location, urgency badge */}
           <View style={styles.cardTopSection}>
-            <View style={styles.cardHeader}>
+            <View style={[styles.cardHeader, isRTLLayout && styles.cardHeaderRTL]}>
               <View style={styles.cardHeaderLeft}>
                 {/* Single urgency badge */}
                 {item.priority === 'critical' && (
                   <View style={[styles.urgencyBadge, { backgroundColor: getPriorityColor() }]}>
-                    <Text style={styles.urgencyBadgeText}>URGENT</Text>
+                    <Text style={styles.urgencyBadgeText}>{t('dashboard.urgentBadge')}</Text>
                   </View>
                 )}
                 <Text style={[styles.itemTitle, { color: getPriorityColor() }]}>
@@ -803,7 +812,7 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
               </View>
 
               {/* CTAs in top-right */}
-              <View style={styles.cardTopActions}>
+              <View style={[styles.cardTopActions, isRTLLayout && styles.cardTopActionsRTL]}>
                 {item.actionText && item.actionUrl && (
                   <TouchableOpacity
                     style={[styles.topActionButton, { backgroundColor: getPriorityColor() }]}
@@ -814,7 +823,9 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
                       size={16}
                       color={Colors.white}
                     />
-                    <Text style={styles.topActionText}>{item.actionText}</Text>
+                    <Text style={styles.topActionText}>
+                      {item.actionUrl?.startsWith('tel:') ? t('dashboard.callUSCIS') : t('dashboard.getDirections')}
+                    </Text>
                   </TouchableOpacity>
                 )}
                 {item.date && (
@@ -823,7 +834,7 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
                     onPress={() => addEventToCalendar(item)}
                   >
                     <Ionicons name="calendar" size={16} color={Colors.primary} />
-                    <Text style={styles.calendarButtonText}>Calendar</Text>
+                    <Text style={styles.calendarButtonText}>{t('dashboard.calendar')}</Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -833,10 +844,10 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
             {daysUntil !== null && item.date && (
               <View style={styles.countdownContainer}>
                 <Text style={[styles.countdownText, { color: urgencyColor }]}>
-                  {isOverdue ? 'OVERDUE' :
-                   isEligible ? 'ELIGIBLE NOW' :
-                   daysUntil === 0 ? 'TODAY' :
-                   `${daysUntil} day${daysUntil !== 1 ? 's' : ''} remaining`}
+                  {isOverdue ? t('countdown.overdue') :
+                   isEligible ? t('countdown.eligibleNow') :
+                   daysUntil === 0 ? t('countdown.today') :
+                   t('countdown.daysRemaining', { count: daysUntil })}
                 </Text>
               </View>
             )}
@@ -849,12 +860,12 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
             </Text>
 
             {/* Bottom actions row */}
-            <View style={styles.bottomActionsRow}>
+            <View style={[styles.bottomActionsRow, isRTLLayout && styles.bottomActionsRowRTL]}>
               {/* Completion Toggle with tooltip */}
               <TouchableOpacity
                 style={[styles.iconButton, item.completed && styles.iconButtonCompleted]}
                 onPress={() => handleToggleComplete(item.id)}
-                onLongPress={() => Alert.alert('Mark Complete', 'Mark this item as complete or incomplete')}
+                onLongPress={() => Alert.alert(t('dashboard.markComplete'), t('dashboard.markCompleteDescription'))}
               >
                 <Ionicons
                   name={item.completed ? "checkmark-circle" : "checkmark-circle-outline"}
@@ -868,7 +879,7 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
                 <TouchableOpacity
                   style={styles.iconButton}
                   onPress={() => handleEditItem(item)}
-                  onLongPress={() => Alert.alert('Edit Note', 'Edit this timeline item')}
+                  onLongPress={() => Alert.alert(t('dashboard.editNote'), t('dashboard.editNoteDescription'))}
                 >
                   <Ionicons name="pencil" size={16} color={Colors.primary} />
                 </TouchableOpacity>
@@ -966,7 +977,7 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Loading your timeline...</Text>
+          <Text style={styles.loadingText}>{t('dashboard.loadingTimeline')}</Text>
         </View>
       </SafeAreaView>
     );
@@ -976,11 +987,12 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, isRTLLayout && styles.headerRTL]}>
           <View style={styles.headerLeft}>
-            <Text style={styles.headerTitle}>Your Asylum Journey</Text>
+            <Text style={styles.headerTitle}>{t('dashboard.title')}</Text>
           </View>
-          <View style={styles.headerRight}>
+          <View style={[styles.headerRight, isRTLLayout && styles.headerRightRTL]}>
+            <LanguageSwitcher iconSize={18} />
             <TouchableOpacity style={styles.helpButton}>
               <Ionicons name="help-circle" size={18} color={Colors.white} />
             </TouchableOpacity>
@@ -988,9 +1000,9 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
               style={styles.logoutButton}
               onPress={handleLogout}
               accessibilityRole="button"
-              accessibilityLabel="Logout"
+              accessibilityLabel={t('common.logout')}
             >
-              <Text style={styles.logoutButtonText}>Logout</Text>
+              <Text style={styles.logoutButtonText}>{t('common.logout')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -998,14 +1010,14 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
         {/* Your Next Deadline */}
         {nextDeadline && (
           <View style={styles.nextDeadlineContainer}>
-            <Text style={styles.nextDeadlineHeader}>Your Next Deadline</Text>
+            <Text style={styles.nextDeadlineHeader}>{t('dashboard.nextDeadlineHeader')}</Text>
             <View style={styles.nextDeadlineCard}>
               {/* Top section with urgency badge and CTAs */}
               <View style={styles.nextDeadlineTop}>
-                <View style={styles.nextDeadlineHeaderRow}>
+                <View style={[styles.nextDeadlineHeaderRow, isRTLLayout && styles.nextDeadlineHeaderRowRTL]}>
                   <View style={styles.nextDeadlineLeft}>
                     <View style={styles.nextDeadlineUrgencyBadge}>
-                      <Text style={styles.nextDeadlineUrgencyText}>URGENT</Text>
+                      <Text style={styles.nextDeadlineUrgencyText}>{t('dashboard.urgentBadge')}</Text>
                     </View>
                     <Text style={styles.nextDeadlineTitle}>{nextDeadline.title}</Text>
                     <Text style={styles.nextDeadlineDate}>
@@ -1038,7 +1050,7 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
                           size={16}
                           color={Colors.white}
                         />
-                        <Text style={styles.nextDeadlineActionText}>{nextDeadline.actionText}</Text>
+                        <Text style={styles.nextDeadlineActionText}>{t('dashboard.getDirections')}</Text>
                       </TouchableOpacity>
                     )}
                     <TouchableOpacity
@@ -1046,7 +1058,7 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
                       onPress={() => addEventToCalendar(nextDeadline)}
                     >
                       <Ionicons name="calendar" size={16} color="#DC2626" />
-                      <Text style={styles.nextDeadlineCalendarText}>Add to Calendar</Text>
+                      <Text style={styles.nextDeadlineCalendarText}>{t('dashboard.addToCalendar')}</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -1058,7 +1070,9 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
                   }]}>
                     {(() => {
                       const days = Math.ceil((new Date(nextDeadline.date!).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
-                      return days <= 0 ? 'OVERDUE' : days === 1 ? '1 DAY REMAINING' : `${days} DAYS REMAINING`;
+                      return days <= 0 ? t('countdown.overdue') :
+                             days === 1 ? t('countdown.dayRemaining') :
+                             t('countdown.daysRemainingCaps', { count: days });
                     })()}
                   </Text>
                 </View>
@@ -1074,7 +1088,7 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
 
         {/* Timeline */}
         <View style={styles.timelineContainer}>
-          <Text style={styles.timelineHeader}>Your Asylum Timeline</Text>
+          <Text style={styles.timelineHeader}>{t('dashboard.timelineHeader')}</Text>
           {timelineItems.length > 0 ? (
             <>
               {/* Active Items */}
@@ -1083,13 +1097,13 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
               {/* Completed Items Section */}
               {timelineItems.filter(item => item.completed).length > 0 && (
                 <View style={styles.completedSection}>
-                  <TouchableOpacity 
-                    style={styles.completedHeader}
+                  <TouchableOpacity
+                    style={[styles.completedHeader, isRTLLayout && styles.completedHeaderRTL]}
                     onPress={() => setShowCompletedItems(!showCompletedItems)}
                     activeOpacity={0.7}
                   >
                     <Text style={styles.completedHeaderText}>
-                      Completed Items ({timelineItems.filter(item => item.completed).length})
+                      {t('dashboard.completedItems_plural', { count: timelineItems.filter(item => item.completed).length })}
                     </Text>
                     <Ionicons 
                       name={showCompletedItems ? 'chevron-up' : 'chevron-down'} 
@@ -1118,10 +1132,10 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
           ) : (
             <View style={styles.emptyState}>
               <Text style={styles.emptyStateText}>
-                No timeline data available. Please complete the questionnaire to generate your personalized timeline.
+                {t('dashboard.noTimelineData')}
               </Text>
               <Button
-                title="Complete Questionnaire"
+                title={t('dashboard.completeQuestionnaire')}
                 onPress={() => navigation.navigate('AuthStack', { screen: 'OnboardingStart' })}
                 style={styles.emptyStateButton}
               />
@@ -1216,7 +1230,7 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
         {timelineItems.length > 0 && (
           <View style={styles.exportSection}>
             <Button
-              title="Add All to Calendar"
+              title={t('dashboard.addAllToCalendar')}
               onPress={addAllEventsToCalendar}
               style={styles.exportButton}
             />
@@ -1913,6 +1927,29 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontSize: 16,
     textAlign: 'center',
+  },
+
+  // RTL Layout Support
+  headerRTL: {
+    flexDirection: 'row-reverse',
+  },
+  headerRightRTL: {
+    flexDirection: 'row-reverse',
+  },
+  nextDeadlineHeaderRowRTL: {
+    flexDirection: 'row-reverse',
+  },
+  cardHeaderRTL: {
+    flexDirection: 'row-reverse',
+  },
+  cardTopActionsRTL: {
+    alignItems: 'flex-start',
+  },
+  bottomActionsRowRTL: {
+    flexDirection: 'row-reverse',
+  },
+  completedHeaderRTL: {
+    flexDirection: 'row-reverse',
   },
 });
 

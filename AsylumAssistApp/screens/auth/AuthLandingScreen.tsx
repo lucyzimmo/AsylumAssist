@@ -3,14 +3,15 @@ import {
   View,
   StyleSheet,
   Text,
-  TouchableOpacity,
-  Dimensions,
+  I18nManager,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { Colors } from '../../constants/Colors';
+import { useTranslation } from 'react-i18next';
 import { Button } from '../../components/ui/Button';
+import { LanguageSwitcher } from '../../components/ui/LanguageSwitcher';
 import { AuthService } from '../../services/authService';
+import { isRTL } from '../../i18n';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import type { AuthStackParamList } from '../../types/navigation';
 
@@ -21,6 +22,8 @@ type AuthLandingScreenNavigationProp = StackNavigationProp<
 
 export const AuthLandingScreen: React.FC = () => {
   const navigation = useNavigation<AuthLandingScreenNavigationProp>();
+  const { t, i18n } = useTranslation();
+  const isRTLLayout = isRTL(i18n.language);
 
   const handleSignUp = () => {
     navigation.navigate('SignUp');
@@ -41,45 +44,41 @@ export const AuthLandingScreen: React.FC = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
+    <SafeAreaView style={[styles.container, isRTLLayout && styles.rtlContainer]}>
+      <View style={[styles.content, isRTLLayout && styles.rtlContent]}>
         {/* Logo Section */}
         <View style={styles.logoSection}>
           <Text style={styles.logo}>AsylumAssist</Text>
-          <Text style={styles.tagline}>
-            Your trusted guide through the asylum process
+          <Text style={[styles.tagline, isRTLLayout && styles.rtlText]}>
+            {t('authLanding.tagline')}
           </Text>
-          <Text style={styles.supportText}>
-            Track deadlines, manage documents, find legal help
+          <Text style={[styles.supportText, isRTLLayout && styles.rtlText]}>
+            {t('authLanding.supportText')}
           </Text>
         </View>
 
         {/* Action Buttons */}
         <View style={styles.actionSection}>
           <Button
-            title="Sign up"
+            title={t('authLanding.signUp')}
             onPress={handleSignUp}
             variant="primary"
-            
             style={styles.signUpButton}
           />
-          
+
           <Button
-            title="Log in"
+            title={t('authLanding.logIn')}
             onPress={handleLogin}
             variant="outline"
-            
             style={styles.loginButton}
           />
 
           
         </View>
 
-        {/* Language Selector Placeholder */}
-        <View style={styles.languageSection}>
-          <TouchableOpacity style={styles.languageButton}>
-            <Text style={styles.languageText}>🌐 English</Text>
-          </TouchableOpacity>
+        {/* Language Selector */}
+        <View style={[styles.languageSection, isRTLLayout && styles.rtlLanguageSection]}>
+          <LanguageSwitcher />
         </View>
       </View>
     </SafeAreaView>
@@ -158,14 +157,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 20,
   },
-  languageButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
+  rtlLanguageSection: {
+    alignItems: 'center',
   },
-  languageText: {
-    fontSize: 16,
-    color: '#666666',
+
+  // RTL Support
+  rtlContainer: {
+    direction: 'rtl',
+  },
+  rtlContent: {
+    direction: 'rtl',
+  },
+  rtlText: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
   },
 });
+
+// Apply RTL layout changes
+if (I18nManager.isRTL) {
+  I18nManager.allowRTL(true);
+  I18nManager.forceRTL(true);
+}
 
 export default AuthLandingScreen;

@@ -1,0 +1,221 @@
+{
+  "dashboard": {
+    "title": "Votre Parcours d'Asile",
+    "nextDeadlineHeader": "Votre Prochaine Échéance",
+    "timelineHeader": "Votre Chronologie d'Asile",
+    "urgentBadge": "URGENT",
+    "addToCalendar": "Ajouter au Calendrier",
+    "getDirections": "Obtenir Directions",
+    "callUSCIS": "Appeler USCIS",
+    "calendar": "Calendrier",
+    "completedItems": "Éléments Terminés",
+    "completedItems_plural": "Éléments Terminés ({{count}})",
+    "loadingTimeline": "Chargement de votre chronologie...",
+    "markComplete": "Marquer Terminé",
+    "markCompleteDescription": "Marquer cet élément comme terminé ou non terminé",
+    "editNote": "Modifier Note",
+    "editNoteDescription": "Modifier cet élément de chronologie",
+    "addAllToCalendar": "Tout Ajouter au Calendrier",
+    "noTimelineData": "Aucune donnée de chronologie disponible. Veuillez compléter le questionnaire pour générer votre chronologie personnalisée.",
+    "completeQuestionnaire": "Compléter le Questionnaire"
+  },
+  "countdown": {
+    "daysRemaining": "{{count}} jour restant",
+    "daysRemaining_plural": "{{count}} jours restants",
+    "dayRemaining": "1 JOUR RESTANT",
+    "daysRemainingCaps": "{{count}} JOURS RESTANTS",
+    "today": "AUJOURD'HUI",
+    "overdue": "EN RETARD",
+    "eligibleNow": "ÉLIGIBLE MAINTENANT"
+  },
+  "timeline": {
+    "categories": {
+      "courtDates": "Dates de Tribunal et Audiences",
+      "filingDeadlines": "Échéances de Dépôt",
+      "workAuthorization": "Actions d'Autorisation de Travail",
+      "supportiveNotes": "Notes de Soutien"
+    },
+    "items": {
+      "courtHearing": {
+        "title": "Audience de Tribunal d'Immigration",
+        "description": "Comparaître à {{court}} ({{location}}). Ne pas comparaître peut résulter en une ordonnance d'expulsion.",
+        "descriptionGeneric": "Comparaître à votre tribunal assigné. Ne pas comparaître peut résulter en une ordonnance d'expulsion."
+      },
+      "i589Deadline": {
+        "title": "Échéance I-589",
+        "description": "Déposez votre demande d'asile dans l'année suivant votre arrivée. Manquer cette échéance limite sévèrement vos options."
+      },
+      "workPermit": {
+        "title": "Éligibilité Permis de Travail (I-765)",
+        "description": "Vous pourriez être éligible pour demander un Document d'Autorisation d'Emploi 150 jours après avoir déposé I-589. Appelez USCIS pour confirmer votre statut d'éligibilité."
+      },
+      "biometrics": {
+        "title": "Rendez-vous Biométrie",
+        "description": "Assistez à votre rendez-vous de biométrie (typiquement 2-6 semaines après le dépôt)"
+      },
+      "tpsExpiration": {
+        "title": "Expiration du Statut TPS",
+        "description": "Déposez la demande d'asile avant l'expiration du TPS pour maintenir l'éligibilité d'exception"
+      },
+      "paroleExpiration": {
+        "title": "Expiration du Statut de Libération Conditionnelle",
+        "description": "Déposez la demande d'asile avant l'expiration de la libération conditionnelle pour maintenir l'éligibilité d'exception"
+      }
+    },
+    "items": {
+      "courtHearing": {
+        "title": "Audience de Tribunal d'Immigration",
+        "description": "Comparaître à {{court}} ({{location}}). Ne pas comparaître peut résulter en une ordonnance d'expulsion.",
+        "descriptionGeneric": "Comparaître à votre tribunal assigné. Ne pas comparaître peut résulter en une ordonnance d'expulsion."
+      },
+      "i589Deadline": {
+        "title": "Échéance I-589",
+        "description": "Déposez votre demande d'asile dans l'année suivant votre arrivée. Manquer cette échéance limite sévèrement vos options."
+      },
+      "workPermit": {
+        "title": "Éligibilité Permis de Travail (I-765)",
+        "description": "Vous pourriez être éligible pour demander un Document d'Autorisation d'Emploi 150 jours après avoir déposé I-589. Appelez USCIS pour confirmer votre statut d'éligibilité."
+      },
+      "biometrics": {
+        "title": "Rendez-vous Biométrie",
+        "description": "Assistez à votre rendez-vous de biométrie (typiquement 2-6 semaines après le dépôt)"
+      },
+      "tpsExpiration": {
+        "title": "Expiration du Statut TPS",
+        "description": "Déposez la demande d'asile avant l'expiration du TPS pour maintenir l'éligibilité d'exception"
+      },
+      "paroleExpiration": {
+        "title": "Expiration du Statut de Libération Conditionnelle",
+        "description": "Déposez la demande d'asile avant l'expiration de la libération conditionnelle pour maintenir l'éligibilité d'exception"
+      },
+      "lateFilingOptions": {
+        "title": "Exception Peut S'Appliquer",
+        "titleNoException": "Considérer la Suspension d'Expulsion",
+        "description": "Votre statut TPS/Libération Conditionnelle peut fournir une exception à l'échéance d'un an",
+        "descriptionNoException": "Échéance d'un an passée. Vous pouvez encore demander la Suspension d'Expulsion ou la protection CAT."
+      },
+      "findEntryDate": {
+        "title": "Trouvez Votre Date d'Entrée",
+        "description": "Utilisez la recherche I-94 pour déterminer votre date d'arrivée pour les calculs d'échéances"
+      },
+      "findCourt": {
+        "title": "Identifiez Votre Tribunal d'Immigration",
+        "description": "Contactez EOIR ou vérifiez les documents du dossier pour trouver votre tribunal assigné"
+      }
+    },
+    "subItems": {
+      "gatherEvidence": "Rassembler les Preuves de Soutien",
+      "gatherEvidenceDesc": "Collecter documents, rapports sur les conditions du pays, affidavits de témoins et témoignage personnel",
+      "findAttorney": "Obtenir une Représentation Légale",
+      "findAttorneyDesc": "Trouvez un avocat d'immigration immédiatement si vous n'en avez pas",
+      "filingFee": "Préparer les Frais de Dépôt",
+      "filingFeeDesc": "Frais de dépôt de 100$ requis (au 22 juillet 2025) - dispense de frais disponible si éligible",
+      "confirmEligibility": "Confirmer l'Éligibilité",
+      "confirmEligibilityDesc": "Appelez USCIS au 1-800-375-5283 pour vérifier que vous pouvez demander l'autorisation de travail",
+      "getPhotos": "Obtenir Photos de Passeport",
+      "getPhotosDesc": "2 photos style passeport requises pour la demande I-765",
+      "noFee": "Aucuns Frais de Dépôt",
+      "noFeeDesc": "I-765 est gratuit pour les demandeurs d'asile - ne payez pas si on vous le demande",
+      "findAttorneyUrgent": "Obtenir une Représentation Légale",
+      "findAttorneyUrgentDesc": "Trouvez un avocat d'immigration immédiatement si vous n'en avez pas"
+    },
+    "actionTexts": {
+      "checkI94": "Vérifier I-94",
+      "checkEOIR": "Vérifier EOIR"
+    }
+  },
+  "calendar": {
+    "permissionRequired": "Permission de Calendrier Requise",
+    "permissionMessage": "Pour ajouter des événements à votre calendrier, veuillez activer l'accès au calendrier dans les paramètres de votre appareil.",
+    "cancel": "Annuler",
+    "openSettings": "Ouvrir Paramètres",
+    "noCalendar": "Aucun calendrier trouvé sur votre appareil.",
+    "eventAdded": "✅ Événement Ajouté",
+    "eventAddedMessage": "\"{{title}}\" a été ajouté à votre calendrier avec des rappels.",
+    "eventsAdded": "✅ Événements Ajoutés",
+    "eventsAddedMessage": "{{count}} événements sur {{total}} ajoutés avec succès à votre calendrier avec rappels automatiques.",
+    "error": "Erreur",
+    "errorMessage": "Impossible d'ajouter l'événement au calendrier. Veuillez réessayer."
+  },
+  "notifications": {
+    "disabled": "Notifications Désactivées",
+    "disabledMessage": "Pour recevoir des rappels importants d'échéances, veuillez activer les notifications dans les paramètres de votre appareil.",
+    "deadlineAlert": "🚨 Alerte Échéance d'Asile",
+    "deadlineAlertMessage": "{{title}} est dans {{count}} jour. Ne manquez pas cette échéance critique!",
+    "deadlineAlertMessage_plural": "{{title}} est dans {{count}} jours. Ne manquez pas cette échéance critique!",
+    "error": "Erreur de Notification",
+    "errorMessage": "Impossible de programmer les notifications de rappel. Veuillez vérifier vos paramètres de notification."
+  },
+  "languageSwitcher": {
+    "selectLanguage": "Sélectionner la Langue",
+    "openLanguageSelector": "Ouvrir le sélecteur de langue",
+    "restartRequired": "Redémarrage Requis",
+    "restartMessage": "Veuillez redémarrer l'application pour appliquer le changement de direction de mise en page.",
+    "errorMessage": "Impossible de changer la langue. Veuillez réessayer."
+  },
+  "welcome": {
+    "title": "Bienvenue sur AsylumAssist",
+    "subtitle": "Votre compagnon numérique pour naviguer le processus d'asile aux États-Unis",
+    "features": {
+      "timeline": {
+        "title": "Gestion de Chronologie",
+        "description": "Suivez les échéances importantes et les dates de tribunal"
+      },
+      "forms": {
+        "title": "Assistance de Formulaires",
+        "description": "Obtenez de l'aide pour remplir I-589 et autres formulaires"
+      },
+      "resources": {
+        "title": "Ressources Légales",
+        "description": "Trouvez des organisations d'aide légale et de soutien"
+      }
+    },
+    "loginPrompt": "Vous avez déjà un compte?",
+    "loginLink": "Se connecter",
+    "getStarted": "Commencer",
+    "doLater": "Je ferai cela plus tard"
+  },
+  "auth": {
+    "login": {
+      "title": "Se connecter",
+      "username": "Nom d'utilisateur",
+      "password": "Mot de passe",
+      "usernamePlaceholder": "Entrez votre nom d'utilisateur",
+      "passwordPlaceholder": "Entrez votre mot de passe",
+      "showPassword": "Afficher le mot de passe",
+      "hidePassword": "Masquer le mot de passe",
+      "loginButton": "Se connecter",
+      "usernameRequired": "Le nom d'utilisateur est requis",
+      "passwordRequired": "Le mot de passe est requis",
+      "usernameValidation": "Le nom d'utilisateur doit avoir 3-20 caractères (lettres, chiffres, trait de soulignement seulement)",
+      "passwordMinLength": "Le mot de passe doit avoir au moins 8 caractères",
+      "loginFailed": "Échec de connexion",
+      "loginError": "Nom d'utilisateur ou mot de passe invalide",
+      "loginGenericError": "Quelque chose s'est mal passé. Veuillez réessayer."
+    },
+    "signup": {
+      "title": "Créer un Compte",
+      "getStarted": "Commencer"
+    }
+  },
+  "authLanding": {
+    "tagline": "Votre guide de confiance à travers le processus d'asile",
+    "supportText": "Suivez les échéances, gérez les documents, trouvez de l'aide légale",
+    "signUp": "S'inscrire",
+    "logIn": "Se connecter"
+  },
+  "common": {
+    "logout": "Se Déconnecter",
+    "help": "Aide",
+    "ok": "OK",
+    "yes": "Oui",
+    "no": "Non",
+    "save": "Enregistrer",
+    "edit": "Modifier",
+    "delete": "Supprimer",
+    "confirm": "Confirmer",
+    "loading": "Chargement...",
+    "error": "Erreur",
+    "exit": "Sortir"
+  }
+}

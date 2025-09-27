@@ -1,0 +1,194 @@
+{
+  "dashboard": {
+    "title": "Your Asylum Journey",
+    "nextDeadlineHeader": "Your Next Deadline",
+    "timelineHeader": "Your Asylum Timeline",
+    "urgentBadge": "URGENT",
+    "addToCalendar": "Add to Calendar",
+    "getDirections": "Get Directions",
+    "callUSCIS": "Call USCIS",
+    "calendar": "Calendar",
+    "completedItems": "Completed Items",
+    "completedItems_plural": "Completed Items ({{count}})",
+    "loadingTimeline": "Loading your timeline...",
+    "markComplete": "Mark Complete",
+    "markCompleteDescription": "Mark this item as complete or incomplete",
+    "editNote": "Edit Note",
+    "editNoteDescription": "Edit this timeline item",
+    "addAllToCalendar": "Add All to Calendar",
+    "noTimelineData": "No timeline data available. Please complete the questionnaire to generate your personalized timeline.",
+    "completeQuestionnaire": "Complete Questionnaire"
+  },
+  "countdown": {
+    "daysRemaining": "{{count}} day remaining",
+    "daysRemaining_plural": "{{count}} days remaining",
+    "dayRemaining": "1 DAY REMAINING",
+    "daysRemainingCaps": "{{count}} DAYS REMAINING",
+    "today": "TODAY",
+    "overdue": "OVERDUE",
+    "eligibleNow": "ELIGIBLE NOW"
+  },
+  "timeline": {
+    "categories": {
+      "courtDates": "Court Dates & Hearings",
+      "filingDeadlines": "Filing Deadlines",
+      "workAuthorization": "Work Authorization Actions",
+      "supportiveNotes": "Supportive Notes"
+    },
+    "items": {
+      "courtHearing": {
+        "title": "Immigration Court Hearing",
+        "description": "Appear at {{court}} ({{location}}). Failure to appear may result in removal order.",
+        "descriptionGeneric": "Appear at your assigned court. Failure to appear may result in removal order."
+      },
+      "i589Deadline": {
+        "title": "I-589 Filing Deadline",
+        "description": "File your asylum application within one year of arrival. Missing this deadline severely limits your options."
+      },
+      "workPermit": {
+        "title": "Work Permit Eligibility (I-765)",
+        "description": "You may be eligible to apply for Employment Authorization Document 150 days after filing I-589. Call USCIS to confirm your eligibility status."
+      },
+      "biometrics": {
+        "title": "Biometrics Appointment",
+        "description": "Attend your biometrics appointment (typically 2-6 weeks after filing)"
+      },
+      "tpsExpiration": {
+        "title": "TPS Status Expiration",
+        "description": "File asylum application before TPS expires to maintain exception eligibility"
+      },
+      "paroleExpiration": {
+        "title": "Parole Status Expiration",
+        "description": "File asylum application before parole expires to maintain exception eligibility"
+      },
+      "lateFilingOptions": {
+        "title": "Exception May Apply",
+        "titleNoException": "Consider Withholding of Removal",
+        "description": "Your TPS/Parole status may provide an exception to the one-year deadline",
+        "descriptionNoException": "One-year deadline passed. You may still apply for Withholding of Removal or CAT protection."
+      },
+      "findEntryDate": {
+        "title": "Find Your Entry Date",
+        "description": "Use I-94 lookup to determine your arrival date for deadline calculations"
+      },
+      "findCourt": {
+        "title": "Identify Your Immigration Court",
+        "description": "Contact EOIR or check case documents to find your assigned court"
+      }
+    },
+    "subItems": {
+      "gatherEvidence": "Gather Supporting Evidence",
+      "gatherEvidenceDesc": "Collect documents, country condition reports, witness affidavits, and personal testimony",
+      "findAttorney": "Secure Legal Representation",
+      "findAttorneyDesc": "Find an immigration attorney immediately if you don't have one",
+      "findAttorneyUrgent": "Secure Legal Representation",
+      "findAttorneyUrgentDesc": "Find an immigration attorney immediately if you don't have one",
+      "filingFee": "Prepare Filing Fee",
+      "filingFeeDesc": "$100 filing fee required (as of July 22, 2025) - fee waiver available if eligible",
+      "confirmEligibility": "Confirm Eligibility",
+      "confirmEligibilityDesc": "Call USCIS at 1-800-375-5283 to verify you can apply for work authorization",
+      "getPhotos": "Get Passport Photos",
+      "getPhotosDesc": "2 passport-style photos required for I-765 application",
+      "noFee": "No Filing Fee",
+      "noFeeDesc": "I-765 is free for asylum applicants - do not pay if asked"
+    },
+    "actionTexts": {
+      "checkI94": "Check I-94",
+      "checkEOIR": "Check EOIR"
+    }
+  },
+  "welcome": {
+    "title": "Welcome to AsylumAssist",
+    "subtitle": "Your digital companion for navigating the asylum process in the United States",
+    "features": {
+      "timeline": {
+        "title": "Timeline Management",
+        "description": "Track important deadlines and court dates"
+      },
+      "forms": {
+        "title": "Form Assistance",
+        "description": "Get help filling out I-589 and other forms"
+      },
+      "resources": {
+        "title": "Legal Resources",
+        "description": "Find legal aid organizations and support"
+      }
+    },
+    "loginPrompt": "Already have an account?",
+    "loginLink": "Log in",
+    "getStarted": "Get Started",
+    "doLater": "I'll do this later"
+  },
+  "auth": {
+    "login": {
+      "title": "Log in",
+      "username": "Username",
+      "password": "Password",
+      "usernamePlaceholder": "Enter your username",
+      "passwordPlaceholder": "Enter your password",
+      "showPassword": "Show password",
+      "hidePassword": "Hide password",
+      "loginButton": "Log in",
+      "usernameRequired": "Username is required",
+      "passwordRequired": "Password is required",
+      "usernameValidation": "Username must be 3-20 characters (letters, numbers, underscore only)",
+      "passwordMinLength": "Password must be at least 8 characters",
+      "loginFailed": "Login failed",
+      "loginError": "Invalid username or password",
+      "loginGenericError": "Something went wrong. Please try again."
+    },
+    "signup": {
+      "title": "Create Account",
+      "getStarted": "Get Started"
+    }
+  },
+  "calendar": {
+    "permissionRequired": "Calendar Permission Required",
+    "permissionMessage": "To add events to your calendar, please enable calendar access in your device settings.",
+    "cancel": "Cancel",
+    "openSettings": "Open Settings",
+    "noCalendar": "No calendar found on your device.",
+    "eventAdded": "✅ Event Added",
+    "eventAddedMessage": "\"{{title}}\" has been added to your calendar with reminders.",
+    "eventsAdded": "✅ Events Added",
+    "eventsAddedMessage": "Successfully added {{count}} out of {{total}} events to your calendar with automatic reminders.",
+    "error": "Error",
+    "errorMessage": "Failed to add event to calendar. Please try again."
+  },
+  "notifications": {
+    "disabled": "Notifications Disabled",
+    "disabledMessage": "To receive important deadline reminders, please enable notifications in your device settings.",
+    "deadlineAlert": "🚨 Asylum Deadline Alert",
+    "deadlineAlertMessage": "{{title}} is in {{count}} day. Don't miss this critical deadline!",
+    "deadlineAlertMessage_plural": "{{title}} is in {{count}} days. Don't miss this critical deadline!",
+    "error": "Notification Error",
+    "errorMessage": "Could not schedule reminder notifications. Please check your notification settings."
+  },
+  "languageSwitcher": {
+    "selectLanguage": "Select Language",
+    "openLanguageSelector": "Open language selector",
+    "restartRequired": "Restart Required",
+    "restartMessage": "Please restart the app to apply the layout direction change.",
+    "errorMessage": "Failed to change language. Please try again."
+  },
+  "authLanding": {
+    "tagline": "Your trusted guide through the asylum process",
+    "supportText": "Track deadlines, manage documents, find legal help",
+    "signUp": "Sign up",
+    "logIn": "Log in"
+  },
+  "common": {
+    "logout": "Logout",
+    "help": "Help",
+    "ok": "OK",
+    "yes": "Yes",
+    "no": "No",
+    "save": "Save",
+    "edit": "Edit",
+    "delete": "Delete",
+    "confirm": "Confirm",
+    "loading": "Loading...",
+    "error": "Error",
+    "exit": "Exit"
+  }
+}
