@@ -581,6 +581,59 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
 
 
 
+  const addEventToCalendar = async (item: TimelineItem) => {
+    if (!item.date) return;
+
+    try {
+      const { status } = await Calendar.requestCalendarPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(
+          'Calendar Permission Required',
+          'To add events to your calendar, please enable calendar access in your device settings.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Open Settings', onPress: () => Linking.openURL('app-settings:') }
+          ]
+        );
+        return;
+      }
+
+      const calendars = await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT);
+      const defaultCalendar = calendars.find(cal => cal.source?.name === 'Default') || calendars[0];
+
+      if (!defaultCalendar) {
+        Alert.alert('Error', 'No calendar found on your device.');
+        return;
+      }
+
+      const eventDate = new Date(item.date);
+      let notes = item.description;
+      if (item.subItems && item.subItems.length > 0) {
+        notes += '\n\nSupporting Actions:\n';
+        notes += item.subItems.map(sub => `• ${sub.title}: ${sub.description}`).join('\n');
+      }
+
+      await Calendar.createEventAsync(defaultCalendar.id, {
+        title: item.title,
+        notes: notes,
+        startDate: eventDate,
+        endDate: new Date(eventDate.getTime() + 60 * 60 * 1000),
+        allDay: true,
+        alarms: [
+          { relativeOffset: -7 * 24 * 60 },
+          { relativeOffset: -3 * 24 * 60 },
+          { relativeOffset: -24 * 60 },
+        ],
+        location: item.actionUrl?.includes('maps.google.com') ? 'Immigration Court' : undefined,
+      });
+
+      Alert.alert('✅ Event Added', `"${item.title}" has been added to your calendar with reminders.`);
+    } catch (error) {
+      console.error('Calendar integration error:', error);
+      Alert.alert('Error', 'Failed to add event to calendar. Please try again.');
+    }
+  };
+
   const addAllEventsToCalendar = async () => {
     try {
       // Request calendar permissions
@@ -654,6 +707,13 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
 
 
 
+  const getUrgencyColor = (daysUntil: number | null) => {
+    if (daysUntil === null || daysUntil < 0) return '#DC2626'; // Red for overdue
+    if (daysUntil < 7) return '#DC2626'; // Red for <7 days
+    if (daysUntil <= 14) return '#D97706'; // Orange for 7-14 days
+    return '#16A34A'; // Green for >14 days
+  };
+
   const renderTimelineItem = (item: TimelineItem, index: number) => {
     const getPriorityColor = () => {
       switch (item.priority) {
@@ -696,125 +756,124 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
     const isOverdue = item.date && new Date(item.date) < new Date() && item.type !== 'work-authorization';
     const isEligible = item.date && new Date(item.date) < new Date() && item.type === 'work-authorization';
     const daysUntil = item.date ? Math.ceil((new Date(item.date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : null;
+    const urgencyColor = getUrgencyColor(daysUntil);
+
+    const getLocationText = () => {
+      if (item.type === 'court-hearing' && userData?.assignedCourt) {
+        const court = getCourtByCode(userData.assignedCourt);
+        return court ? `${court.city}, ${court.state}` : userData.assignedCourt;
+      }
+      return null;
+    };
 
     return (
       <View key={item.id} style={[styles.timelineItem, !item.date && styles.timelineItemNoDate]}>
-        {/* Date Column - Only show if item has date */}
-        {item.date && (
-          <View style={styles.dateColumn}>
-            <Text style={[styles.dateDay, { color: getPriorityColor() }]}>
-              {formatDate(item.date).day}
-            </Text>
-            <Text style={[styles.dateMonth, { color: getPriorityColor() }]}>
-              {formatDate(item.date).month.toUpperCase()}
-            </Text>
-            <Text style={styles.dateYear}>{formatDate(item.date).year}</Text>
-            {daysUntil !== null && daysUntil >= 0 && (
-              <Text style={[styles.daysUntil, { color: getPriorityColor() }]}>
-                {daysUntil === 0 ? 'TODAY' : `${daysUntil}d`}
-              </Text>
-            )}
-            {isOverdue && (
-              <Text style={[styles.overdue, { color: getPriorityColor() }]}>
-                OVERDUE
-              </Text>
-            )}
-            {isEligible && (
-              <Text style={[styles.eligible, { color: Colors.success }]}>
-                ELIGIBLE
-              </Text>
-            )}
-          </View>
-        )}
-
-        {/* Timeline Connector - Only show if item has date */}
-        {item.date && (
-          <View style={styles.timelineConnector}>
-            <View style={[styles.timelineNode, { backgroundColor: getPriorityColor() }]}>
-              <Ionicons name={getTypeIcon()} size={16} color={Colors.white} />
-            </View>
-            {index < timelineItems.length - 1 && (
-              <View style={[styles.timelineLine, { backgroundColor: Colors.border }]} />
-            )}
-          </View>
-        )}
-
-        {/* Icon for items without date */}
-        {!item.date && (
-          <View style={[styles.noDateIcon, { backgroundColor: getPriorityColor() }]}>
-            <Ionicons name={getTypeIcon()} size={20} color={Colors.white} />
-          </View>
-        )}
-
-        {/* Content Column */}
-        <View style={[styles.contentColumn, !item.date && styles.contentColumnNoDate]}>
-          <View style={styles.itemHeader}>
-            <View style={styles.itemHeaderLeft}>
-              <View style={styles.categoryAndBadge}>
-                <Text style={styles.itemCategory} numberOfLines={1} ellipsizeMode="tail">
-                  {item.category}
+        {/* Two-section card layout */}
+        <View style={styles.cardContainer}>
+          {/* Top section: Title, date, location, urgency badge */}
+          <View style={styles.cardTopSection}>
+            <View style={styles.cardHeader}>
+              <View style={styles.cardHeaderLeft}>
+                {/* Single urgency badge */}
+                {item.priority === 'critical' && (
+                  <View style={[styles.urgencyBadge, { backgroundColor: getPriorityColor() }]}>
+                    <Text style={styles.urgencyBadgeText}>URGENT</Text>
+                  </View>
+                )}
+                <Text style={[styles.itemTitle, { color: getPriorityColor() }]}>
+                  {item.title}
                 </Text>
-                <View style={[styles.priorityBadge, { backgroundColor: getPriorityColor() }]}>
-                  <Text style={styles.priorityText} numberOfLines={1}>
-                    {item.priority === 'critical' ? 'CRITICAL' : item.priority.toUpperCase()}
-                  </Text>
-                </View>
+                {item.date && (
+                  <View style={styles.dateLocationContainer}>
+                    <Text style={styles.cardDateText}>
+                      {new Date(item.date).toLocaleDateString('en-US', {
+                        weekday: 'short',
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric'
+                      })}
+                    </Text>
+                    {getLocationText() && (
+                      <Text style={styles.cardLocationText}>
+                        📍 {getLocationText()}
+                      </Text>
+                    )}
+                  </View>
+                )}
+              </View>
+
+              {/* CTAs in top-right */}
+              <View style={styles.cardTopActions}>
+                {item.actionText && item.actionUrl && (
+                  <TouchableOpacity
+                    style={[styles.topActionButton, { backgroundColor: getPriorityColor() }]}
+                    onPress={() => handleCardAction(item)}
+                  >
+                    <Ionicons
+                      name={item.actionUrl.startsWith('tel:') ? "call" : "navigate"}
+                      size={16}
+                      color={Colors.white}
+                    />
+                    <Text style={styles.topActionText}>{item.actionText}</Text>
+                  </TouchableOpacity>
+                )}
+                {item.date && (
+                  <TouchableOpacity
+                    style={styles.calendarButton}
+                    onPress={() => addEventToCalendar(item)}
+                  >
+                    <Ionicons name="calendar" size={16} color={Colors.primary} />
+                    <Text style={styles.calendarButtonText}>Calendar</Text>
+                  </TouchableOpacity>
+                )}
               </View>
             </View>
-          </View>
-          
-          <Text style={[styles.itemTitle, { color: getPriorityColor() }]}>
-            {item.title}
-          </Text>
-          
-          <Text style={[styles.itemDescription, item.completed && { textDecorationLine: 'line-through', opacity: 0.6 }]}>
-            {item.description}
-          </Text>
 
-          {/* Control Buttons */}
-          <View style={styles.itemControls}>
-            {/* Completion Toggle */}
-            <TouchableOpacity
-              style={[styles.compactButton, item.completed && styles.compactButtonCompleted]}
-              onPress={() => handleToggleComplete(item.id)}
-            >
-              <Ionicons
-                name={item.completed ? "checkmark-circle" : "checkmark-circle-outline"}
-                size={20}
-                color={item.completed ? Colors.success : Colors.textSecondary}
-              />
-            </TouchableOpacity>
-
-            {/* Edit Button */}
-            {item.isEditable && (
-              <TouchableOpacity
-                style={styles.compactButton}
-                onPress={() => handleEditItem(item)}
-              >
-                <Ionicons name="pencil" size={16} color={Colors.primary} />
-              </TouchableOpacity>
+            {/* Prominent countdown */}
+            {daysUntil !== null && item.date && (
+              <View style={styles.countdownContainer}>
+                <Text style={[styles.countdownText, { color: urgencyColor }]}>
+                  {isOverdue ? 'OVERDUE' :
+                   isEligible ? 'ELIGIBLE NOW' :
+                   daysUntil === 0 ? 'TODAY' :
+                   `${daysUntil} day${daysUntil !== 1 ? 's' : ''} remaining`}
+                </Text>
+              </View>
             )}
           </View>
 
-          {/* Action Buttons Row */}
-          <View style={styles.actionButtonsRow}>
-            {/* Main Action Button */}
-            {item.actionText && item.actionUrl && (
+          {/* Bottom section: Description and actions */}
+          <View style={styles.cardBottomSection}>
+            <Text style={[styles.itemDescription, item.completed && { textDecorationLine: 'line-through', opacity: 0.6 }]}>
+              {item.description}
+            </Text>
+
+            {/* Bottom actions row */}
+            <View style={styles.bottomActionsRow}>
+              {/* Completion Toggle with tooltip */}
               <TouchableOpacity
-                style={[styles.actionButton, { backgroundColor: getPriorityColor() }]}
-                onPress={() => handleCardAction(item)}
+                style={[styles.iconButton, item.completed && styles.iconButtonCompleted]}
+                onPress={() => handleToggleComplete(item.id)}
+                onLongPress={() => Alert.alert('Mark Complete', 'Mark this item as complete or incomplete')}
               >
                 <Ionicons
-                  name={item.actionUrl.startsWith('tel:') ? "call" : "arrow-forward"}
-                  size={16}
-                  color={Colors.white}
-                  style={{ marginRight: 8 }}
+                  name={item.completed ? "checkmark-circle" : "checkmark-circle-outline"}
+                  size={20}
+                  color={item.completed ? Colors.success : Colors.textSecondary}
                 />
-                <Text style={styles.actionButtonText}>{item.actionText}</Text>
               </TouchableOpacity>
-            )}
 
-
+              {/* Edit Button with tooltip */}
+              {item.isEditable && (
+                <TouchableOpacity
+                  style={styles.iconButton}
+                  onPress={() => handleEditItem(item)}
+                  onLongPress={() => Alert.alert('Edit Note', 'Edit this timeline item')}
+                >
+                  <Ionicons name="pencil" size={16} color={Colors.primary} />
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
 
           {/* Sub-items */}
@@ -941,20 +1000,73 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
           <View style={styles.nextDeadlineContainer}>
             <Text style={styles.nextDeadlineHeader}>Your Next Deadline</Text>
             <View style={styles.nextDeadlineCard}>
-              <View style={styles.nextDeadlineDate}>
-                <Text style={styles.nextDeadlineDay}>
-                  {new Date(nextDeadline.date!).getDate().toString().padStart(2, '0')}
-                </Text>
-                <Text style={styles.nextDeadlineMonth}>
-                  {new Date(nextDeadline.date!).toLocaleDateString('en-US', { month: 'short' }).toUpperCase()}
-                </Text>
+              {/* Top section with urgency badge and CTAs */}
+              <View style={styles.nextDeadlineTop}>
+                <View style={styles.nextDeadlineHeaderRow}>
+                  <View style={styles.nextDeadlineLeft}>
+                    <View style={styles.nextDeadlineUrgencyBadge}>
+                      <Text style={styles.nextDeadlineUrgencyText}>URGENT</Text>
+                    </View>
+                    <Text style={styles.nextDeadlineTitle}>{nextDeadline.title}</Text>
+                    <Text style={styles.nextDeadlineDate}>
+                      {new Date(nextDeadline.date!).toLocaleDateString('en-US', {
+                        weekday: 'long',
+                        month: 'long',
+                        day: 'numeric',
+                        year: 'numeric'
+                      })}
+                    </Text>
+                    {nextDeadline.type === 'court-hearing' && userData?.assignedCourt && (
+                      <Text style={styles.nextDeadlineLocation}>
+                        📍 {(() => {
+                          const court = getCourtByCode(userData.assignedCourt!);
+                          return court ? `${court.city}, ${court.state}` : userData.assignedCourt;
+                        })()}
+                      </Text>
+                    )}
+                  </View>
+
+                  {/* CTAs in top-right */}
+                  <View style={styles.nextDeadlineActions}>
+                    {nextDeadline.actionText && nextDeadline.actionUrl && (
+                      <TouchableOpacity
+                        style={styles.nextDeadlineActionButton}
+                        onPress={() => handleCardAction(nextDeadline)}
+                      >
+                        <Ionicons
+                          name={nextDeadline.actionUrl.startsWith('tel:') ? "call" : "navigate"}
+                          size={16}
+                          color={Colors.white}
+                        />
+                        <Text style={styles.nextDeadlineActionText}>{nextDeadline.actionText}</Text>
+                      </TouchableOpacity>
+                    )}
+                    <TouchableOpacity
+                      style={styles.nextDeadlineCalendarButton}
+                      onPress={() => addEventToCalendar(nextDeadline)}
+                    >
+                      <Ionicons name="calendar" size={16} color="#DC2626" />
+                      <Text style={styles.nextDeadlineCalendarText}>Add to Calendar</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                {/* Prominent countdown */}
+                <View style={styles.nextDeadlineCountdown}>
+                  <Text style={[styles.nextDeadlineCountdownText, {
+                    color: getUrgencyColor(Math.ceil((new Date(nextDeadline.date!).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)))
+                  }]}>
+                    {(() => {
+                      const days = Math.ceil((new Date(nextDeadline.date!).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+                      return days <= 0 ? 'OVERDUE' : days === 1 ? '1 DAY REMAINING' : `${days} DAYS REMAINING`;
+                    })()}
+                  </Text>
+                </View>
               </View>
-              <View style={styles.nextDeadlineContent}>
-                <Text style={styles.nextDeadlineTitle}>{nextDeadline.title}</Text>
+
+              {/* Bottom section with description */}
+              <View style={styles.nextDeadlineBottom}>
                 <Text style={styles.nextDeadlineDescription}>{nextDeadline.description}</Text>
-                <Text style={styles.nextDeadlineDays}>
-                  {Math.ceil((new Date(nextDeadline.date!).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} days remaining
-                </Text>
               </View>
             </View>
           </View>
@@ -1199,7 +1311,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 
-  // Your Next Deadline Styles
+  // Your Next Deadline Styles - Redesigned
   nextDeadlineContainer: {
     paddingHorizontal: 16,
     paddingTop: 16,
@@ -1227,9 +1339,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderLeftWidth: 6,
     borderLeftColor: '#DC2626',
-    padding: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -1239,46 +1348,112 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 4,
   },
-  nextDeadlineDate: {
-    alignItems: 'center',
-    marginRight: 20,
-    paddingVertical: 8,
+  nextDeadlineTop: {
+    padding: 20,
+    paddingBottom: 16,
   },
-  nextDeadlineDay: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: '#DC2626',
-    lineHeight: 38,
+  nextDeadlineBottom: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    paddingTop: 0,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(220, 38, 38, 0.1)',
   },
-  nextDeadlineMonth: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#DC2626',
-    letterSpacing: 1,
+  nextDeadlineHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 16,
   },
-  nextDeadlineContent: {
+  nextDeadlineLeft: {
     flex: 1,
+    marginRight: 16,
+  },
+  nextDeadlineUrgencyBadge: {
+    backgroundColor: '#DC2626',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+    marginBottom: 8,
+  },
+  nextDeadlineUrgencyText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: Colors.white,
+    letterSpacing: 0.5,
   },
   nextDeadlineTitle: {
     ...Typography.h4,
     color: '#991B1B',
     fontWeight: '700',
+    fontSize: 18,
+    marginBottom: 8,
+  },
+  nextDeadlineDate: {
+    ...Typography.body,
+    color: '#7F1D1D',
+    fontSize: 14,
+    fontWeight: '600',
     marginBottom: 4,
+  },
+  nextDeadlineLocation: {
+    ...Typography.body,
+    color: '#7F1D1D',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  nextDeadlineActions: {
+    alignItems: 'flex-end',
+    gap: 8,
+  },
+  nextDeadlineActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#DC2626',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    gap: 6,
+  },
+  nextDeadlineActionText: {
+    color: Colors.white,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  nextDeadlineCalendarButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.white,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#DC2626',
+    gap: 6,
+  },
+  nextDeadlineCalendarText: {
+    color: '#DC2626',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  nextDeadlineCountdown: {
+    alignItems: 'center',
+  },
+  nextDeadlineCountdownText: {
+    fontSize: 20,
+    fontWeight: '800',
+    letterSpacing: 1,
+    textAlign: 'center',
   },
   nextDeadlineDescription: {
     ...Typography.body,
     color: '#7F1D1D',
     fontSize: 14,
     lineHeight: 20,
-    marginBottom: 8,
-  },
-  nextDeadlineDays: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#DC2626',
   },
 
-  // Timeline Styles
+  // Timeline Styles - Redesigned
   timelineContainer: {
     paddingHorizontal: 16,
     paddingTop: 12,
@@ -1292,11 +1467,9 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   timelineItem: {
-    flexDirection: 'row',
-    marginBottom: 20,
+    marginBottom: 16,
     backgroundColor: Colors.white,
     borderRadius: 16,
-    padding: 18,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -1307,149 +1480,135 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   timelineItemNoDate: {
-    paddingLeft: 20,
+    // No specific styling changes needed
   },
 
-  // Date Column
-  dateColumn: {
-    alignItems: 'center',
-    minWidth: 70,
-    marginRight: 16,
-  },
-  dateDay: {
-    fontSize: 24,
-    fontWeight: '800',
-    lineHeight: 28,
-  },
-  dateMonth: {
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 1,
-    marginBottom: 2,
-  },
-  dateYear: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: Colors.textSecondary,
-    marginBottom: 4,
-  },
-  daysUntil: {
-    fontSize: 10,
-    fontWeight: '700',
-    backgroundColor: 'rgba(0,0,0,0.05)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    textAlign: 'center',
-  },
-  overdue: {
-    fontSize: 10,
-    fontWeight: '700',
-    backgroundColor: '#FEE2E2',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    textAlign: 'center',
-  },
-  eligible: {
-    fontSize: 10,
-    fontWeight: '700',
-    backgroundColor: Colors.successLight,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    textAlign: 'center',
-  },
-  noDateIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  noDateText: {
-    fontSize: 20,
-  },
-  noDatePlaceholder: {
-    width: 32,
-    height: 32,
-  },
-
-  // Timeline Connector
-  timelineConnector: {
-    alignItems: 'center',
-    marginRight: 16,
-    position: 'relative',
-  },
-  timelineNode: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 2,
-  },
-  timelineLine: {
-    position: 'absolute',
-    width: 2,
-    height: 40,
-    top: 32,
-    zIndex: 1,
-  },
-
-  // Content Column
-  contentColumn: {
+  // New Card Container Styles
+  cardContainer: {
     flex: 1,
-    paddingLeft: 4,
   },
-  contentColumnNoDate: {
-    paddingLeft: 16,
+  cardTopSection: {
+    padding: 16,
+    paddingBottom: 12,
   },
-  itemHeader: {
-    marginBottom: 10,
+  cardBottomSection: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    paddingTop: 0,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
   },
-  itemHeaderLeft: {
-    marginBottom: 8,
-  },
-  categoryAndBadge: {
+  cardHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
   },
-  itemCategory: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: Colors.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginRight: 8,
-    marginTop: 2,
+  cardHeaderLeft: {
+    flex: 1,
+    marginRight: 12,
   },
-  priorityBadge: {
+  urgencyBadge: {
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,
     alignSelf: 'flex-start',
-    flexShrink: 0,
-    minWidth: 60,
-    alignItems: 'center',
+    marginBottom: 8,
   },
-  priorityText: {
-    fontSize: 8,
+  urgencyBadgeText: {
+    fontSize: 10,
     fontWeight: '800',
     color: Colors.white,
     letterSpacing: 0.5,
+  },
+  dateLocationContainer: {
+    marginTop: 8,
+  },
+  cardDateText: {
+    ...Typography.body,
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.textSecondary,
+    marginBottom: 4,
+  },
+  cardLocationText: {
+    ...Typography.body,
+    fontSize: 13,
+    fontWeight: '500',
+    color: Colors.textSecondary,
+  },
+  cardTopActions: {
+    alignItems: 'flex-end',
+    gap: 8,
+  },
+  topActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    gap: 6,
+  },
+  topActionText: {
+    color: Colors.white,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  calendarButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.white,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+    gap: 6,
+  },
+  calendarButtonText: {
+    color: Colors.primary,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  countdownContainer: {
+    alignItems: 'center',
+  },
+  countdownText: {
+    fontSize: 16,
+    fontWeight: '800',
+    letterSpacing: 0.5,
     textAlign: 'center',
   },
+  bottomActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 12,
+  },
+  iconButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: Colors.background,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  iconButtonCompleted: {
+    backgroundColor: Colors.successLight,
+    borderColor: Colors.success,
+  },
+
+  // Unused styles removed to clean up stylesheet
   itemTitle: {
     ...Typography.h4,
     fontWeight: '700',
@@ -1465,29 +1624,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
 
-  // Action Buttons
-  actionButtonsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 8,
-    marginBottom: 8,
-  },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 8,
-    flex: 1,
-    minWidth: 120,
-  },
-  actionButtonText: {
-    ...Typography.button,
-    color: Colors.white,
-    fontSize: 14,
-    fontWeight: '600',
-  },
+  // Action buttons styles integrated into new card design
 
   // Sub Items
   subItemsContainer: {
@@ -1654,36 +1791,7 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
 
-  // Compact Controls
-  itemControls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginTop: 8,
-    marginBottom: 4,
-  },
-  compactButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: Colors.background,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  compactButtonCompleted: {
-    backgroundColor: Colors.successLight,
-    borderColor: Colors.success,
-  },
+  // Control styles integrated into new iconButton design
 
   // Modal Styles
   modalOverlay: {
