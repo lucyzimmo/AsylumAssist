@@ -9,6 +9,7 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useForm, Controller } from 'react-hook-form';
@@ -16,8 +17,6 @@ import { StackScreenProps } from '@react-navigation/stack';
 import { Colors } from '../../constants/Colors';
 import { Typography } from '../../constants/Typography';
 import { Button } from '../../components/ui/Button';
-import { Input } from '../../components/ui/Input';
-import { ProgressIndicator } from '../../components/ui/ProgressIndicator';
 import { Alert } from '../../components/ui/Alert';
 import { Modal } from '../../components/ui/Modal';
 import { DateDropdown } from '../../components/forms/DateDropdown';
@@ -72,10 +71,14 @@ export const ImmigrationStatusScreen: React.FC<ImmigrationStatusScreenProps> = (
     // Save form data to context/storage
     const combinedData = {
       ...route?.params?.asylumStatusData,
-      visitedEOIR: true, // Always true since they answered the EOIR question
+      visitedEOIR: 'yes' as const, // Always true since they answered the EOIR question
       hasCase: data.hasCase as 'yes' | 'no',
       nextHearingDate: data.nextHearingDate?.toISOString(),
       assignedCourt: data.assignedCourt,
+      entryDate: route?.params?.asylumStatusData?.entryDate || '',
+      hasFiledI589: route?.params?.asylumStatusData?.hasFiledI589 || 'not-sure',
+      i589SubmissionDate: route?.params?.asylumStatusData?.i589SubmissionDate || '',
+      filingLocation: route?.params?.asylumStatusData?.filingLocation || 'not-sure',
     };
     
     navigation.navigate('SpecialStatus', {
@@ -85,6 +88,14 @@ export const ImmigrationStatusScreen: React.FC<ImmigrationStatusScreenProps> = (
 
   const handleGoBack = () => {
     navigation.goBack();
+  };
+
+  const handleEOIRLink = async () => {
+    try {
+      await Linking.openURL('https://acis.eoir.justice.gov/en/');
+    } catch (error) {
+      console.error('Could not open EOIR website:', error);
+    }
   };
 
   return (
@@ -203,7 +214,7 @@ export const ImmigrationStatusScreen: React.FC<ImmigrationStatusScreenProps> = (
                     render={({ field: { onChange, value } }) => (
                       <DateDropdown
                         label="Next Hearing Date"
-                        value={value}
+                        value={value || undefined}
                         onDateChange={onChange}
                         placeholder={{
                           month: 'Month',
@@ -273,6 +284,47 @@ export const ImmigrationStatusScreen: React.FC<ImmigrationStatusScreenProps> = (
                   title="No Court Proceedings"
                   message="You are not currently in Immigration Court proceedings. This means you can file for asylum through the affirmative process with USCIS if you haven't already."
                 />
+
+                <TouchableOpacity
+                  style={styles.checkStatusButton}
+                  onPress={handleEOIRLink}
+                  accessibilityRole="button"
+                  accessibilityLabel="Check your EOIR case status online"
+                >
+                  <View style={styles.checkStatusContent}>
+                    <Ionicons name="search-outline" size={20} color={Colors.primary} />
+                    <View style={styles.checkStatusText}>
+                      <Text style={styles.checkStatusTitle}>Not sure? Check your case status</Text>
+                      <Text style={styles.checkStatusSubtitle}>
+                        If you have an A-number, verify your status at the EOIR website
+                      </Text>
+                    </View>
+                    <Ionicons name="open-outline" size={16} color={Colors.primary} />
+                  </View>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {/* "Not sure" option - always show this helpful message */}
+            {hasCase === '' && (
+              <View style={styles.alertContainer}>
+                <TouchableOpacity
+                  style={styles.checkStatusButton}
+                  onPress={handleEOIRLink}
+                  accessibilityRole="button"
+                  accessibilityLabel="Check your EOIR case status online"
+                >
+                  <View style={styles.checkStatusContent}>
+                    <Ionicons name="search-outline" size={20} color={Colors.primary} />
+                    <View style={styles.checkStatusText}>
+                      <Text style={styles.checkStatusTitle}>Not sure? Check your case status</Text>
+                      <Text style={styles.checkStatusSubtitle}>
+                        If you have an A-number, verify your status at the EOIR website
+                      </Text>
+                    </View>
+                    <Ionicons name="open-outline" size={16} color={Colors.primary} />
+                  </View>
+                </TouchableOpacity>
               </View>
             )}
           </View>
@@ -306,9 +358,31 @@ export const ImmigrationStatusScreen: React.FC<ImmigrationStatusScreenProps> = (
             • You were placed in removal proceedings{'\n'}
             • You have an A-number and court case number{'\n'}
             • You've been to Immigration Court before{'\n\n'}
+            <Text style={styles.bold}>How to check your case status:</Text>{'\n\n'}
+            If you have an A-number (Alien Registration Number), you can check your case status online at the EOIR website.{'\n\n'}
             <Text style={styles.bold}>If you're not sure:</Text>{'\n\n'}
-            Check if you have any court documents, NTA, or ask your attorney. You can also check online at the EOIR portal.
+            Check if you have any court documents, NTA, or ask your attorney.
           </Text>
+
+          <TouchableOpacity
+            style={styles.linkButton}
+            onPress={handleEOIRLink}
+            accessibilityRole="button"
+            accessibilityLabel="Visit EOIR case lookup website"
+          >
+            <Ionicons name="globe-outline" size={20} color={Colors.primary} style={styles.linkIcon} />
+            <Text style={styles.linkText}>Check Your Case at EOIR Portal</Text>
+            <Ionicons name="open-outline" size={16} color={Colors.primary} />
+          </TouchableOpacity>
+
+          <View style={styles.instructionBox}>
+            <Text style={styles.instructionTitle}>To check your case:</Text>
+            <Text style={styles.instructionText}>
+              1. Click the link above to visit the EOIR website{'\n'}
+              2. Enter your A-number (Alien Registration Number){'\n'}
+              3. View your case details and hearing information
+            </Text>
+          </View>
         </View>
       </Modal>
 
@@ -488,6 +562,82 @@ const styles = StyleSheet.create({
   },
   bold: {
     fontWeight: '600',
+  },
+
+  // EOIR Link Button Styles
+  linkButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.primaryLight,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 12,
+  },
+  linkIcon: {
+    marginRight: 8,
+  },
+  linkText: {
+    ...Typography.body,
+    color: Colors.primary,
+    fontWeight: '600',
+    marginRight: 8,
+    flex: 1,
+    textAlign: 'center',
+  },
+
+  // Instruction Box Styles
+  instructionBox: {
+    backgroundColor: Colors.background,
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 8,
+    borderLeftWidth: 4,
+    borderLeftColor: Colors.info,
+  },
+  instructionTitle: {
+    ...Typography.caption,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+    marginBottom: 6,
+  },
+  instructionText: {
+    ...Typography.caption,
+    color: Colors.textSecondary,
+    lineHeight: 18,
+  },
+
+  // Check Status Button (for "No" option)
+  checkStatusButton: {
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+    borderRadius: 8,
+    backgroundColor: Colors.background,
+  },
+  checkStatusContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+  },
+  checkStatusText: {
+    flex: 1,
+    marginHorizontal: 12,
+  },
+  checkStatusTitle: {
+    ...Typography.body,
+    color: Colors.primary,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  checkStatusSubtitle: {
+    ...Typography.caption,
+    color: Colors.textSecondary,
+    lineHeight: 16,
   },
 });
 

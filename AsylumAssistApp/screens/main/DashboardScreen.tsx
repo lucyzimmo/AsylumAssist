@@ -101,7 +101,18 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editedTitle, setEditedTitle] = useState('');
   const [editedDescription, setEditedDescription] = useState('');
+  const [editedCourt, setEditedCourt] = useState('');
   const [showCompletedItems, setShowCompletedItems] = useState(false);
+  const [showCourtPicker, setShowCourtPicker] = useState(false);
+
+  // Debug modal states
+  useEffect(() => {
+    console.log('Modal states:', {
+      editModalVisible,
+      showDatePicker,
+      showCourtPicker
+    });
+  }, [editModalVisible, showDatePicker, showCourtPicker]);
 
   // Load user data and setup notifications on component mount
   useEffect(() => {
@@ -280,15 +291,57 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
     }
   };
 
+  // Auto-generate description based on item type and court
+  const generateDescription = (item: TimelineItem, courtCode?: string) => {
+    if (item.type === 'court-hearing' && courtCode) {
+      const court = getCourtByCode(courtCode);
+      if (court) {
+        return t('timeline.items.courtHearing.description', {
+          court: court.name,
+          location: `${court.city}, ${court.state}`
+        });
+      }
+      return t('timeline.items.courtHearing.description', {
+        court: courtCode,
+        location: ''
+      });
+    }
+    // For other types, return original description or use translation keys
+    switch (item.type) {
+      case 'filing-deadline':
+        return t('timeline.items.i589Deadline.description');
+      case 'work-authorization':
+        return t('timeline.items.workPermit.description');
+      default:
+        return item.description;
+    }
+  };
+
   const handleEditItem = (item: TimelineItem) => {
-    if (!item.isEditable) return;
+    if (!item.isEditable) {
+      console.log('Item is not editable:', item);
+      return;
+    }
+
+    console.log('Editing item:', item);
+    console.log('User data court:', userData?.assignedCourt);
 
     setEditingItem(item);
     setEditedTitle(item.title);
     setEditedDescription(item.description);
+
+    // For court hearings, get the actual assigned court from user data
+    const courtCode = item.type === 'court-hearing' ? (userData?.assignedCourt || '') : '';
+    console.log('Setting court code:', courtCode);
+    setEditedCourt(courtCode);
+
     if (item.date) {
       setEditedDate(new Date(item.date));
+    } else {
+      setEditedDate(new Date()); // Default to today if no date
     }
+
+    console.log('Opening edit modal');
     setEditModalVisible(true);
   };
 
@@ -303,22 +356,49 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
   const handleSaveEdit = async () => {
     if (!editingItem) return;
 
+    console.log('Saving edit for item:', editingItem.id);
+
     // Cancel old notifications
     await cancelNotifications(editingItem.id);
 
-    const updatedItems = timelineItems.map(item =>
-      item.id === editingItem.id
-        ? {
-            ...item,
-            title: editedTitle,
-            description: editedDescription,
-            date: editedDate.toISOString()
+    const updatedItems = timelineItems.map(item => {
+      if (item.id === editingItem.id) {
+        const updatedItem = {
+          ...item,
+          title: editedTitle,
+          date: editedDate.toISOString()
+        };
+
+        // Auto-generate description and update action URL for court hearings
+        if (item.type === 'court-hearing' && editedCourt) {
+          updatedItem.description = generateDescription(item, editedCourt);
+          const court = getCourtByCode(editedCourt);
+          if (court) {
+            updatedItem.actionUrl = `https://maps.google.com/?q=${encodeURIComponent(court.address)}`;
           }
-        : item
-    );
+        } else {
+          // For non-court items, auto-generate description
+          updatedItem.description = generateDescription(item);
+        }
+
+        return updatedItem;
+      }
+      return item;
+    });
 
     setTimelineItems(updatedItems);
     await saveTimelineToStorage(updatedItems);
+
+    // Update user data if this is a court hearing
+    if (editingItem.type === 'court-hearing' && editedCourt && userData) {
+      const updatedUserData = {
+        ...userData,
+        nextHearingDate: editedDate.toISOString(),
+        assignedCourt: editedCourt
+      };
+      setUserData(updatedUserData);
+      await AsyncStorage.setItem('userOnboardingData', JSON.stringify(updatedUserData));
+    }
 
     // Schedule new notifications
     const updatedItem = updatedItems.find(item => item.id === editingItem.id);
@@ -328,6 +408,8 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
 
     setEditModalVisible(false);
     setEditingItem(null);
+    
+    console.log('Edit saved successfully');
   };
 
   const saveTimelineToStorage = async (timeline: TimelineItem[]) => {
@@ -723,7 +805,7 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
     return '#16A34A'; // Green for >14 days
   };
 
-  const renderTimelineItem = (item: TimelineItem, index: number) => {
+  const renderTimelineItem = (item: TimelineItem) => {
     const getPriorityColor = () => {
       switch (item.priority) {
         case 'critical':
@@ -737,30 +819,6 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
       }
     };
 
-    const getTypeIcon = () => {
-      switch (item.type) {
-        case 'court-hearing':
-          return 'hammer-outline'; // Gavel
-        case 'filing-deadline':
-          return 'time-outline'; // Clock
-        case 'work-authorization':
-          return 'briefcase-outline'; // Work
-        case 'task':
-          return 'checkmark-circle-outline'; // Checklist
-        case 'info':
-          return 'information-circle-outline'; // Info
-        default:
-          return 'calendar-outline';
-      }
-    };
-
-    const formatDate = (dateString: string) => {
-      const date = new Date(dateString);
-      const day = date.getDate().toString().padStart(2, '0');
-      const month = date.toLocaleDateString('en-US', { month: 'short' });
-      const year = date.getFullYear();
-      return { day, month, year };
-    };
 
     const isOverdue = item.date && new Date(item.date) < new Date() && item.type !== 'work-authorization';
     const isEligible = item.date && new Date(item.date) < new Date() && item.type === 'work-authorization';
@@ -847,7 +905,8 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
                   {isOverdue ? t('countdown.overdue') :
                    isEligible ? t('countdown.eligibleNow') :
                    daysUntil === 0 ? t('countdown.today') :
-                   t('countdown.daysRemaining', { count: daysUntil })}
+                   daysUntil === 1 ? t('countdown.daysRemaining') :
+                   t('countdown.daysRemaining_plural', { count: daysUntil })}
                 </Text>
               </View>
             )}
@@ -878,7 +937,10 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
               {item.isEditable && (
                 <TouchableOpacity
                   style={styles.iconButton}
-                  onPress={() => handleEditItem(item)}
+                  onPress={() => {
+                    console.log('Edit button pressed for item:', item.id, item.title);
+                    handleEditItem(item);
+                  }}
                   onLongPress={() => Alert.alert(t('dashboard.editNote'), t('dashboard.editNoteDescription'))}
                 >
                   <Ionicons name="pencil" size={16} color={Colors.primary} />
@@ -1092,7 +1154,7 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
           {timelineItems.length > 0 ? (
             <>
               {/* Active Items */}
-              {timelineItems.filter(item => !item.completed).map((item, index) => renderTimelineItem(item, index))}
+              {timelineItems.filter(item => !item.completed).map((item) => renderTimelineItem(item))}
               
               {/* Completed Items Section */}
               {timelineItems.filter(item => item.completed).length > 0 && (
@@ -1123,7 +1185,7 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
                           }
                           return 0;
                         })
-                        .map((item, index) => renderTimelineItem(item, index))}
+                        .map((item) => renderTimelineItem(item))}
                     </View>
                   )}
                 </View>
@@ -1147,8 +1209,11 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
         <Modal
           animationType="slide"
           transparent={true}
-          visible={editModalVisible}
-          onRequestClose={() => setEditModalVisible(false)}
+          visible={editModalVisible && !showDatePicker && !showCourtPicker}
+          onRequestClose={() => {
+            console.log('Modal close requested');
+            setEditModalVisible(false);
+          }}
         >
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
@@ -1172,40 +1237,57 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
                   multiline
                 />
 
-                <Text style={styles.fieldLabel}>Description</Text>
-                <TextInput
-                  style={[styles.textInput, styles.descriptionInput]}
-                  value={editedDescription}
-                  onChangeText={setEditedDescription}
-                  placeholder="Enter description"
-                  multiline
-                  numberOfLines={4}
-                />
+                {/* Court Location for Court Hearings */}
+                {editingItem?.type === 'court-hearing' && (
+                  <>
+                    <Text style={styles.fieldLabel}>Immigration Court</Text>
+                    <View style={styles.pickerContainer}>
+                      <TouchableOpacity
+                        style={styles.courtPicker}
+                        activeOpacity={0.7}
+                        onPress={() => {
+                          console.log('Court picker button pressed, current state:', showCourtPicker);
+                          console.log('Opening court picker, hiding edit modal temporarily');
+                          setShowCourtPicker(true);
+                        }}
+                      >
+                        <Text style={styles.courtPickerText}>
+                          {editedCourt ? (getCourtByCode(editedCourt)?.name || editedCourt) : 'Select Immigration Court'}
+                        </Text>
+                        <Ionicons name="chevron-down" size={20} color={Colors.textSecondary} />
+                      </TouchableOpacity>
+                    </View>
+                  </>
+                )}
+
+                <Text style={styles.fieldLabel}>Description (Auto-generated)</Text>
+                <View style={[styles.textInput, styles.descriptionDisplay]}>
+                  <Text style={styles.descriptionText}>
+                    {editingItem ? generateDescription(editingItem, editedCourt || undefined) : editedDescription}
+                  </Text>
+                </View>
 
                 <Text style={styles.fieldLabel}>Date</Text>
                 <TouchableOpacity
                   style={styles.dateButton}
-                  onPress={() => setShowDatePicker(true)}
+                  onPress={() => {
+                    console.log('Date picker button pressed, current state:', showDatePicker);
+                    console.log('Opening date picker, hiding edit modal temporarily');
+                    setShowDatePicker(true);
+                  }}
+                  activeOpacity={0.7}
                 >
                   <Ionicons name="calendar" size={20} color={Colors.primary} />
                   <Text style={styles.dateButtonText}>
-                    {editedDate.toLocaleDateString()}
+                    {editedDate.toLocaleDateString('en-US', {
+                      weekday: 'short',
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric'
+                    })}
                   </Text>
+                  <Ionicons name="chevron-down" size={20} color={Colors.textSecondary} />
                 </TouchableOpacity>
-
-                {showDatePicker && (
-                  <DateTimePicker
-                    value={editedDate}
-                    mode="date"
-                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                    onChange={(_, selectedDate) => {
-                      setShowDatePicker(false);
-                      if (selectedDate) {
-                        setEditedDate(selectedDate);
-                      }
-                    }}
-                  />
-                )}
               </ScrollView>
 
               <View style={styles.modalFooter}>
@@ -1220,6 +1302,136 @@ export const DashboardScreen: React.FC<HomeStackScreenProps<'Dashboard'>> = () =
                   onPress={handleSaveEdit}
                 >
                   <Text style={styles.modalSaveText}>Save Changes</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Date Picker Modal */}
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={showDatePicker && editModalVisible}
+          onRequestClose={() => {
+            console.log('Date picker modal close requested');
+            setShowDatePicker(false);
+          }}
+        >
+          <View style={styles.dateModalOverlay}>
+            <View style={styles.dateModalContent}>
+              <View style={styles.dateModalHeader}>
+                <Text style={styles.dateModalTitle}>Select Date</Text>
+                <TouchableOpacity
+                  style={styles.modalCloseButton}
+                  onPress={() => setShowDatePicker(false)}
+                >
+                  <Ionicons name="close" size={24} color={Colors.textSecondary} />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.datePickerContainer}>
+                <DateTimePicker
+                  value={editedDate}
+                  mode="date"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  onChange={(_, selectedDate) => {
+                    console.log('Date picker changed:', selectedDate);
+                    if (selectedDate) {
+                      setEditedDate(selectedDate);
+                    }
+                    if (Platform.OS === 'android') {
+                      setShowDatePicker(false);
+                    }
+                  }}
+                  style={styles.datePicker}
+                />
+              </View>
+
+              <View style={styles.dateModalFooter}>
+                <TouchableOpacity
+                  style={styles.modalCancelButton}
+                  onPress={() => setShowDatePicker(false)}
+                >
+                  <Text style={styles.modalCancelText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.modalSaveButton}
+                  onPress={() => {
+                    console.log('Date picker done pressed, selected date:', editedDate);
+                    setShowDatePicker(false);
+                  }}
+                >
+                  <Text style={styles.modalSaveText}>Done</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Court Picker Modal */}
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={showCourtPicker && editModalVisible}
+          onRequestClose={() => {
+            console.log('Court picker modal close requested');
+            setShowCourtPicker(false);
+          }}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.courtPickerModal}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Select Immigration Court</Text>
+                <TouchableOpacity
+                  style={styles.modalCloseButton}
+                  onPress={() => setShowCourtPicker(false)}
+                >
+                  <Ionicons name="close" size={24} color={Colors.textSecondary} />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView style={styles.courtList}>
+                {US_IMMIGRATION_COURTS.map((court) => (
+                  <TouchableOpacity
+                    key={court.code}
+                    style={[
+                      styles.courtItem,
+                      editedCourt === court.code && styles.courtItemSelected
+                    ]}
+                    onPress={() => {
+                      console.log('Selected court:', court.code, court.name);
+                      setEditedCourt(court.code);
+                      setShowCourtPicker(false);
+                    }}
+                  >
+                    <View style={styles.courtItemContent}>
+                      <Text style={[
+                        styles.courtItemName,
+                        editedCourt === court.code && styles.courtItemNameSelected
+                      ]}>
+                        {court.name}
+                      </Text>
+                      <Text style={[
+                        styles.courtItemLocation,
+                        editedCourt === court.code && styles.courtItemLocationSelected
+                      ]}>
+                        {court.city}, {court.state}
+                      </Text>
+                    </View>
+                    {editedCourt === court.code && (
+                      <Ionicons name="checkmark" size={20} color={Colors.white} />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+
+              <View style={styles.modalFooter}>
+                <TouchableOpacity
+                  style={styles.modalCancelButton}
+                  onPress={() => setShowCourtPicker(false)}
+                >
+                  <Text style={styles.modalCancelText}>Cancel</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -1810,7 +2022,7 @@ const styles = StyleSheet.create({
   // Modal Styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: Colors.overlay,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1878,6 +2090,7 @@ const styles = StyleSheet.create({
   dateButton: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     backgroundColor: Colors.background,
     borderRadius: 8,
     borderWidth: 1,
@@ -1889,6 +2102,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.textPrimary,
     marginLeft: 8,
+    flex: 1,
   },
   modalFooter: {
     flexDirection: 'row',
@@ -1927,6 +2141,147 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontSize: 16,
     textAlign: 'center',
+  },
+
+  // Court Picker Styles
+  pickerContainer: {
+    marginBottom: 16,
+  },
+  courtPicker: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    backgroundColor: Colors.background,
+  },
+  courtPickerText: {
+    ...Typography.body,
+    color: Colors.textPrimary,
+    flex: 1,
+  },
+
+  // Description Display Styles
+  descriptionDisplay: {
+    backgroundColor: '#F5F5F5',
+    borderColor: Colors.border,
+    marginBottom: 16,
+    minHeight: 80,
+    justifyContent: 'center',
+  },
+  descriptionText: {
+    ...Typography.body,
+    color: Colors.textSecondary,
+    fontStyle: 'italic',
+  },
+
+  // Date Picker Modal Styles
+  dateModalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+  },
+  dateModalContent: {
+    backgroundColor: Colors.white,
+    borderRadius: 16,
+    width: '90%',
+    maxWidth: 400,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  dateModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  dateModalTitle: {
+    ...Typography.h3,
+    color: Colors.textPrimary,
+  },
+  datePickerContainer: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  datePicker: {
+    width: '100%',
+    height: 200,
+  },
+  dateModalFooter: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    gap: 12,
+  },
+
+  // Court Picker Modal Styles
+  courtPickerModal: {
+    backgroundColor: Colors.white,
+    borderRadius: 16,
+    margin: 20,
+    maxHeight: '80%',
+    width: '90%',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  courtList: {
+    maxHeight: 400,
+    paddingHorizontal: 20,
+  },
+  courtItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    marginVertical: 4,
+    backgroundColor: Colors.background,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  courtItemSelected: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  courtItemContent: {
+    flex: 1,
+  },
+  courtItemName: {
+    ...Typography.h5,
+    color: Colors.textPrimary,
+    fontWeight: '600',
+    fontSize: 16,
+    marginBottom: 4,
+  },
+  courtItemNameSelected: {
+    color: Colors.white,
+  },
+  courtItemLocation: {
+    ...Typography.body,
+    color: Colors.textSecondary,
+    fontSize: 14,
+  },
+  courtItemLocationSelected: {
+    color: Colors.white,
+    opacity: 0.9,
   },
 
   // RTL Layout Support

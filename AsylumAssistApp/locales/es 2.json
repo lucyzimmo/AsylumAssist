@@ -1,0 +1,193 @@
+{
+  "dashboard": {
+    "title": "Tu Proceso de Asilo",
+    "nextDeadlineHeader": "Tu Próxima Fecha Límite",
+    "timelineHeader": "Tu Cronología de Asilo",
+    "urgentBadge": "URGENTE",
+    "addToCalendar": "Agregar al Calendario",
+    "getDirections": "Obtener Direcciones",
+    "callUSCIS": "Llamar a USCIS",
+    "calendar": "Calendario",
+    "completedItems": "Elementos Completados",
+    "completedItems_plural": "Elementos Completados ({{count}})",
+    "loadingTimeline": "Cargando tu cronología...",
+    "markComplete": "Marcar Completo",
+    "markCompleteDescription": "Marcar este elemento como completo o incompleto",
+    "editNote": "Editar Nota",
+    "editNoteDescription": "Editar este elemento de la cronología",
+    "addAllToCalendar": "Agregar Todo al Calendario",
+    "noTimelineData": "No hay datos de cronología disponibles. Por favor completa el cuestionario para generar tu cronología personalizada.",
+    "completeQuestionnaire": "Completar Cuestionario"
+  },
+  "countdown": {
+    "daysRemaining": "Queda {{count}} día",
+    "daysRemaining_plural": "Quedan {{count}} días",
+    "dayRemaining": "QUEDA 1 DÍA",
+    "daysRemainingCaps": "QUEDAN {{count}} DÍAS",
+    "today": "HOY",
+    "overdue": "VENCIDO",
+    "eligibleNow": "ELEGIBLE AHORA"
+  },
+  "timeline": {
+    "categories": {
+      "courtDates": "Fechas de Corte y Audiencias",
+      "filingDeadlines": "Fechas Límite de Presentación",
+      "workAuthorization": "Acciones de Autorización de Trabajo",
+      "supportiveNotes": "Notas de Apoyo"
+    },
+    "items": {
+      "courtHearing": {
+        "title": "Audiencia de Corte de Inmigración",
+        "description": "Comparecer en {{court}} ({{location}}). No comparecer puede resultar en una orden de deportación.",
+        "descriptionGeneric": "Comparecer en tu corte asignada. No comparecer puede resultar en una orden de deportación."
+      },
+      "i589Deadline": {
+        "title": "Fecha Límite I-589",
+        "description": "Presenta tu solicitud de asilo dentro de un año de llegada. Perder esta fecha límite limita severamente tus opciones."
+      },
+      "workPermit": {
+        "title": "Elegibilidad para Permiso de Trabajo (I-765)",
+        "description": "Puedes ser elegible para solicitar el Documento de Autorización de Empleo 150 días después de presentar I-589. Llama a USCIS para confirmar tu estado de elegibilidad."
+      },
+      "biometrics": {
+        "title": "Cita de Biometría",
+        "description": "Asiste a tu cita de biometría (típicamente 2-6 semanas después de presentar)"
+      },
+      "tpsExpiration": {
+        "title": "Expiración del Estado TPS",
+        "description": "Presenta la solicitud de asilo antes de que expire TPS para mantener la elegibilidad de excepción"
+      },
+      "paroleExpiration": {
+        "title": "Expiración del Estado de Libertad Condicional",
+        "description": "Presenta la solicitud de asilo antes de que expire la libertad condicional para mantener la elegibilidad de excepción"
+      },
+      "lateFilingOptions": {
+        "title": "Puede Aplicar Excepción",
+        "titleNoException": "Considerar Suspensión de Deportación",
+        "description": "Tu estado TPS/Libertad Condicional puede proporcionar una excepción al plazo de un año",
+        "descriptionNoException": "Plazo de un año vencido. Aún puedes solicitar Suspensión de Deportación o protección CAT."
+      },
+      "findEntryDate": {
+        "title": "Encuentra tu Fecha de Entrada",
+        "description": "Usa la búsqueda I-94 para determinar tu fecha de llegada para cálculos de fechas límite"
+      },
+      "findCourt": {
+        "title": "Identifica tu Corte de Inmigración",
+        "description": "Contacta EOIR o revisa documentos del caso para encontrar tu corte asignada"
+      }
+    },
+    "subItems": {
+      "gatherEvidence": "Reunir Evidencia de Apoyo",
+      "gatherEvidenceDesc": "Recopilar documentos, informes de condiciones del país, declaraciones juradas de testigos y testimonio personal",
+      "findAttorney": "Conseguir Representación Legal",
+      "findAttorneyDesc": "Encontrar un abogado de inmigración inmediatamente si no tienes uno",
+      "findAttorneyUrgent": "Conseguir Representación Legal",
+      "findAttorneyUrgentDesc": "Encontrar un abogado de inmigración inmediatamente si no tienes uno",
+      "filingFee": "Preparar Tarifa de Presentación",
+      "filingFeeDesc": "Se requiere tarifa de presentación de $100 (a partir del 22 de julio, 2025) - exención de tarifa disponible si es elegible",
+      "confirmEligibility": "Confirmar Elegibilidad",
+      "confirmEligibilityDesc": "Llamar a USCIS al 1-800-375-5283 para verificar que puedes solicitar autorización de trabajo",
+      "getPhotos": "Obtener Fotos de Pasaporte",
+      "getPhotosDesc": "Se requieren 2 fotos estilo pasaporte para la solicitud I-765",
+      "noFee": "Sin Tarifa de Presentación",
+      "noFeeDesc": "I-765 es gratis para solicitantes de asilo - no pagues si te lo piden"
+    },
+    "actionTexts": {
+      "checkI94": "Verificar I-94",
+      "checkEOIR": "Verificar EOIR"
+    }
+  },
+  "welcome": {
+    "title": "Bienvenido a AsylumAssist",
+    "subtitle": "Tu compañero digital para navegar el proceso de asilo en Estados Unidos",
+    "features": {
+      "timeline": {
+        "title": "Gestión de Cronología",
+        "description": "Rastrea fechas límite importantes y fechas de corte"
+      },
+      "forms": {
+        "title": "Asistencia con Formularios",
+        "description": "Obtén ayuda para llenar I-589 y otros formularios"
+      },
+      "resources": {
+        "title": "Recursos Legales",
+        "description": "Encuentra organizaciones de ayuda legal y apoyo"
+      }
+    },
+    "loginPrompt": "¿Ya tienes una cuenta?",
+    "loginLink": "Iniciar sesión",
+    "getStarted": "Comenzar",
+    "doLater": "Lo haré más tarde"
+  },
+  "auth": {
+    "login": {
+      "title": "Iniciar sesión",
+      "username": "Nombre de usuario",
+      "password": "Contraseña",
+      "usernamePlaceholder": "Ingresa tu nombre de usuario",
+      "passwordPlaceholder": "Ingresa tu contraseña",
+      "showPassword": "Mostrar contraseña",
+      "hidePassword": "Ocultar contraseña",
+      "loginButton": "Iniciar sesión",
+      "usernameRequired": "El nombre de usuario es requerido",
+      "passwordRequired": "La contraseña es requerida",
+      "usernameValidation": "El nombre de usuario debe tener 3-20 caracteres (letras, números, guión bajo solamente)",
+      "passwordMinLength": "La contraseña debe tener al menos 8 caracteres",
+      "loginFailed": "Error al iniciar sesión",
+      "loginError": "Nombre de usuario o contraseña inválidos",
+      "loginGenericError": "Algo salió mal. Por favor intenta de nuevo."
+    },
+    "signup": {
+      "title": "Crear Cuenta",
+      "getStarted": "Comenzar"
+    }
+  },
+  "calendar": {
+    "permissionRequired": "Permiso de Calendario Requerido",
+    "permissionMessage": "Para agregar eventos a tu calendario, por favor habilita el acceso al calendario en la configuración de tu dispositivo.",
+    "cancel": "Cancelar",
+    "openSettings": "Abrir Configuración",
+    "noCalendar": "No se encontró calendario en tu dispositivo.",
+    "eventAdded": "✅ Evento Agregado",
+    "eventAddedMessage": "\"{{title}}\" ha sido agregado a tu calendario con recordatorios.",
+    "eventsAdded": "✅ Eventos Agregados",
+    "eventsAddedMessage": "Se agregaron exitosamente {{count}} de {{total}} eventos a tu calendario con recordatorios automáticos.",
+    "error": "Error",
+    "errorMessage": "No se pudo agregar el evento al calendario. Por favor intenta de nuevo."
+  },
+  "notifications": {
+    "disabled": "Notificaciones Deshabilitadas",
+    "disabledMessage": "Para recibir recordatorios importantes de fechas límite, por favor habilita las notificaciones en la configuración de tu dispositivo.",
+    "deadlineAlert": "🚨 Alerta de Fecha Límite de Asilo",
+    "deadlineAlertMessage": "{{title}} está en {{count}} día. ¡No pierdas esta fecha límite crítica!",
+    "deadlineAlertMessage_plural": "{{title}} está en {{count}} días. ¡No pierdas esta fecha límite crítica!",
+    "error": "Error de Notificación",
+    "errorMessage": "No se pudieron programar las notificaciones de recordatorio. Por favor verifica la configuración de notificaciones."
+  },
+  "languageSwitcher": {
+    "selectLanguage": "Seleccionar Idioma",
+    "openLanguageSelector": "Abrir selector de idioma",
+    "restartRequired": "Reinicio Requerido",
+    "restartMessage": "Por favor reinicia la aplicación para aplicar el cambio de dirección del diseño.",
+    "errorMessage": "No se pudo cambiar el idioma. Por favor intenta de nuevo."
+  },
+  "authLanding": {
+    "tagline": "Tu guía confiable a través del proceso de asilo",
+    "supportText": "Rastrea fechas límite, gestiona documentos, encuentra ayuda legal",
+    "signUp": "Registrarse",
+    "logIn": "Iniciar sesión"
+  },
+  "common": {
+    "logout": "Cerrar Sesión",
+    "help": "Ayuda",
+    "ok": "OK",
+    "yes": "Sí",
+    "no": "No",
+    "save": "Guardar",
+    "edit": "Editar",
+    "delete": "Eliminar",
+    "confirm": "Confirmar",
+    "loading": "Cargando...",
+    "error": "Error"
+  }
+}
