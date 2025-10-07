@@ -1,4 +1,4 @@
-# Zowy for Asylum
+# AsylumAssist for Asylum
 
 A React Native app built with Expo to help asylum seekers navigate the U.S. immigration process.
 
